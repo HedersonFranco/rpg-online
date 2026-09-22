@@ -250,7 +250,7 @@ Ao fechar uma etapa: `chore: etapa N concluída — critérios verificados`.
 | 2 | Modelagem no Prisma + migration + seeds | 🔄 Schema + migration prontos — falta o seed (bloqueado nos dados do livro) |
 | 3 | Autenticação (JWT, convite com expiração) | ✅ Concluída |
 | 4 | CRUD de Sala e Membros | ✅ Concluída |
-| 5 | Motor de cálculo isolado + testes | ⬜ |
+| 5 | Motor de cálculo isolado + testes | 🔄 Motor + testes prontos — falta conferir contra o livro (bloqueado, dados não levantados) |
 | 6 | CRUD de Ficha (sem tempo real) | ⬜ |
 | 7 | CRUD de NPC e Pastas | ⬜ |
 | 8 | Frontend consumindo REST | ⬜ |
@@ -302,11 +302,13 @@ Ao fechar uma etapa: `chore: etapa N concluída — critérios verificados`.
 > Criador da sala vira `MembroSala` com papel `MESTRE` automaticamente (decisão nova: `donoId` e o papel em `MembroSala` são conceitos separados no schema, mas sem isso o dono nunca teria papel de mestre nas checagens de autorização). `Sala.donoId` não tem cascade delete (protege contra apagar usuário que ainda é dono de sala) — só `Sala → MembroSala/Ficha/Npc/...` casca.
 
 ### Etapa 5 — Motor de cálculo
-- [ ] `npm test` passa cobrindo **cada classe × ≥ 3 tiers de NEX**
-- [ ] Bordas cobertas: NEX 5% e NEX 99%
-- [ ] Roda **sem banco** (progressão injetada ou mockada)
-- [ ] ≥ 3 resultados conferidos manualmente contra o livro ou o C.R.I.S.
-- [ ] Entrada inválida (NEX negativo, classe inexistente) → erro tratado, não crash
+- [x] `npm test` passa cobrindo **cada classe × ≥ 3 tiers de NEX** (COMBATENTE/ESPECIALISTA/OCULTISTA × NEX 5/50/99)
+- [x] Bordas cobertas: NEX 5% e NEX 99%
+- [x] Roda **sem banco** (progressão injetada como parâmetro — `calcularFicha(entrada, tabelaProgressao)`)
+- [ ] ≥ 3 resultados conferidos manualmente contra o livro ou o C.R.I.S. — **bloqueado**: os testes usam tabela **mock** (valores inventados só pra exercitar a lógica), não os valores reais do livro. Mesmo bloqueio da Etapa 2 (dados do livro não levantados). Não marcar esta etapa como concluída de fato até isso ser resolvido.
+- [x] Entrada inválida (NEX negativo, NEX 0, NEX > 99, classe inexistente, NEX sem linha na tabela) → erro tratado, não crash
+
+> **OP2 (Ordem Paranormal RPG II — Playtest Alpha, Ago/2026):** o usuário pediu suporte aos dois sistemas. Investiguei o PDF enviado e **não há fórmula de PV/PD publicada nesse playtest** — as fichas são pré-prontas ("sobreviventes") e o texto diz explicitamente que a ficha de criação completa "será apresentada em um playtest futuro". Por isso não existe (ainda) um motor de cálculo de OP2 equivalente ao de OP1 — seria inventar uma regra que o próprio livro não publicou. O que É concreto e foi implementado: `engine/op2/escalaDados.ts` (a escala de step d4↔d12, com d20 como exceção — mecânica real e testada) e `engine/op2/catalogo.ts` (3 atributos — Físico/Mente/Emoção — e as 20 perícias com atributo-base, extraídos literalmente do PDF). Isso é só fundação de dados; schema/seed/ficha de OP2 **não fazem parte do pipeline de 11 etapas** (que é todo OP1) e ficam pra quando isso for decidido explicitamente.
 
 ### Etapa 6 — Ficha
 - [ ] `POST /salas/:id/fichas` retorna PV/PE/San máximos **já calculados**
