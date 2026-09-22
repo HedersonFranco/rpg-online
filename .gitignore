@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Scratch (nunca versionar — pode conter texto extraído de PDFs com direitos autorais)
+.tmp
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
