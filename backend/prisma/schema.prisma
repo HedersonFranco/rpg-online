@@ -271,6 +271,8 @@ model FichaRitual {
   @@unique([fichaId, ritualId])
 }
 
+// Bloco de estatística fixo — não passa pelo motor de cálculo. pe/san são
+// de OP1, pd é de OP2; o service rejeita campo do sistema errado pra sala.
 model Npc {
   id         String   @id @default(uuid())
   salaId     String
@@ -279,6 +281,7 @@ model Npc {
   pv         Int?
   pe         Int?
   san        Int?
+  pd         Int?
   atributos  String?
   avatarUrl  String?
   createdAt  DateTime @default(now())
