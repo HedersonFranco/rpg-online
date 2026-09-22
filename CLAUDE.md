@@ -243,7 +243,7 @@ Ao fechar uma etapa: `chore: etapa N concluída — critérios verificados`.
 
 | # | Etapa | Status |
 |---|---|---|
-| 1 | Setup e configuração | 🔄 Quase — faltam ESLint e runner de teste no backend |
+| 1 | Setup e configuração | 🔄 Quase — falta confirmar visualmente uma classe Tailwind no navegador |
 | 2 | Modelagem no Prisma + migration + seeds | 🔄 Iniciada — schema ainda é stub, sem models |
 | 3 | Autenticação (JWT, convite com expiração) | ⬜ |
 | 4 | CRUD de Sala e Membros | ⬜ |
