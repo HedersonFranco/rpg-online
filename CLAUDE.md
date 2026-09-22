@@ -261,7 +261,7 @@ Ao fechar uma etapa: `chore: etapa N concluída — critérios verificados`.
 - [x] `vite.config.ts` carrega `@tailwindcss/vite`; `index.css` tem `@import "tailwindcss"`
 - [x] `.env` fora do Git, `.env.example` presente
 - [x] **ESLint configurado no backend** (hoje só existe no frontend) + script `lint`
-- [ ] **Runner de teste no backend** — `npm test` hoje só imprime erro; a Etapa 5 depende disso (sugestão: `vitest` ou o `node:test` nativo)
+- [x] **Runner de teste no backend** — `vitest` instalado e confirmado rodando sob TS 7 + `tsx` (teste sanity temporário passou); `npm test` hoje falha com "no test files" porque a Etapa 5 ainda não escreveu testes
 - [ ] Confirmar visualmente que uma classe Tailwind renderiza no navegador
 
 ### Etapa 2 — Modelagem no Prisma
