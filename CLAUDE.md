@@ -27,7 +27,7 @@ Isso significa: estados de erro, estados de carregamento e confirmação em aç�
 **Tailwind v4** usa `@tailwindcss/vite` e `@import "tailwindcss"` no CSS, não PostCSS legado.
 **Prisma 7** usa `prisma7.config.ts` para `datasource.url` — o `schema.prisma` não declara `url` diretamente.
 **Prisma 7 exige driver adapter** — `PrismaClient` não conecta sem um adapter. Usar `@prisma/adapter-pg` + `pg`: `new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) })`. Todo service que instanciar o client precisa disso (idealmente um client singleton compartilhado quando os módulos forem escritos).
-**`typescript-eslint` não suporta TS 7** (bloqueio confirmado, não só peer warning — [issue #10940](https://github.com/typescript-eslint/typescript-eslint/issues/10940)). ESLint do backend usa `@babel/eslint-parser` + `@babel/preset-typescript` só para sintaxe — **sem regras tipadas**. Revisar quando a issue fechar.
+**`typescript-eslint` não suporta TS 7** (bloqueio confirmado, não só peer warning — [issue #10940](https://github.com/typescript-eslint/typescript-eslint/issues/10940)). ESLint do backend usa `@babel/eslint-parser` + `@babel/preset-typescript` só para sintaxe — **sem regras tipadas**. Por isso `no-unused-vars` está desligado: Babel não enxerga `import type { X }` usado só em anotação de tipo como uso, e todo handler Express tipado (`Request`/`Response`/`NextFunction`) cairia nesse falso positivo. Revisar tudo isso quando a issue fechar.
 
 ---
 
@@ -248,7 +248,7 @@ Ao fechar uma etapa: `chore: etapa N concluída — critérios verificados`.
 |---|---|---|
 | 1 | Setup e configuração | 🔄 Quase — falta confirmar visualmente uma classe Tailwind no navegador |
 | 2 | Modelagem no Prisma + migration + seeds | 🔄 Schema + migration prontos — falta o seed (bloqueado nos dados do livro) |
-| 3 | Autenticação (JWT, convite com expiração) | ⬜ |
+| 3 | Autenticação (JWT, convite com expiração) | ✅ Concluída |
 | 4 | CRUD de Sala e Membros | ⬜ |
 | 5 | Motor de cálculo isolado + testes | ⬜ |
 | 6 | CRUD de Ficha (sem tempo real) | ⬜ |
@@ -282,12 +282,14 @@ Ao fechar uma etapa: `chore: etapa N concluída — critérios verificados`.
 > **Bloqueio conhecido:** os dados do livro (lista de perícias com atributo-base, tabela de progressão por NEX) ainda não foram levantados. O schema pode ser escrito sem eles; o **seed não**.
 
 ### Etapa 3 — Autenticação
-- [ ] `POST /auth/cadastro` cria usuário e retorna token válido
-- [ ] `POST /auth/login` com senha errada → **401**
-- [ ] Rota protegida sem header `Authorization` → **401**; token expirado → **401**
-- [ ] `senha_hash` no banco não contém a senha em texto plano
-- [ ] Convite tem expiração; convite vencido é rejeitado ao ser usado
-- [ ] 11ª tentativa de login no mesmo minuto pelo mesmo IP → **429**
+- [x] `POST /auth/cadastro` cria usuário e retorna token válido
+- [x] `POST /auth/login` com senha errada → **401**
+- [x] Rota protegida (`GET /auth/me`) sem header `Authorization` → **401**; token expirado → **401**
+- [x] `senha_hash` no banco não contém a senha em texto plano (bcryptjs, 10 rounds)
+- [x] Convite tem expiração — **só a função pura** (`engine/convite.ts`, testada com vitest); endpoint de consumo (entrar na sala) é Etapa 4, por decisão
+- [x] 11ª tentativa de login no mesmo minuto pelo mesmo IP → **429** (testado com 15 requisições em sequência)
+
+> Rate limit aplicado em `/auth` inteiro (cadastro + login compartilham o mesmo limiter), não só login — conforme a meta não funcional "Rate limit em `/auth`: 10 tentativas/min por IP".
 
 ### Etapa 4 — Sala e Membros
 - [ ] Sala criada aparece em `GET /salas`
