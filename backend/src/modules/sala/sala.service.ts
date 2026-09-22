@@ -58,7 +58,7 @@ export async function listarSalasDoUsuario(usuarioId: string) {
 export async function buscarSalaOuFalhar(salaId: string, usuarioId: string) {
   const sala = await prisma.sala.findUnique({
     where: { id: salaId },
-    include: { membros: true },
+    include: { membros: { include: { usuario: { select: { id: true, nome: true } } } } },
   })
 
   const souMembro =
