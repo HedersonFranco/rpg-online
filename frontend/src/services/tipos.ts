@@ -92,6 +92,25 @@ export type Combate = {
 
 export type Npc = { id: string; nome: string }
 
+export type Mapa = { id: string; nome: string; imagemUrl: string; salaId: string }
+
+// Dados que o backend libera pro token: da ficha, nome e PV; do NPC, só nome/avatar.
+export type Token = {
+  id: string
+  mapaId: string
+  x: number
+  y: number
+  nome: string | null
+  fichaId: string | null
+  npcId: string | null
+  ficha: { id: string; nome: string; usuario_id: string; avatarUrl: string | null; pv_atual: number; pv_maximo_cache: number } | null
+  npc: { id: string; nome: string; avatarUrl: string | null } | null
+}
+
+export type EstadoMapa = { mapa: Mapa | null; tokens: Token[] }
+
+export type ParticipanteVideo = { usuarioId: string; nome: string; peerId: string; temCamera: boolean }
+
 export const NOME_SISTEMA: Record<Sistema, string> = {
   ORDEM_PARANORMAL_1: 'Ordem Paranormal RPG',
   ORDEM_PARANORMAL_2: 'Ordem Paranormal RPG II (playtest)',

@@ -5,6 +5,7 @@ export type NomeIcone =
   | 'sair' | 'voltar' | 'copiar' | 'microfoneDesligado'
   | 'cursor' | 'mover' | 'zoomMais' | 'zoomMenos' | 'telaCheia'
   | 'mais' | 'menos' | 'dados'
+  | 'camera' | 'cameraDesligada' | 'microfone' | 'lixeira' | 'ajustar'
 
 const caminhos: Record<NomeIcone, ReactNode> = {
   mesa: (<><rect x="3" y="3" width="7" height="9" rx="1" /><rect x="14" y="3" width="7" height="5" rx="1" /><rect x="14" y="12" width="7" height="9" rx="1" /><rect x="3" y="16" width="7" height="5" rx="1" /></>),
@@ -25,6 +26,11 @@ const caminhos: Record<NomeIcone, ReactNode> = {
   mais: <path d="M12 5v14M5 12h14" />,
   menos: <path d="M5 12h14" />,
   dados: (<><rect x="3" y="3" width="18" height="18" rx="3" /><circle cx="8.5" cy="8.5" r="1" /><circle cx="15.5" cy="15.5" r="1" /><circle cx="12" cy="12" r="1" /></>),
+  camera: (<><path d="m16 13 5 3V8l-5 3" /><rect x="2" y="6" width="14" height="12" rx="2" /></>),
+  cameraDesligada: (<><path d="M2 2l20 20" /><path d="M16 16v1a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2M10 5h4a2 2 0 0 1 2 2v3.3l5-3.3v10" /></>),
+  microfone: (<><rect x="9" y="2" width="6" height="12" rx="3" /><path d="M19 10a7 7 0 0 1-14 0M12 17v5" /></>),
+  lixeira: (<><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" /></>),
+  ajustar: (<><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M8 12h8M12 8v8" /></>),
 }
 
 export function Icone({ nome, className = 'h-5 w-5' }: { nome: NomeIcone; className?: string }) {

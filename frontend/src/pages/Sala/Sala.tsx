@@ -7,6 +7,8 @@ import { Alerta, Carregando } from '../../components/ui/Feedback'
 import { Icone, type NomeIcone } from '../../components/ui/Icone'
 import { classeBotaoSecundario } from '../../components/ui/estilos'
 import { AreaMapa } from '../../components/MapaToken/AreaMapa'
+import { GerenciarMapas } from '../../components/MapaToken/GerenciarMapas'
+import { FaixaVideo } from '../../components/Video/FaixaVideo'
 import { BarraTurno } from '../../components/TurnoTracker/BarraTurno'
 import { PainelFicha } from '../../components/FichaOrdemParanormal/PainelFicha'
 import { PainelChat } from '../../components/Chat/PainelChat'
@@ -89,31 +91,6 @@ export default function Sala() {
   )
 }
 
-function FaixaVideo({ sala, usuario }: { sala: SalaDetalhe; usuario: Usuario }) {
-  return (
-    <section aria-label="Participantes" className="flex h-28 shrink-0 gap-2 overflow-x-auto border-b border-zinc-800 bg-zinc-900/60 p-2">
-      {sala.membros.map((membro) => (
-        <div key={membro.id} className="relative flex w-40 shrink-0 items-center justify-center rounded-lg bg-zinc-800">
-          <span aria-hidden="true" className="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-700 text-lg font-semibold text-zinc-200">
-            {membro.usuario.nome.charAt(0).toUpperCase()}
-          </span>
-          <div className="absolute inset-x-2 bottom-1.5 flex items-center justify-between gap-1">
-            <span className="truncate text-xs text-zinc-200">
-              {membro.usuario.nome}{membro.usuarioId === usuario.id && ' (você)'}
-            </span>
-            <span title="Áudio ainda não disponível" className="text-zinc-500">
-              <Icone nome="microfoneDesligado" className="h-3.5 w-3.5" />
-            </span>
-          </div>
-          {membro.papel === 'MESTRE' && (
-            <span className="absolute top-1.5 left-1.5 rounded bg-violet-600 px-1.5 py-0.5 text-[10px] font-semibold text-white">Mestre</span>
-          )}
-        </div>
-      ))}
-    </section>
-  )
-}
-
 function Mesa({ sala }: { sala: SalaDetalhe }) {
   const usuario = useUsuarioLogado()
   const { sair } = useAuth()
@@ -161,7 +138,9 @@ function Mesa({ sala }: { sala: SalaDetalhe }) {
             <div className="flex min-w-0 flex-1 flex-col">
               <FaixaVideo sala={sala} usuario={usuario} />
               {secao === 'mesa' ? (
-                <AreaMapa />
+                <AreaMapa salaId={sala.id} usuarioId={usuario.id} souMestre={souMestre} />
+              ) : secao === 'mapa' ? (
+                <GerenciarMapas salaId={sala.id} souMestre={souMestre} onMostrado={() => setSecao('mesa')} />
               ) : (
                 <section className="flex flex-1 items-center justify-center text-sm text-zinc-500">
                   Esta seção ainda não está disponível nesta versão.

@@ -1,45 +1,269 @@
+import { useRef, useState, type PointerEvent } from 'react'
+import { useRecurso } from '../../hooks/useRecurso'
+import { useAoResincronizar, useEventoSocket, useSalaSocket } from '../../hooks/useSocket'
+import { api, BASE_URL, mensagemDeErro } from '../../services/api'
+import type { EstadoMapa, Ficha, Token } from '../../services/tipos'
+import { Alerta, Carregando } from '../ui/Feedback'
 import { Icone, type NomeIcone } from '../ui/Icone'
+import { AdicionarToken } from './AdicionarToken'
+import { TokenNoMapa } from './TokenNoMapa'
+import { nomeDoToken, tipoDoToken } from './token'
+import { useViewport } from './useViewport'
 
-function BotaoFerramenta({ icone, rotulo, ativo = false }: { icone: NomeIcone; rotulo: string; ativo?: boolean }) {
+type Ferramenta = 'selecionar' | 'mover'
+type Arraste = {
+  tokenId: string
+  pointerId: number
+  inicio: { x: number; y: number }
+  origem: { x: number; y: number }
+  atual: { x: number; y: number }
+  ultimoEnvio: number
+}
+
+const INTERVALO_ENVIO_MS = 33 // ~30 atualizações/s durante o arrasto
+
+function BotaoBarra({ icone, rotulo, onClick, ativo = false, desabilitado = false }: {
+  icone: NomeIcone; rotulo: string; onClick?: () => void; ativo?: boolean; desabilitado?: boolean
+}) {
   return (
-    <button type="button" aria-label={rotulo} title={rotulo} aria-pressed={ativo}
-      className={`rounded-md p-2 ${ativo ? 'bg-violet-600 text-white' : 'text-zinc-300 hover:bg-zinc-800'}`}>
+    <button type="button" aria-label={rotulo} title={rotulo} aria-pressed={ativo} onClick={onClick} disabled={desabilitado}
+      className={`rounded-md p-2 disabled:cursor-not-allowed disabled:text-zinc-600 ${ativo ? 'bg-violet-600 text-white' : 'text-zinc-300 hover:bg-zinc-800'}`}>
       <Icone nome={icone} />
     </button>
   )
 }
 
-// Estrutura final da área do mapa (toolbar, zoom, seletor de piso) já no
-// lugar; carregar mapa e tokens é da etapa de mapa — até lá, estado vazio.
-export function AreaMapa() {
-  const semMapa = 'Nenhum mapa carregado'
+export function AreaMapa({ salaId, usuarioId, souMestre }: { salaId: string; usuarioId: string; souMestre: boolean }) {
+  const { estado, recarregar, revalidar, atualizar } = useRecurso<EstadoMapa>(`/salas/${salaId}/mapa-ativo`)
+  const { socket, emitir } = useSalaSocket()
+  const container = useRef<HTMLDivElement>(null)
+  const { visao, zoomNoCentro, ajustar, telaParaMapa, relativo, manipuladores } = useViewport(container)
+  const [ferramenta, setFerramenta] = useState<Ferramenta>('selecionar')
+  const [selecionado, setSelecionado] = useState<string | null>(null)
+  const [novoTokenEm, setNovoTokenEm] = useState<{ x: number; y: number } | null>(null)
+  const [erro, setErro] = useState<string | null>(null)
+  const [tamanho, setTamanho] = useState<{ largura: number; altura: number } | null>(null)
+  const [arrastandoId, setArrastandoId] = useState<string | null>(null)
+  const arraste = useRef<Arraste | null>(null)
+
+  const moverLocal = (tokenId: string, x: number, y: number) =>
+    atualizar((e) => ({ ...e, tokens: e.tokens.map((t) => (t.id === tokenId ? { ...t, x, y } : t)) }))
+
+  useAoResincronizar(revalidar)
+  useEventoSocket<EstadoMapa>('mapa:ativo', (novo) => {
+    atualizar(() => novo)
+    setSelecionado(null)
+    setTamanho(null)
+  })
+  useEventoSocket<{ token: Token }>('token:criado', ({ token }) =>
+    atualizar((e) => (e.mapa?.id === token.mapaId && !e.tokens.some((t) => t.id === token.id) ? { ...e, tokens: [...e.tokens, token] } : e)),
+  )
+  useEventoSocket<{ tokenId: string }>('token:removido', ({ tokenId }) =>
+    atualizar((e) => ({ ...e, tokens: e.tokens.filter((t) => t.id !== tokenId) })),
+  )
+  useEventoSocket<{ tokenId: string; x: number; y: number }>('token:movido', ({ tokenId, x, y }) => {
+    if (arraste.current?.tokenId === tokenId) return // quem arrasta manda na posição local
+    moverLocal(tokenId, x, y)
+  })
+  // Token de ficha mostra dados vivos da ficha (PV muda no painel → muda no mapa).
+  useEventoSocket<{ ficha: Ficha }>('ficha:atualizada', ({ ficha }) =>
+    atualizar((e) => ({
+      ...e,
+      tokens: e.tokens.map((t) =>
+        t.ficha && t.fichaId === ficha.id
+          ? { ...t, ficha: { ...t.ficha, nome: ficha.nome, avatarUrl: ficha.avatarUrl, pv_atual: ficha.pv_atual, pv_maximo_cache: ficha.pv_maximo_cache } }
+          : t,
+      ),
+    })),
+  )
+
+  const podeMover = (token: Token) => souMestre || token.ficha?.usuario_id === usuarioId
+
+  function aoPressionarToken(e: PointerEvent<HTMLButtonElement>, token: Token) {
+    if (ferramenta === 'mover') return // deixa o evento subir: arrastar o mapa por cima do token
+    e.stopPropagation()
+    setSelecionado(token.id)
+    if (!podeMover(token)) return
+    e.currentTarget.setPointerCapture(e.pointerId)
+    arraste.current = {
+      tokenId: token.id,
+      pointerId: e.pointerId,
+      inicio: relativo(e.clientX, e.clientY),
+      origem: { x: token.x, y: token.y },
+      atual: { x: token.x, y: token.y },
+      ultimoEnvio: 0,
+    }
+    setArrastandoId(token.id)
+  }
+
+  function aoMoverToken(e: PointerEvent<HTMLButtonElement>) {
+    const a = arraste.current
+    if (!a || a.pointerId !== e.pointerId) return
+    const p = relativo(e.clientX, e.clientY)
+    const x = a.origem.x + (p.x - a.inicio.x) / visao.escala
+    const y = a.origem.y + (p.y - a.inicio.y) / visao.escala
+    a.atual = { x, y }
+    moverLocal(a.tokenId, x, y)
+    const agora = performance.now()
+    if (agora - a.ultimoEnvio >= INTERVALO_ENVIO_MS) {
+      a.ultimoEnvio = agora
+      // volatile: posição intermediária pode ser descartada se a rede engasgar; a final não.
+      socket.volatile.emit('token:mover', { tokenId: a.tokenId, x, y, final: false })
+    }
+  }
+
+  function aoSoltarToken(e: PointerEvent<HTMLButtonElement>) {
+    const a = arraste.current
+    if (!a || a.pointerId !== e.pointerId) return
+    arraste.current = null
+    setArrastandoId(null)
+    if (a.atual.x === a.origem.x && a.atual.y === a.origem.y) return
+    emitir('token:mover', { tokenId: a.tokenId, x: a.atual.x, y: a.atual.y, final: true }).catch((erroEnvio: unknown) => {
+      setErro(mensagemDeErro(erroEnvio))
+      moverLocal(a.tokenId, a.origem.x, a.origem.y)
+    })
+  }
+
+  async function removerToken(token: Token) {
+    if (!window.confirm(`Remover o token "${nomeDoToken(token)}" do mapa?`)) return
+    try {
+      await api(`/tokens/${token.id}`, { method: 'DELETE' })
+      setSelecionado(null)
+    } catch (e) {
+      setErro(mensagemDeErro(e))
+    }
+  }
+
+  async function alternarTelaCheia() {
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen()
+      else await container.current?.requestFullscreen()
+    } catch {
+      setErro('O navegador não permitiu tela cheia.')
+    }
+  }
+
+  const mapa = estado.tipo === 'ok' ? estado.dados.mapa : null
+  const tokens = estado.tipo === 'ok' ? estado.dados.tokens : []
+  const tokenSelecionado = tokens.find((t) => t.id === selecionado)
+  // Chamado no clique (não no render): o token novo nasce no centro do que está
+  // visível — deslocado pro lado se já houver token ali, pra não nascer escondido embaixo de outro.
+  function alternarAdicionar() {
+    if (novoTokenEm) return setNovoTokenEm(null)
+    const r = container.current?.getBoundingClientRect()
+    const posicao = telaParaMapa({ x: (r?.width ?? 0) / 2, y: (r?.height ?? 0) / 2 })
+    // Em pixels de TELA: o que importa é não nascer visualmente em cima de outro no zoom atual.
+    const ocupado = (p: { x: number; y: number }) => tokens.some((t) => Math.hypot(t.x - p.x, t.y - p.y) * visao.escala < 90)
+    for (let tentativa = 0; tentativa < 20 && ocupado(posicao); tentativa++) posicao.x += 110 / visao.escala
+    setNovoTokenEm(posicao)
+  }
+  const pararPropagacao = { onPointerDown: (e: PointerEvent) => e.stopPropagation() }
+
   return (
-    <section aria-label="Mapa" className="relative flex-1 overflow-hidden bg-zinc-950"
-      style={{ backgroundImage: 'radial-gradient(rgb(63 63 70 / 0.6) 1px, transparent 1px)', backgroundSize: '24px 24px' }}>
-      <div className="absolute top-3 left-3 flex flex-col gap-1 rounded-lg border border-zinc-800 bg-zinc-900/90 p-1">
-        <BotaoFerramenta icone="cursor" rotulo="Selecionar" ativo />
-        <BotaoFerramenta icone="mover" rotulo="Mover mapa" />
+    <section
+      ref={container}
+      aria-label="Mapa"
+      className={`relative flex-1 touch-none overflow-hidden bg-zinc-950 select-none ${ferramenta === 'mover' ? 'cursor-move' : ''}`}
+      style={{ backgroundImage: 'radial-gradient(rgb(63 63 70 / 0.6) 1px, transparent 1px)', backgroundSize: '24px 24px' }}
+      {...manipuladores}
+      onPointerDown={(e) => {
+        setSelecionado(null)
+        manipuladores.onPointerDown(e)
+      }}
+    >
+      {mapa && (
+        <div data-testid="camada-mapa" className="absolute top-0 left-0" style={{ transform: `translate(${visao.x}px, ${visao.y}px)` }}>
+          <img
+            src={BASE_URL + mapa.imagemUrl}
+            alt={`Mapa: ${mapa.nome}`}
+            draggable={false}
+            onLoad={(e) => {
+              const { naturalWidth: largura, naturalHeight: altura } = e.currentTarget
+              setTamanho({ largura, altura })
+              ajustar(largura, altura)
+            }}
+            className="pointer-events-none block max-w-none"
+            style={{ width: tamanho ? tamanho.largura * visao.escala : undefined }}
+          />
+          {tokens.map((token) => (
+            <TokenNoMapa
+              key={token.id}
+              token={token}
+              escala={visao.escala}
+              selecionado={token.id === selecionado}
+              podeMover={podeMover(token)}
+              arrastando={token.id === arrastandoId}
+              onPointerDown={(e) => aoPressionarToken(e, token)}
+              onPointerMove={aoMoverToken}
+              onPointerUp={aoSoltarToken}
+            />
+          ))}
+        </div>
+      )}
+
+      {estado.tipo === 'carregando' && <div className="absolute inset-0 flex items-center justify-center"><Carregando texto="Carregando mapa..." /></div>}
+      {estado.tipo === 'erro' && (
+        <div className="absolute inset-0 flex items-center justify-center p-6" {...pararPropagacao}>
+          <div className="w-full max-w-sm"><Alerta mensagem={estado.mensagem} onTentarNovamente={recarregar} /></div>
+        </div>
+      )}
+      {estado.tipo === 'ok' && !mapa && (
+        <div className="pointer-events-none flex h-full flex-col items-center justify-center px-6 text-center">
+          <Icone nome="mapa" className="h-10 w-10 text-zinc-700" />
+          <p className="mt-3 font-medium text-zinc-300">Nenhum mapa na mesa</p>
+          <p className="mt-1 text-sm text-zinc-500">
+            {souMestre ? 'Envie um mapa na seção "Mapa" da barra lateral e mostre na mesa.' : 'Quando o mestre mostrar um mapa, ele aparece aqui.'}
+          </p>
+        </div>
+      )}
+
+      <div className="absolute top-3 left-3 flex flex-col gap-1 rounded-lg border border-zinc-800 bg-zinc-900/90 p-1" {...pararPropagacao}>
+        <BotaoBarra icone="cursor" rotulo="Selecionar e arrastar tokens" ativo={ferramenta === 'selecionar'} onClick={() => setFerramenta('selecionar')} />
+        <BotaoBarra icone="mover" rotulo="Mover mapa" ativo={ferramenta === 'mover'} onClick={() => setFerramenta('mover')} />
+        {souMestre && <BotaoBarra icone="mais" rotulo="Adicionar token" onClick={alternarAdicionar} desabilitado={!mapa} ativo={novoTokenEm !== null} />}
       </div>
 
-      <div className="absolute top-3 right-3">
-        <select disabled aria-label="Piso" className="rounded-md border border-zinc-800 bg-zinc-900 px-3 py-1.5 text-sm text-zinc-400">
+      {novoTokenEm && mapa && (
+        <AdicionarToken salaId={salaId} mapaId={mapa.id} posicao={novoTokenEm} onFechar={() => setNovoTokenEm(null)} />
+      )}
+
+      <div className="absolute top-3 right-3" {...pararPropagacao}>
+        <select disabled aria-label="Piso" title="Mapas com vários pisos chegam numa versão futura"
+          className="rounded-md border border-zinc-800 bg-zinc-900 px-3 py-1.5 text-sm text-zinc-400">
           <option>Piso 1</option>
         </select>
       </div>
 
-      <div className="absolute bottom-3 left-3 flex gap-1 rounded-lg border border-zinc-800 bg-zinc-900/90 p-1">
-        {(['zoomMenos', 'zoomMais', 'telaCheia'] as const).map((icone) => (
-          <button key={icone} type="button" disabled aria-label={icone === 'telaCheia' ? 'Tela cheia' : icone === 'zoomMais' ? 'Aumentar zoom' : 'Diminuir zoom'}
-            title={semMapa} className="rounded-md p-2 text-zinc-500 disabled:cursor-not-allowed">
-            <Icone nome={icone} />
-          </button>
-        ))}
-      </div>
+      {tokenSelecionado && (
+        <div role="dialog" aria-label={`Detalhes de ${nomeDoToken(tokenSelecionado)}`} {...pararPropagacao}
+          className="absolute top-3 left-1/2 flex -translate-x-1/2 items-center gap-3 rounded-lg border border-zinc-700 bg-zinc-900/95 px-3 py-2 text-sm shadow-xl">
+          <span className="font-semibold">{nomeDoToken(tokenSelecionado)}</span>
+          <span className="text-xs text-zinc-400">{tipoDoToken(tokenSelecionado)}</span>
+          {tokenSelecionado.ficha && (
+            <span className="text-xs text-zinc-300">PV {tokenSelecionado.ficha.pv_atual}/{tokenSelecionado.ficha.pv_maximo_cache}</span>
+          )}
+          {souMestre && (
+            <button type="button" onClick={() => removerToken(tokenSelecionado)} aria-label="Remover token"
+              className="rounded p-1 text-zinc-400 hover:bg-red-950 hover:text-red-300">
+              <Icone nome="lixeira" className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+      )}
 
-      <div className="flex h-full flex-col items-center justify-center text-center">
-        <Icone nome="mapa" className="h-10 w-10 text-zinc-700" />
-        <p className="mt-3 font-medium text-zinc-300">{semMapa}</p>
-        <p className="mt-1 text-sm text-zinc-500">Quando o mestre carregar um mapa, ele aparece aqui.</p>
+      {erro && (
+        <div role="alert" className="absolute right-3 bottom-3 max-w-xs rounded-md border border-red-900/60 bg-red-950/90 px-3 py-2 text-xs text-red-200" {...pararPropagacao}>
+          {erro}
+          <button type="button" onClick={() => setErro(null)} className="ml-2 text-red-300 underline">ok</button>
+        </div>
+      )}
+
+      <div className="absolute bottom-3 left-3 flex gap-1 rounded-lg border border-zinc-800 bg-zinc-900/90 p-1" {...pararPropagacao}>
+        <BotaoBarra icone="zoomMenos" rotulo="Diminuir zoom" onClick={() => zoomNoCentro(1 / 1.25)} desabilitado={!mapa} />
+        <BotaoBarra icone="zoomMais" rotulo="Aumentar zoom" onClick={() => zoomNoCentro(1.25)} desabilitado={!mapa} />
+        <BotaoBarra icone="ajustar" rotulo="Ajustar mapa à tela" onClick={() => tamanho && ajustar(tamanho.largura, tamanho.altura)} desabilitado={!tamanho} />
+        <BotaoBarra icone="telaCheia" rotulo="Tela cheia" onClick={alternarTelaCheia} />
+        <span className="self-center px-1 text-xs text-zinc-500 tabular-nums" aria-label="Nível de zoom">{Math.round(visao.escala * 100)}%</span>
       </div>
     </section>
   )
