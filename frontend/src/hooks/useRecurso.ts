@@ -34,9 +34,12 @@ export function useRecurso<T>(caminho: string) {
     setTentativa((t) => t + 1)
   }, [])
 
+  // Busca de novo sem voltar pra "carregando" — a tela continua mostrando o que tinha até chegar o novo.
+  const revalidar = useCallback(() => setTentativa((t) => t + 1), [])
+
   const atualizar = useCallback((transformar: (dados: T) => T) => {
     setEstado((atual) => (atual.tipo === 'ok' ? { tipo: 'ok', dados: transformar(atual.dados) } : atual))
   }, [])
 
-  return { estado, recarregar, atualizar }
+  return { estado, recarregar, revalidar, atualizar }
 }
