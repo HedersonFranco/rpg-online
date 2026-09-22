@@ -18,16 +18,34 @@ type DadosFicha = {
   avatarUrl?: string
 }
 
-function validarCamposBasicos(dados: Partial<DadosFicha>) {
-  if (dados.nome !== undefined && !dados.nome.trim()) {
-    throw new AppError('Nome da ficha é obrigatório', 400)
+const ATRIBUTOS = ['for', 'agi', 'int', 'vig', 'pre'] as const
+const INCLUIR_PERICIAS = { pericias: { include: { pericia: true } } } as const
+
+function validarAtributos(dados: Partial<DadosFicha>, obrigatorio: boolean) {
+  for (const atributo of ATRIBUTOS) {
+    const valor = dados[atributo]
+    if (valor === undefined && !obrigatorio) continue
+    if (!Number.isInteger(valor) || (valor as number) < 0) {
+      throw new AppError(`Atributo "${atributo}" deve ser um inteiro maior ou igual a 0`, 400)
+    }
   }
-  if (dados.origem !== undefined && !dados.origem.trim()) {
-    throw new AppError('Origem é obrigatória', 400)
+}
+
+// obrigatorio=true na criação (campo ausente é erro); false no PATCH (ausente = não mexe).
+function validarCamposBasicos(dados: Partial<DadosFicha>, obrigatorio: boolean) {
+  const textos = [
+    ['nome', 'Nome da ficha é obrigatório'],
+    ['origem', 'Origem é obrigatória'],
+    ['trilha', 'Trilha é obrigatória'],
+  ] as const
+  for (const [campo, mensagem] of textos) {
+    const valor = dados[campo]
+    if (valor === undefined && !obrigatorio) continue
+    if (typeof valor !== 'string' || !valor.trim()) {
+      throw new AppError(mensagem, 400)
+    }
   }
-  if (dados.trilha !== undefined && !dados.trilha.trim()) {
-    throw new AppError('Trilha é obrigatória', 400)
-  }
+  validarAtributos(dados, obrigatorio)
 }
 
 async function carregarTabelasDeCalculo(classe: string) {
@@ -62,7 +80,7 @@ export async function criarFicha(usuarioId: string, salaId: string, dados: Dados
     )
   }
 
-  validarCamposBasicos(dados)
+  validarCamposBasicos(dados, true)
 
   const nex = dados.nex ?? 5
   const atributos: AtributosOP1 = {
@@ -99,6 +117,7 @@ export async function criarFicha(usuarioId: string, salaId: string, dados: Dados
       inventario: dados.inventario,
       avatarUrl: dados.avatarUrl,
     },
+    include: INCLUIR_PERICIAS,
   })
 
   return { ficha, habilidadesDesbloqueadas: resultado.habilidadesDesbloqueadas }
@@ -106,13 +125,17 @@ export async function criarFicha(usuarioId: string, salaId: string, dados: Dados
 
 export async function listarFichasDaSala(salaId: string, usuarioId: string) {
   await buscarSalaOuFalhar(salaId, usuarioId)
-  return prisma.ficha.findMany({ where: { salaId }, orderBy: { createdAt: 'asc' } })
+  return prisma.ficha.findMany({
+    where: { salaId },
+    orderBy: { createdAt: 'asc' },
+    include: INCLUIR_PERICIAS,
+  })
 }
 
 // Qualquer membro da sala pode ver a ficha (não só o dono dela) — a mesa
 // toda enxerga as fichas uns dos outros. Não-membro recebe 404.
 export async function buscarFichaOuFalhar(fichaId: string, usuarioId: string) {
-  const ficha = await prisma.ficha.findUnique({ where: { id: fichaId } })
+  const ficha = await prisma.ficha.findUnique({ where: { id: fichaId }, include: INCLUIR_PERICIAS })
   if (!ficha) {
     throw new AppError('Ficha não encontrada', 404)
   }
@@ -128,7 +151,7 @@ export async function atualizarFicha(
 ) {
   const ficha = await buscarFichaOuFalhar(fichaId, usuarioId)
   await garantirAutorizacaoEdicao(ficha, usuarioId)
-  validarCamposBasicos(dados)
+  validarCamposBasicos(dados, false)
 
   const nex = dados.nex ?? ficha.nex
   const atributos: AtributosOP1 = {
@@ -167,14 +190,15 @@ export async function atualizarFicha(
   const pe_atual = dados.pe_atual ?? ficha.pe_atual
   const san_atual = dados.san_atual ?? ficha.san_atual
 
-  if (pv_atual < 0 || pv_atual > pv_maximo_cache) {
-    throw new AppError(`pv_atual deve estar entre 0 e ${pv_maximo_cache}`, 400)
-  }
-  if (pe_atual < 0 || pe_atual > pe_maximo_cache) {
-    throw new AppError(`pe_atual deve estar entre 0 e ${pe_maximo_cache}`, 400)
-  }
-  if (san_atual < 0 || san_atual > san_maximo_cache) {
-    throw new AppError(`san_atual deve estar entre 0 e ${san_maximo_cache}`, 400)
+  const recursos = [
+    ['pv_atual', pv_atual, pv_maximo_cache],
+    ['pe_atual', pe_atual, pe_maximo_cache],
+    ['san_atual', san_atual, san_maximo_cache],
+  ] as const
+  for (const [campo, atual, maximo] of recursos) {
+    if (!Number.isInteger(atual) || atual < 0 || atual > maximo) {
+      throw new AppError(`${campo} deve ser um inteiro entre 0 e ${maximo}`, 400)
+    }
   }
 
   const atualizado = await prisma.ficha.update({
@@ -199,6 +223,7 @@ export async function atualizarFicha(
       inventario: dados.inventario,
       avatarUrl: dados.avatarUrl,
     },
+    include: INCLUIR_PERICIAS,
   })
 
   return { ficha: atualizado, habilidadesDesbloqueadas }
