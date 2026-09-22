@@ -20,6 +20,11 @@ export default defineConfig([
     rules: {
       ...js.configs.recommended.rules,
       'no-undef': 'off',
+      // Babel só faz parsing de tipos, não os enxerga como uso — todo
+      // `import type { X } from 'express'` referenciado só em anotação de
+      // tipo (ex.: `req: Request`) aparece como não usado. Sem alternativa
+      // enquanto não há suporte a TS7 no typescript-eslint (ver CLAUDE.md).
+      'no-unused-vars': 'off',
     },
   },
 ])
