@@ -6,6 +6,11 @@ export async function criarController(req: Request, res: Response) {
   res.status(201).json(npc)
 }
 
+export async function listarController(req: Request, res: Response) {
+  const npcs = await npcService.listarNpcs(req.usuarioId!, req.params.id!)
+  res.json(npcs)
+}
+
 export async function buscarController(req: Request, res: Response) {
   const npc = await npcService.buscarNpc(req.usuarioId!, req.params.id!)
   res.json(npc)

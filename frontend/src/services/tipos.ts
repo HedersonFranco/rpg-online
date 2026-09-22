@@ -57,6 +57,41 @@ export type Ficha = {
   pericias: FichaPericia[]
 }
 
+export type Mensagem = {
+  id: string
+  conteudo: string
+  createdAt: string
+  usuario: { id: string; nome: string }
+}
+
+export type Rolagem = {
+  id: string
+  autor: { id: string; nome: string }
+  expressao: string
+  dados: number[]
+  total: number
+  modo: 'soma' | 'maior' | 'menor'
+  criadoEm: string
+}
+
+export type Participante = {
+  id: string
+  nome: string
+  iniciativa: number
+  tipo: 'FICHA' | 'NPC'
+  refId: string
+  usuarioId: string | null
+}
+
+export type Combate = {
+  id: string
+  rodada: number
+  indiceAtivo: number
+  ordem: Participante[]
+}
+
+export type Npc = { id: string; nome: string }
+
 export const NOME_SISTEMA: Record<Sistema, string> = {
   ORDEM_PARANORMAL_1: 'Ordem Paranormal RPG',
   ORDEM_PARANORMAL_2: 'Ordem Paranormal RPG II (playtest)',

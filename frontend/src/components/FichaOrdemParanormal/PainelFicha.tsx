@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useRecurso } from '../../hooks/useRecurso'
+import { useAoResincronizar, useEventoSocket } from '../../hooks/useSocket'
 import type { Ficha, SalaDetalhe, Usuario } from '../../services/tipos'
 import { Alerta, Carregando } from '../ui/Feedback'
 import { classeInput } from '../ui/estilos'
@@ -21,8 +22,17 @@ export function PainelFicha({ sala, usuario }: { sala: SalaDetalhe; usuario: Usu
 }
 
 function PainelFichaOP1({ sala, usuario }: { sala: SalaDetalhe; usuario: Usuario }) {
-  const { estado, recarregar, atualizar } = useRecurso<Ficha[]>(`/salas/${sala.id}/fichas`)
+  const { estado, recarregar, revalidar, atualizar } = useRecurso<Ficha[]>(`/salas/${sala.id}/fichas`)
   const [selecionada, setSelecionada] = useState<string | null>(null)
+
+  // Qualquer alteração de ficha na sala (inclusive de outra aba/jogador) chega aqui já calculada pelo backend.
+  useEventoSocket<{ ficha: Ficha }>('ficha:atualizada', ({ ficha }) =>
+    atualizar((lista) =>
+      lista.some((f) => f.id === ficha.id) ? lista.map((f) => (f.id === ficha.id ? ficha : f)) : [...lista, ficha],
+    ),
+  )
+  // Voltou de uma queda de conexão: o que mudou enquanto offline vem do REST.
+  useAoResincronizar(revalidar)
 
   if (estado.tipo === 'carregando') return <Carregando texto="Carregando fichas..." />
   if (estado.tipo === 'erro') return <Alerta mensagem={estado.mensagem} onTentarNovamente={recarregar} />

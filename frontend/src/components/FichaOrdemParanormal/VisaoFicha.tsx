@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useAtrasado } from '../../hooks/useAtrasado'
 import { api, mensagemDeErro } from '../../services/api'
-import { NOME_CLASSE, NOME_NIVEL_TREINO, type Ficha } from '../../services/tipos'
+import { NEX_TIERS, NOME_CLASSE, NOME_NIVEL_TREINO, type Ficha } from '../../services/tipos'
 import { Alerta, Spinner } from '../ui/Feedback'
 import { Icone } from '../ui/Icone'
 
@@ -44,18 +44,15 @@ export function VisaoFicha({
   onAtualizada: (ficha: Ficha) => void
 }) {
   const [aba, setAba] = useState<Aba>('pericias')
-  const [pendente, setPendente] = useState<Recurso | null>(null)
+  const [pendente, setPendente] = useState<Recurso | 'nex' | null>(null)
   const [erro, setErro] = useState<string | null>(null)
   const mostrarSpinner = useAtrasado(pendente !== null)
 
-  async function ajustar(recurso: Recurso, delta: number) {
+  async function enviar(campo: Recurso | 'nex', corpo: Record<string, number>) {
     setErro(null)
-    setPendente(recurso)
+    setPendente(campo)
     try {
-      const { ficha: atualizada } = await api<{ ficha: Ficha }>(`/fichas/${ficha.id}`, {
-        method: 'PATCH',
-        body: { [`${recurso}_atual`]: atualDe(ficha, recurso) + delta },
-      })
+      const { ficha: atualizada } = await api<{ ficha: Ficha }>(`/fichas/${ficha.id}`, { method: 'PATCH', body: corpo })
       onAtualizada(atualizada)
     } catch (e) {
       setErro(mensagemDeErro(e))
@@ -63,6 +60,9 @@ export function VisaoFicha({
       setPendente(null)
     }
   }
+
+  const ajustar = (recurso: Recurso, delta: number) =>
+    enviar(recurso, { [`${recurso}_atual`]: atualDe(ficha, recurso) + delta })
 
   return (
     <div className="space-y-4">
@@ -91,9 +91,17 @@ export function VisaoFicha({
       </div>
 
       <div>
-        <div className="mb-1 flex justify-between text-xs text-zinc-400">
+        <div className="mb-1 flex items-center justify-between text-xs text-zinc-400">
           <span>NEX</span>
-          <span className="font-semibold text-zinc-200">{ficha.nex}%</span>
+          {podeEditar ? (
+            <select aria-label="NEX" value={ficha.nex} disabled={pendente !== null}
+              onChange={(e) => enviar('nex', { nex: Number(e.target.value) })}
+              className="rounded border border-zinc-700 bg-zinc-900 px-1 py-0.5 font-semibold text-zinc-200">
+              {NEX_TIERS.map((n) => <option key={n} value={n}>{n}%</option>)}
+            </select>
+          ) : (
+            <span className="font-semibold text-zinc-200">{ficha.nex}%</span>
+          )}
         </div>
         <div className="h-2 rounded-full bg-zinc-800">
           <div className="h-2 rounded-full bg-violet-500" style={{ width: `${ficha.nex}%` }} />

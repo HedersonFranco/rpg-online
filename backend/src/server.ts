@@ -1,3 +1,4 @@
+import { createServer } from "node:http";
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
@@ -7,6 +8,7 @@ import { fichaRoutes } from "./modules/ficha/ficha.routes.js";
 import { npcRoutes } from "./modules/npc/npc.routes.js";
 import { pastaRoutes } from "./modules/pasta/pasta.routes.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
+import { iniciarSocket } from "./sockets/io.js";
 
 dotenv.config();
 
@@ -28,6 +30,9 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 3333;
 
-app.listen(PORT, () => {
+const httpServer = createServer(app);
+iniciarSocket(httpServer);
+
+httpServer.listen(PORT, () => {
   console.log(`Backend rodando na porta ${PORT}`);
 });

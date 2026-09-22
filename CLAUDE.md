@@ -72,6 +72,16 @@ Isso significa: estados de erro, estados de carregamento e confirmação em aç�
   - **Estado do combate é efêmero** — vive em memória do processo Node, sem tabela no banco. Se o servidor reiniciar, o estado se perde e a UI deve avisar claramente ("Sessão reiniciada — reinicie o combate").
 - Reconexão automática (socket e vídeo) sem exigir reload manual; cliente reconectado pede o estado atual via `turno:estadoSolicitado`.
 
+### Tempo real — como está implementado (Etapa 9)
+- **Escrita continua pelo REST.** Ficha criada/alterada/perícia treinada: o service grava, e só então `emitirParaSala(salaId, 'ficha:atualizada', { ficha })` distribui. Nenhuma regra de validação duplicada no socket.
+- **Eventos cliente → servidor** (todos com ack `{ ok, ...dados }` ou `{ ok: false, erro, status }`): `sala:entrar`, `turno:estadoSolicitado`, `chat:enviar`, `rolagem:rolar`, `turno:iniciar` (mestre), `turno:encerrar`, `turno:finalizar` (mestre).
+- **Eventos servidor → sala:** `ficha:atualizada`, `chat:mensagem`, `rolagem:resultado`, `turno:estado`.
+- Socket autentica com o mesmo JWT (`auth.token` no handshake). Token recusado → cliente faz logout (o socket.io não tenta de novo nesse caso).
+- **Chat persiste** (`Mensagem`, até 1000 caracteres; histórico via `GET /salas/:id/mensagens`, últimas 50). **Rolagem não persiste**: o servidor rola (crypto, ninguém escolhe o resultado) e guarda só a última por sala em memória. Modos: soma, maior (teste de OP1) e menor (OP1 com atributo 0).
+- `turno:encerrar` manda `indiceAtivo`/`rodada` esperados: clique duplo simultâneo (jogador + mestre) não pula turno — o segundo recebe `409`.
+- **Detecção de reinício:** cada processo gera um `INSTANCIA_SERVIDOR`. Se o cliente tinha combate e, ao reconectar, a instância mudou e não há combate → aviso "Sessão reiniciada — reinicie o combate." e o estado local é limpo.
+- Heartbeat do socket: `pingInterval` 10s + `pingTimeout` 5s; backoff de reconexão do cliente máx. 5s → queda detectada e recuperada bem dentro dos 30s.
+
 ---
 
 ## Requisitos não funcionais (metas de lançamento)
@@ -149,11 +159,15 @@ rpg-online/
 │       │   ├── calculoFicha.ts       ← só OP1
 │       │   ├── progressaoClasse.ts   ← só OP1
 │       │   ├── convite.ts
+│       │   ├── combate.ts            ← ordem de iniciativa, avançar turno, quem pode encerrar
+│       │   ├── rolagem.ts            ← rolagem no servidor (soma/maior/menor)
 │       │   └── op2/
 │       │       ├── escalaDados.ts    ← step d4-d12
 │       │       └── catalogo.ts       ← atributos + perícias de OP2
 │       ├── sockets/
-│       │   └── salaSocket.ts
+│       │   ├── io.ts           ← servidor Socket.IO, auth JWT, emitirParaSala()
+│       │   ├── salaSocket.ts   ← eventos da sala (chat, rolagem, combate)
+│       │   └── estado.ts       ← combate/última rolagem em memória, INSTANCIA_SERVIDOR
 │       ├── middlewares/
 │       │   └── auth.ts
 │       ├── lib/
@@ -178,7 +192,8 @@ rpg-online/
 │       │   ├── Rotas.tsx       ← RotaProtegida / RotaPublica
 │       │   └── ErrorBoundary.tsx
 │       ├── hooks/
-│       │   ├── useSocket.ts    ← Etapa 9
+│       │   ├── SalaSocketProvider.tsx / salaSocketContext.ts ← conexão da mesa, reconexão, aviso de reinício
+│       │   ├── useSocket.ts    ← useSalaSocket, useEventoSocket, useAoResincronizar
 │       │   ├── AuthProvider.tsx / authContext.ts / useAuth.ts
 │       │   ├── useRecurso.ts   ← GET com estados carregando/erro/ok
 │       │   └── useAtrasado.ts  ← spinner só depois de 300ms
@@ -304,7 +319,7 @@ Ao fechar uma etapa: `chore: etapa N concluída — critérios verificados`.
 | 6 | CRUD de Ficha (sem tempo real) | 🔄 OP1 pronto — falta conferir contra o C.R.I.S. (sem acesso); FichaOP2 sem CRUD ainda |
 | 7 | CRUD de NPC e Pastas | ✅ Concluída |
 | 8 | Frontend consumindo REST | ✅ Concluída (UI de ficha só OP1) |
-| 9 | Tempo real (Socket.IO) + turno + reconexão | ⬜ |
+| 9 | Tempo real (Socket.IO) + turno + reconexão | ✅ Concluída |
 | 10 | Mapa, tokens e webcam | ⬜ |
 | 11 | Polimento e documentação formal | ⬜ |
 
@@ -392,13 +407,14 @@ Ao fechar uma etapa: `chore: etapa N concluída — critérios verificados`.
 > Extras: sessão expirada/token inválido volta pro login; rota protegida sem sessão redireciona pra `/login` e retorna ao destino depois; `ErrorBoundary` na raiz pega erro de render; zero erros inesperados no console. Seções da sidebar além de "Mesa", mapa, rolagem e áudio aparecem como "ainda não disponível" (são das Etapas 9/10) — honesto, não quebrado. **Fichas de OP2 não têm UI** (não há CRUD de `FichaOP2`); a mesa OP2 mostra essa explicação no painel.
 
 ### Etapa 9 — Tempo real (testar sempre com duas abas)
-- [ ] Alterar PV numa aba reflete na outra em < 1s
-- [ ] Alterar NEX recalcula os máximos e reflete na outra
-- [ ] Chat e rolagem de dados aparecem nas duas abas
-- [ ] Mestre inicia combate → ordem aparece nas duas → "Encerrar turno" avança
-- [ ] "Encerrar turno" por quem não é o jogador ativo nem mestre → rejeitado
-- [ ] DevTools → Offline → religar: socket reconecta sozinho em < 30s e o estado volta
-- [ ] Reiniciar o servidor durante combate → cliente avisa estado perdido, sem dados fantasma
+> Verificado com duas abas reais (Edge headless, `playwright-core` em diretório temporário fora do repo): aba do mestre + aba do jogador na mesma mesa, com o script subindo e **reiniciando o backend de verdade** no critério 7.
+- [x] Alterar PV numa aba reflete na outra em < 1s — medido: **90ms**
+- [x] Alterar NEX recalcula os máximos e reflete na outra — NEX 5% → 50% na aba do jogador, aba do mestre mostra PV máximo 59 (20 + Vig 3 + 9×4) em ~120ms
+- [x] Chat e rolagem de dados aparecem nas duas abas (mensagem com `<b>` aparece como texto — não é interpretada)
+- [x] Mestre inicia combate → ordem aparece nas duas → "Encerrar turno" avança (Zumbi 18 → Bianca 12 → rodada 2)
+- [x] "Encerrar turno" por quem não é o jogador ativo nem mestre → rejeitado **pelo servidor** (`403`, testado com cliente socket direto, não só o botão desabilitado)
+- [x] DevTools → Offline → religar: socket reconecta sozinho em < 30s e o estado volta — queda percebida em ~14s (heartbeat), reconectou **1,3s** depois de religar, e um PV alterado enquanto a aba estava offline apareceu após a reconexão
+- [x] Reiniciar o servidor durante combate → cliente avisa estado perdido, sem dados fantasma — as duas abas mostram "Sessão reiniciada — reinicie o combate." e a barra volta a "Nenhum combate em andamento", sem fila residual
 
 ### Etapa 10 — Mapa, tokens e webcam
 - [ ] Mapa até 10MB sobe; acima disso é rejeitado com mensagem clara
