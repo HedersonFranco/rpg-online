@@ -1,6 +1,8 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import { usuarioRoutes } from "./modules/usuario/usuario.routes.js";
+import { errorHandler } from "./middlewares/errorHandler.js";
 
 dotenv.config();
 
@@ -11,6 +13,10 @@ app.use(express.json());
 app.get("/health", (_req, res) => {
   res.json({ status: "ok" });
 });
+
+app.use("/auth", usuarioRoutes);
+
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 3333;
 
