@@ -289,7 +289,7 @@ Ao fechar uma etapa: `chore: etapa N concluída — critérios verificados`.
 | 3 | Autenticação (JWT, convite com expiração) | ✅ Concluída |
 | 4 | CRUD de Sala e Membros | ✅ Concluída |
 | 5 | Motor de cálculo isolado + testes | ✅ Concluída (só OP1 — OP2 não tem fórmula publicada, ver "Os dois sistemas") |
-| 6 | CRUD de Ficha (sem tempo real) | ⬜ |
+| 6 | CRUD de Ficha (sem tempo real) | 🔄 OP1 pronto — falta conferir contra o C.R.I.S. (sem acesso); FichaOP2 sem CRUD ainda |
 | 7 | CRUD de NPC e Pastas | ⬜ |
 | 8 | Frontend consumindo REST | ⬜ |
 | 9 | Tempo real (Socket.IO) + turno + reconexão | ⬜ |
@@ -348,13 +348,15 @@ Ao fechar uma etapa: `chore: etapa N concluída — critérios verificados`.
 
 > **OP2 (Ordem Paranormal RPG II — Playtest Alpha, Ago/2026):** o usuário pediu suporte aos dois sistemas. Investiguei o PDF enviado e **não há fórmula de PV/PD publicada nesse playtest** — as fichas são pré-prontas ("sobreviventes") e o texto diz explicitamente que a ficha de criação completa "será apresentada em um playtest futuro". Por isso não existe (ainda) um motor de cálculo de OP2 equivalente ao de OP1 — seria inventar uma regra que o próprio livro não publicou. O que É concreto e foi implementado: `engine/op2/escalaDados.ts` (a escala de step d4↔d12, com d20 como exceção — mecânica real e testada) e `engine/op2/catalogo.ts` (3 atributos — Físico/Mente/Emoção — e as 20 perícias com atributo-base, extraídos literalmente do PDF). Isso é só fundação de dados; schema/seed/ficha de OP2 **não fazem parte do pipeline de 11 etapas** (que é todo OP1) e ficam pra quando isso for decidido explicitamente.
 
-### Etapa 6 — Ficha
-- [ ] `POST /salas/:id/fichas` retorna PV/PE/San máximos **já calculados**
-- [ ] `PATCH /fichas/:id` alterando NEX recalcula os máximos na resposta
-- [ ] Jogador A editando ficha do Jogador B → **403**; mestre → **200**
-- [ ] Treinar perícia grava em `FichaPericia` e o bônus aparece no `GET`
-- [ ] `pv_atual > pv_maximo` é rejeitado pelo servidor
-- [ ] Uma ficha completa criada pela API bate com a mesma montada no C.R.I.S.
+### Etapa 6 — Ficha (só OP1 — ver nota sobre FichaOP2 abaixo)
+- [x] `POST /salas/:id/fichas` retorna PV/PE/San máximos **já calculados**
+- [x] `PATCH /fichas/:id` alterando NEX recalcula os máximos na resposta
+- [x] Jogador A editando ficha do Jogador B → **403**; mestre → **200**
+- [x] Treinar perícia grava em `FichaPericia` e o bônus aparece no `GET` (upsert testado via `POST /fichas/:id/pericias`)
+- [x] `pv_atual > pv_maximo` é rejeitado pelo servidor (`pe_atual`/`san_atual` também, mesma regra)
+- [ ] Uma ficha completa criada pela API bate com a mesma montada no C.R.I.S. — **não verificado**: não tenho acesso ao C.R.I.S. pra comparar ao vivo. A fórmula em si já foi conferida contra o livro (Etapa 5); esse item é especificamente sobre bater com a ferramenta C.R.I.S., que fica pendente de alguém rodar manualmente.
+
+> **FichaOP2 ainda não tem CRUD** — só o schema existe (Etapa "multissistema"). Como OP2 não tem motor de cálculo (fichas pré-prontas, sem fórmula), o CRUD dela seria mais simples (sem cálculo, só atribuição direta de pv/pd) mas não foi pedido nesta etapa — Etapa 6 como documentada é só OP1.
 
 ### Etapa 7 — NPC e Pastas
 - [ ] NPC criado retorna valores idênticos aos inseridos (sem passar pelo motor)

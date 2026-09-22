@@ -9,6 +9,10 @@ import {
   promoverMembroController,
   regenerarConviteController,
 } from './sala.controller.js'
+import {
+  criarController as criarFichaController,
+  listarController as listarFichasController,
+} from '../ficha/ficha.controller.js'
 
 export const salaRoutes = Router()
 
@@ -22,3 +26,5 @@ salaRoutes.get('/:id', buscarController)
 salaRoutes.delete('/:id', deletarController)
 salaRoutes.post('/:id/convite', regenerarConviteController)
 salaRoutes.patch('/:id/membros/:membroId', promoverMembroController)
+salaRoutes.post('/:id/fichas', criarFichaController)
+salaRoutes.get('/:id/fichas', listarFichasController)
