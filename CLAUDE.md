@@ -249,7 +249,7 @@ Ao fechar uma etapa: `chore: etapa N concluída — critérios verificados`.
 | 1 | Setup e configuração | 🔄 Quase — falta confirmar visualmente uma classe Tailwind no navegador |
 | 2 | Modelagem no Prisma + migration + seeds | 🔄 Schema + migration prontos — falta o seed (bloqueado nos dados do livro) |
 | 3 | Autenticação (JWT, convite com expiração) | ✅ Concluída |
-| 4 | CRUD de Sala e Membros | ⬜ |
+| 4 | CRUD de Sala e Membros | ✅ Concluída |
 | 5 | Motor de cálculo isolado + testes | ⬜ |
 | 6 | CRUD de Ficha (sem tempo real) | ⬜ |
 | 7 | CRUD de NPC e Pastas | ⬜ |
@@ -292,12 +292,14 @@ Ao fechar uma etapa: `chore: etapa N concluída — critérios verificados`.
 > Rate limit aplicado em `/auth` inteiro (cadastro + login compartilham o mesmo limiter), não só login — conforme a meta não funcional "Rate limit em `/auth`: 10 tentativas/min por IP".
 
 ### Etapa 4 — Sala e Membros
-- [ ] Sala criada aparece em `GET /salas`
-- [ ] 4ª sala do mesmo dono → erro claro (limite de 3)
-- [ ] Segundo usuário entra pelo link e vira `jogador` em `MembroSala`
-- [ ] Dono promove jogador a `mestre` e o papel muda no banco
-- [ ] Jogador tentando deletar a sala → **403**
-- [ ] Não-membro tentando `GET /salas/:id` → **403** ou **404**
+- [x] Sala criada aparece em `GET /salas`
+- [x] 4ª sala do mesmo dono → erro claro (limite de 3) — `400 {"error":"Limite de 3 salas por dono atingido"}`
+- [x] Segundo usuário entra pelo link e vira `jogador` em `MembroSala` — via `POST /salas/entrar`, consome `engine/convite.ts`
+- [x] Dono promove jogador a `mestre` e o papel muda no banco — `PATCH /salas/:id/membros/:membroId`
+- [x] Jogador tentando deletar a sala → **403**
+- [x] Não-membro tentando `GET /salas/:id` → **404** (escolhido em vez de 403, pra não confirmar a existência da sala pra quem não é membro)
+
+> Criador da sala vira `MembroSala` com papel `MESTRE` automaticamente (decisão nova: `donoId` e o papel em `MembroSala` são conceitos separados no schema, mas sem isso o dono nunca teria papel de mestre nas checagens de autorização). `Sala.donoId` não tem cascade delete (protege contra apagar usuário que ainda é dono de sala) — só `Sala → MembroSala/Ficha/Npc/...` casca.
 
 ### Etapa 5 — Motor de cálculo
 - [ ] `npm test` passa cobrindo **cada classe × ≥ 3 tiers de NEX**
