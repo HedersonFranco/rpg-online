@@ -1,4 +1,11 @@
-import { CLASSES_VALIDAS, buscarProgressao, type ProgressaoClasseEntry } from './progressaoClasse.js'
+import {
+  CLASSES_VALIDAS,
+  NEX_TIERS,
+  indiceTier,
+  habilidadesAcumuladas,
+  type ProgressaoClasseEntry,
+  type ClasseFormulaEntry,
+} from './progressaoClasse.js'
 
 export type AtributosOP1 = {
   for: number
@@ -8,7 +15,7 @@ export type AtributosOP1 = {
   pre: number
 }
 
-export type NivelTreinoPericia = 'LEIGO' | 'TREINADO' | 'VETERANO' | 'EXPERT'
+export type NivelTreinoPericia = 'DESTREINADO' | 'TREINADO' | 'VETERANO' | 'EXPERT'
 
 export type PericiaParaCalculo = {
   nome: string
@@ -31,11 +38,11 @@ export type ResultadoCalculoFicha = {
   habilidadesDesbloqueadas: string[]
 }
 
-// Bônus por nível de treino — mecânica conhecida de Ordem Paranormal 1ª ed.
-// Os VALORES da tabela de progressão em si (pv/pe/san por classe×NEX) ainda
-// não foram conferidos contra o livro/C.R.I.S. — ver bloqueio no CLAUDE.md.
+// Bônus por grau de treino — confirmado no livro (Ordem Paranormal RPG
+// v1.3, Cap. 2 "Testes e Treinamento"): Destreinado 0, Treinado +5,
+// Veterano +10, Expert +15.
 const BONUS_TREINO: Record<NivelTreinoPericia, number> = {
-  LEIGO: 0,
+  DESTREINADO: 0,
   TREINADO: 5,
   VETERANO: 10,
   EXPERT: 15,
@@ -43,19 +50,23 @@ const BONUS_TREINO: Record<NivelTreinoPericia, number> = {
 
 export function calcularFicha(
   entrada: EntradaCalculoFicha,
-  tabelaProgressao: ProgressaoClasseEntry[],
+  tabelaHabilidades: ProgressaoClasseEntry[],
+  formulas: ClasseFormulaEntry[],
 ): ResultadoCalculoFicha {
   if (!CLASSES_VALIDAS.includes(entrada.classe as (typeof CLASSES_VALIDAS)[number])) {
     throw new Error(`Classe inexistente: ${entrada.classe}`)
   }
 
-  if (!Number.isInteger(entrada.nex) || entrada.nex <= 0 || entrada.nex > 99) {
-    throw new Error(`NEX inválido: ${entrada.nex} (deve ser um inteiro entre 1 e 99)`)
+  const tier = indiceTier(entrada.nex)
+  if (tier === -1) {
+    throw new Error(
+      `NEX inválido: ${entrada.nex} (deve ser um dos tiers do jogo: ${NEX_TIERS.join(', ')})`,
+    )
   }
 
-  const progressao = buscarProgressao(tabelaProgressao, entrada.classe, entrada.nex)
-  if (!progressao) {
-    throw new Error(`Progressão não encontrada para classe ${entrada.classe} e NEX ${entrada.nex}`)
+  const formula = formulas.find((f) => f.classe === entrada.classe)
+  if (!formula) {
+    throw new Error(`Fórmula de progressão não encontrada para classe ${entrada.classe}`)
   }
 
   const bonusPericias: Record<string, number> = {}
@@ -64,12 +75,10 @@ export function calcularFicha(
   }
 
   return {
-    pv_maximo: progressao.pvMaximo,
-    pe_maximo: progressao.peMaximo,
-    san_maximo: progressao.sanMaximo,
+    pv_maximo: formula.pvBase + entrada.atributos.vig + formula.pvPorTier * tier,
+    pe_maximo: formula.peBase + entrada.atributos.pre + formula.pePorTier * tier,
+    san_maximo: formula.sanBase + formula.sanPorTier * tier,
     bonusPericias,
-    habilidadesDesbloqueadas: progressao.habilidades
-      ? progressao.habilidades.split(',').map((h) => h.trim())
-      : [],
+    habilidadesDesbloqueadas: habilidadesAcumuladas(tabelaHabilidades, entrada.classe, entrada.nex),
   }
 }
