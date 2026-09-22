@@ -81,6 +81,17 @@ Isso significa: estados de erro, estados de carregamento e confirmação em aç�
 - `turno:encerrar` manda `indiceAtivo`/`rodada` esperados: clique duplo simultâneo (jogador + mestre) não pula turno — o segundo recebe `409`.
 - **Detecção de reinício:** cada processo gera um `INSTANCIA_SERVIDOR`. Se o cliente tinha combate e, ao reconectar, a instância mudou e não há combate → aviso "Sessão reiniciada — reinicie o combate." e o estado local é limpo.
 - Heartbeat do socket: `pingInterval` 10s + `pingTimeout` 5s; backoff de reconexão do cliente máx. 5s → queda detectada e recuperada bem dentro dos 30s.
+- **Etapa 10 acrescentou:** `token:mover` (cliente → servidor; posições intermediárias voláteis, só a final grava no banco; permissão cacheada por conexão) → `token:movido` (pra sala, exceto quem arrastou); `mapa:ativo`, `token:criado`, `token:removido` (vindos do REST); presença de vídeo `video:entrar`/`video:sair`/`video:pedirReconexao` → `video:participantes`/`video:reconexaoPedida`.
+
+### Mapa, tokens e vídeo — como está implementado (Etapa 10)
+- **Mapa ativo por sala** (`Sala.mapaAtivoId`, persistido). Lista de mapas é só do mestre (material de preparo, pode ter spoiler); jogador só vê o ativo.
+- **Upload:** `multer` em memória, limite 10MB (`413` acima). Tipo detectado pelos **bytes** (PNG/JPEG/WebP), nunca pela extensão. `salvarArquivo()` em `lib/armazenamento.ts` grava em `backend/uploads/` (fora do Git) — é o único ponto a trocar por S3. Servido com `X-Content-Type-Options: nosniff`.
+- **Tokens:** só o mestre cria/remove; mestre move qualquer um, jogador só o da própria ficha (servidor valida, `403`). Posição em pixels da imagem original (zoom/pan não afetam o que vai pro servidor). Payload do token: da ficha, nome + PV; do NPC, só nome/avatar. Só o círculo é clicável (nome/barra não encolhem com zoom e cobririam vizinhos). Token novo nasce no centro da tela, desviado se já houver outro ali.
+- **Zoom/pan:** Pointer Events (mouse, toque e caneta com o mesmo código): 1 ponteiro arrasta, 2 fazem pinça; roda do mouse com zoom no cursor (listener nativo não-passivo).
+- **Vídeo (PeerJS, malha P2P, até 6 pessoas):** sinalização no **próprio backend** (`/peerjs`, não o servidor público do PeerJS). Cada par tem **uma** chamada, criada uma vez pelo `peerId` menor, com ou sem câmera. Sem câmera = trilhas vazias (vídeo preto 2×2 + áudio mudo); ligar/desligar câmera só troca a trilha (`replaceTrack`) — sem fechar/refazer conexão (o modelo anterior, que refazia a chamada a cada troca de câmera, tinha corridas: 4–8/10 em estresse; o atual, 30/30). Sucesso = ICE conectado (não o evento `stream`, que chega antes). Queda: quem liga tenta 3× com espera crescente, depois botão; quem atende espera 20s e oferece botão (que pede a religação pelo socket). Se a sinalização precisar ser recriada, a aba volta com **id novo** (o servidor PeerJS segura o id antigo por um tempo — "ID is taken") e os outros reconectam sozinhos.
+- **Câmera é opt-in** ("Entrar com câmera"). Recusa/ausência → aviso e modo texto+mapa. Autoplay com som bloqueado → cai pro mudo com botão "Ativar som" (só em `NotAllowedError`).
+- **Gancho de dev:** `window.__rpgVideo` (`derrubar`, `restaurar`, `diagnostico`) existe só em `import.meta.env.DEV` — some do build de produção.
+- **Armadilha resolvida:** o PeerJS usa a lib `ws`, que responde `400` a qualquer upgrade de WebSocket fora do caminho dela — isso derrubava o Socket.IO no mesmo servidor. `server.ts` passa ao PeerJS um emissor intermediário e só repassa os upgrades de `/peerjs`.
 
 ---
 
@@ -165,14 +176,18 @@ rpg-online/
 │       │       ├── escalaDados.ts    ← step d4-d12
 │       │       └── catalogo.ts       ← atributos + perícias de OP2
 │       ├── sockets/
-│       │   ├── io.ts           ← servidor Socket.IO, auth JWT, emitirParaSala()
-│       │   ├── salaSocket.ts   ← eventos da sala (chat, rolagem, combate)
+│       │   ├── io.ts           ← servidor Socket.IO, auth JWT
+│       │   ├── emissor.ts      ← emitirParaSala() (separado pra evitar import circular)
+│       │   ├── salaSocket.ts   ← eventos da sala (chat, rolagem, combate, tokens, vídeo)
 │       │   └── estado.ts       ← combate/última rolagem em memória, INSTANCIA_SERVIDOR
 │       ├── middlewares/
-│       │   └── auth.ts
+│       │   ├── auth.ts
+│       │   ├── upload.ts       ← multer, limite de 10MB
+│       │   └── errorHandler.ts
 │       ├── lib/
 │       │   ├── prisma.ts
-│       │   └── jwt.ts
+│       │   ├── jwt.ts
+│       │   └── armazenamento.ts ← salvarArquivo(), detecção de tipo pelos bytes
 │       └── generated/prisma/   ← gerado pelo Prisma, não editar nem versionar
 ├── frontend/
 │   └── src/
@@ -184,7 +199,8 @@ rpg-online/
 │       │   └── Convite/        ← /convite/:token (link de convite)
 │       ├── components/
 │       │   ├── FichaOrdemParanormal/
-│       │   ├── MapaToken/
+│       │   ├── MapaToken/      ← AreaMapa, useViewport (zoom/pan), TokenNoMapa, AdicionarToken, GerenciarMapas
+│       │   ├── Video/          ← FaixaVideo
 │       │   ├── Biblioteca/
 │       │   ├── Chat/
 │       │   ├── TurnoTracker/
@@ -196,9 +212,11 @@ rpg-online/
 │       │   ├── useSocket.ts    ← useSalaSocket, useEventoSocket, useAoResincronizar
 │       │   ├── AuthProvider.tsx / authContext.ts / useAuth.ts
 │       │   ├── useRecurso.ts   ← GET com estados carregando/erro/ok
-│       │   └── useAtrasado.ts  ← spinner só depois de 300ms
+│       │   ├── useAtrasado.ts  ← spinner só depois de 300ms
+│       │   └── useVideoChamada.ts ← câmera/microfone + liga a MalhaVideo ao socket
 │       └── services/
-│           ├── api.ts          ← fetch + token + erro de conexão legível
+│           ├── api.ts          ← fetch + token + erro de conexão legível (JSON e FormData)
+│           ├── malhaVideo.ts   ← WebRTC/PeerJS em classe pura (fora do React)
 │           └── tipos.ts
 └── CLAUDE.md
 ```
@@ -221,7 +239,7 @@ Cada módulo em `modules/` tem: `<modulo>.controller.ts`, `<modulo>.service.ts`,
 - Rolagem de dados **não tem tabela** — é evento em tempo real.
 - **Estado de combate (turno/iniciativa) não tem tabela** — vive em memória do processo Node.
 - Redis: adiado — estado de sessão ativa em memória do processo Node por ora.
-- Armazenamento de arquivos: abstraído em função `salvarArquivo()` para trocar disco local por S3 no futuro.
+- Armazenamento de arquivos: abstraído em função `salvarArquivo()` (`lib/armazenamento.ts`) para trocar disco local por S3 no futuro — implementado na Etapa 10.
 - **Convite não é entidade própria** (não está nas 16) — vive como `conviteToken`/`conviteExpiraEm` direto em `Sala` (um convite ativo por vez, sobrescrito ao gerar outro). Se precisar de histórico de convites no futuro, aí sim vira tabela.
 - **Nomenclatura de campos:** `Ficha` usa os nomes citados literalmente neste arquivo (`usuario_id`, `pv_atual`/`pv_maximo_cache`, etc. em snake_case); `Token` usa `fichaId`/`npcId` em camelCase (citado assim no checklist da Etapa 2). Os demais campos seguem camelCase padrão do Prisma.
 
@@ -320,7 +338,7 @@ Ao fechar uma etapa: `chore: etapa N concluída — critérios verificados`.
 | 7 | CRUD de NPC e Pastas | ✅ Concluída |
 | 8 | Frontend consumindo REST | ✅ Concluída (UI de ficha só OP1) |
 | 9 | Tempo real (Socket.IO) + turno + reconexão | ✅ Concluída |
-| 10 | Mapa, tokens e webcam | ⬜ |
+| 10 | Mapa, tokens e webcam | 🔄 6 de 7 — falta vídeo entre redes diferentes (exige TURN em produção + 2 dispositivos) |
 | 11 | Polimento e documentação formal | ⬜ |
 
 ### Etapa 1 — Setup
@@ -417,13 +435,14 @@ Ao fechar uma etapa: `chore: etapa N concluída — critérios verificados`.
 - [x] Reiniciar o servidor durante combate → cliente avisa estado perdido, sem dados fantasma — as duas abas mostram "Sessão reiniciada — reinicie o combate." e a barra volta a "Nenhum combate em andamento", sem fila residual
 
 ### Etapa 10 — Mapa, tokens e webcam
-- [ ] Mapa até 10MB sobe; acima disso é rejeitado com mensagem clara
-- [ ] Token arrastado numa aba move na outra em < 150ms
-- [ ] Token de Ficha mostra dados da ficha; de NPC mostra do NPC; sem vínculo funciona como objeto
-- [ ] Zoom e pan funcionam com mouse e com toque
-- [ ] Vídeo entre **duas redes diferentes** (não só na mesma LAN — é onde o STUN/TURN é exercitado)
-- [ ] Recusar câmera → sistema segue em modo texto+mapa
-- [ ] Queda de vídeo → reconexão automática; após 3 falhas, botão manual
+> Verificado em navegador real (Edge headless via `playwright-core`, diretório temporário fora do repo): 18 asserções de mapa/tokens e 14 de vídeo, com câmera falsa do Chromium. Confiabilidade da conexão inicial de vídeo medida em teste de estresse (as duas abas ligando a câmera ao mesmo tempo): **30/30** rodadas, vídeo em 0,2–1,1s.
+- [x] Mapa até 10MB sobe; acima disso é rejeitado com mensagem clara — PNG real de 9,02MB enviado pela UI; 10,5MB recusado no navegador **e** no servidor (`413`, testado sem passar pelo navegador). HTML disfarçado de `.png` → `400` (tipo detectado pelos bytes)
+- [x] Token arrastado numa aba move na outra em < 150ms — medido: **12–32ms**. Posição gravada no banco ao soltar
+- [x] Token de Ficha mostra dados da ficha (nome + PV ao vivo: PV mudou no painel → mudou no token da outra aba); de NPC mostra do NPC (nome; estatísticas ficam só com o mestre); sem vínculo funciona como objeto (ex.: "Baú")
+- [x] Zoom e pan funcionam com mouse e com toque — roda do mouse, arrastar com mouse, pinça com dois dedos e arrastar com um dedo (toque real via CDP `Input.dispatchTouchEvent`, não evento sintético)
+- [ ] Vídeo entre **duas redes diferentes** — **não verificado, e não dá pra verificar daqui**: exige dois dispositivos em redes distintas e um servidor TURN de produção (`TURN_URL`/`TURN_USERNAME`/`TURN_CREDENTIAL` no `.env`, ver `.env.example`). Sem TURN, só STUN público: funciona na maioria das redes domésticas, falha em NAT simétrico/4G/rede corporativa. Testado só entre abas da mesma máquina.
+- [x] Recusar câmera → sistema segue em modo texto+mapa — aviso claro; mapa, chat e conexão da mesa seguem funcionando; e a pessoa sem câmera ainda **assiste** o vídeo dos outros
+- [x] Queda de vídeo → reconexão automática; após 3 falhas, botão manual — queda simulada (sinalização de um participante some sem ele sair da sala, via gancho só de dev `window.__rpgVideo`): quem liga tenta 3 vezes, os dois lados mostram "Reconectar"; o botão dispara nova tentativa; quando a rede volta, o vídeo se restabelece sozinho (0,2s). Testado nos dois papéis (mestre ligando e jogador ligando)
 
 ### Etapa 11 — Polimento
 - [ ] Documento de requisitos formal com os requisitos classificados

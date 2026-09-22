@@ -47,16 +47,18 @@ export function mensagemDeErro(erro: unknown): string {
 
 export async function api<T>(caminho: string, opcoes: { method?: string; body?: unknown } = {}): Promise<T> {
   const token = lerToken()
+  // FormData (upload) vai cru: o navegador monta o multipart e o boundary do Content-Type.
+  const ehFormulario = opcoes.body instanceof FormData
 
   let resposta: Response
   try {
     resposta = await fetch(BASE_URL + caminho, {
       method: opcoes.method ?? 'GET',
       headers: {
-        ...(opcoes.body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+        ...(opcoes.body !== undefined && !ehFormulario ? { 'Content-Type': 'application/json' } : {}),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
-      body: opcoes.body !== undefined ? JSON.stringify(opcoes.body) : undefined,
+      body: opcoes.body === undefined ? undefined : ehFormulario ? (opcoes.body as FormData) : JSON.stringify(opcoes.body),
     })
   } catch {
     throw new ApiError(

@@ -90,10 +90,14 @@ model Sala {
   donoId          String
   conviteToken    String?   @unique
   conviteExpiraEm DateTime?
+  // Mapa que a mesa inteira vê agora. Persistido (sobrevive a reinício), ao
+  // contrário do combate. Apagar o mapa só zera o campo.
+  mapaAtivoId     String?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
   dono       Usuario      @relation("SalasCriadas", fields: [donoId], references: [id])
+  mapaAtivo  Mapa?        @relation("MapaAtivo", fields: [mapaAtivoId], references: [id], onDelete: SetNull)
   membros    MembroSala[]
   sessoes    Sessao[]
   fichas     Ficha[]
@@ -101,7 +105,7 @@ model Sala {
   npcs       Npc[]
   pastas     Pasta[]
   documentos Documento[]
-  mapas      Mapa[]
+  mapas      Mapa[]       @relation("MapasDaSala")
   mensagens  Mensagem[]
 }
 
@@ -329,9 +333,10 @@ model Mapa {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  sala   Sala    @relation(fields: [salaId], references: [id], onDelete: Cascade)
-  pasta  Pasta?  @relation(fields: [pastaId], references: [id], onDelete: SetNull)
-  tokens Token[]
+  sala        Sala    @relation("MapasDaSala", fields: [salaId], references: [id], onDelete: Cascade)
+  pasta       Pasta?  @relation(fields: [pastaId], references: [id], onDelete: SetNull)
+  tokens      Token[]
+  salasAtivas Sala[]  @relation("MapaAtivo")
 }
 
 // Regra "Token = Ficha, NPC ou objeto genérico (nunca os dois primeiros ao

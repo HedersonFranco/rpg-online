@@ -6,6 +6,7 @@ import { buscarSalaOuFalhar, garantirMestre } from '../modules/sala/sala.service
 import { criarMensagem } from '../modules/mensagem/mensagem.service.js'
 import { avancarTurno, criarCombate, podeEncerrarTurno } from '../engine/combate.js'
 import { PedidoRolagemInvalido, rolar } from '../engine/rolagem.js'
+import { coordenadaValida, podeMoverToken, salvarPosicaoToken } from '../modules/mapa/mapa.service.js'
 import { combates, estadoDaSala, nomeSalaSocket, ultimasRolagens, type Rolagem } from './estado.js'
 
 type Ack = (resposta: Record<string, unknown>) => void
@@ -44,6 +45,22 @@ export function registrarEventosDaSala(socket: Socket) {
   const emitir = (salaId: string, evento: string, dados: unknown) =>
     socket.nsp.to(nomeSalaSocket(salaId)).emit(evento, dados)
 
+  // Arrastar gera ~30 eventos/s: a permissão por token é consultada uma vez e guardada.
+  const permissaoToken = new Map<string, boolean>()
+
+  async function transmitirParticipantesVideo(salaId: string) {
+    const sockets = await socket.nsp.in(nomeSalaSocket(salaId)).fetchSockets()
+    const participantes = sockets
+      .filter((s) => s.data.video)
+      .map((s) => ({
+        usuarioId: s.data.usuarioId as string,
+        nome: s.data.nome as string,
+        peerId: s.data.video.peerId as string,
+        temCamera: s.data.video.temCamera as boolean,
+      }))
+    emitir(salaId, 'video:participantes', { participantes })
+  }
+
   socket.on('sala:entrar', tratar(async ({ salaId }) => {
     if (typeof salaId !== 'string') throw new AppError('salaId é obrigatório', 400)
     const sala = await buscarSalaOuFalhar(salaId, usuarioId)
@@ -52,6 +69,7 @@ export function registrarEventosDaSala(socket: Socket) {
     if (anterior && anterior !== salaId) await socket.leave(nomeSalaSocket(anterior))
     await socket.join(nomeSalaSocket(salaId))
     socket.data.salaId = salaId
+    permissaoToken.clear()
     socket.data.nome = sala.membros.find((m) => m.usuarioId === usuarioId)?.usuario.nome ?? 'Alguém'
 
     return estadoDaSala(salaId)
@@ -154,6 +172,55 @@ export function registrarEventosDaSala(socket: Socket) {
     emitir(salaId, 'turno:estado', { combate: proximo })
     return { combate: proximo }
   }))
+
+  // Durante o arrasto só distribui (volátil, sem gravar); ao soltar (final) grava no banco.
+  // socket.to() exclui quem arrastou — a tela dele já mostra a posição.
+  socket.on('token:mover', tratar(async ({ tokenId, x, y, final }) => {
+    const salaId = salaAtual()
+    if (typeof tokenId !== 'string' || !coordenadaValida(x) || !coordenadaValida(y)) {
+      throw new AppError('Movimento inválido', 400)
+    }
+    let pode = permissaoToken.get(tokenId)
+    if (pode === undefined) {
+      pode = await podeMoverToken(usuarioId, salaId, tokenId)
+      permissaoToken.set(tokenId, pode)
+    }
+    if (!pode) throw new AppError('Você só pode mover o token da sua ficha', 403)
+
+    socket.to(nomeSalaSocket(salaId)).emit('token:movido', { tokenId, x, y })
+    if (final === true) await salvarPosicaoToken(tokenId, x, y)
+  }))
+
+  // Presença de vídeo: cada aba anuncia seu id de peer (aleatório — o mesmo
+  // usuário em duas abas não colide) e se tem câmera. A lista é da sala toda.
+  socket.on('video:entrar', tratar(async ({ peerId, temCamera }) => {
+    const salaId = salaAtual()
+    if (typeof peerId !== 'string' || !/^[A-Za-z0-9-]{8,64}$/.test(peerId)) {
+      throw new AppError('peerId inválido', 400)
+    }
+    socket.data.video = { peerId, temCamera: temCamera === true }
+    await transmitirParticipantesVideo(salaId)
+  }))
+
+  socket.on('video:sair', tratar(async () => {
+    const salaId = salaAtual()
+    socket.data.video = undefined
+    await transmitirParticipantesVideo(salaId)
+  }))
+
+  // Botão "Reconectar" de quem recebe: pede a quem liga pra tentar de novo.
+  socket.on('video:pedirReconexao', tratar(async ({ peerId }) => {
+    const salaId = salaAtual()
+    const sockets = await socket.nsp.in(nomeSalaSocket(salaId)).fetchSockets()
+    const alvo = sockets.find((s) => s.data.video?.peerId === peerId)
+    if (!alvo) throw new AppError('Esse participante não está mais no vídeo', 404)
+    alvo.emit('video:reconexaoPedida', { peerId: socket.data.video?.peerId })
+  }))
+
+  socket.on('disconnect', () => {
+    const salaId = socket.data.salaId as string | undefined
+    if (salaId && socket.data.video) transmitirParticipantesVideo(salaId).catch(console.error)
+  })
 
   socket.on('turno:finalizar', tratar(async () => {
     const salaId = salaAtual()
