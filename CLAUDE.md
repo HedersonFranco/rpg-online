@@ -3,6 +3,12 @@
 Sistema colaborativo de RPG à distância (webcam/áudio, fichas, mapas, chat).
 Desenvolvedor solo: Hederson. Repositório: `HedersonFranco/rpg-online`.
 
+**Multissistema (decisão de 22/09/2026):** a mesa escolhe, na criação da sala, entre dois sistemas de regras —
+**Ordem Paranormal RPG (v1.3)**, o clássico, e **Ordem Paranormal RPG II** (Playtest Alpha, Ago/2026), a
+reconstrução ainda em teste. São jogos com mecânicas bem diferentes (ver seção "Os dois sistemas" abaixo) —
+isso NÃO é o "D&D no futuro" mencionado nas decisões de design; é o mesmo IP, duas edições, ambas dentro do
+escopo de "Ordem Paranormal".
+
 **Natureza do projeto:** produto **real, para lançamento** — não portfólio, não MVP descartável.
 Referências de qualidade: **Owlbear Rodeo** (mapa/tokens/biblioteca) e **C.R.I.S.** (ficha de Ordem Paranormal).
 Isso significa: estados de erro, estados de carregamento e confirmação em ações destrutivas são **requisito**, não polimento opcional.
@@ -27,6 +33,7 @@ Isso significa: estados de erro, estados de carregamento e confirmação em aç�
 **Tailwind v4** usa `@tailwindcss/vite` e `@import "tailwindcss"` no CSS, não PostCSS legado.
 **Prisma 7** usa `prisma7.config.ts` para `datasource.url` — o `schema.prisma` não declara `url` diretamente.
 **Prisma 7 exige driver adapter** — `PrismaClient` não conecta sem um adapter. Usar `@prisma/adapter-pg` + `pg`: `new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) })`. Todo service que instanciar o client precisa disso (idealmente um client singleton compartilhado quando os módulos forem escritos).
+**`prisma migrate dev` recusa rodar neste ambiente** (detecta shell não-interativo e recusa, mesmo com `--create-only`). Workaround: `prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --script` gera o SQL, salva manualmente em `prisma/migrations/<timestamp>_<nome>/migration.sql`, aplica com `prisma migrate deploy` (não-interativo).
 **`typescript-eslint` não suporta TS 7** (bloqueio confirmado, não só peer warning — [issue #10940](https://github.com/typescript-eslint/typescript-eslint/issues/10940)). ESLint do backend usa `@babel/eslint-parser` + `@babel/preset-typescript` só para sintaxe — **sem regras tipadas**. Por isso `no-unused-vars` está desligado: Babel não enxerga `import type { X }` usado só em anotação de tipo como uso, e todo handler Express tipado (`Request`/`Response`/`NextFunction`) cairia nesse falso positivo. Revisar tudo isso quando a issue fechar.
 
 ---
@@ -36,7 +43,8 @@ Isso significa: estados de erro, estados de carregamento e confirmação em aç�
 ### Salas
 - Dono: até 3 salas. Participante: ilimitado.
 - Papel (mestre/jogador) é por usuário+sala, não fixo no perfil.
-- Cada sala tem um único sistema de regras — a ficha herda da sala.
+- Cada sala tem um único sistema de regras, **escolhido na criação** entre `ORDEM_PARANORMAL_1` e
+  `ORDEM_PARANORMAL_2` (campo `Sala.sistema`, obrigatório, sem default — o dono decide) — a ficha herda da sala.
 - Convite via link com expiração de 7 dias, nunca permanente.
 
 ### Fichas
@@ -90,18 +98,24 @@ Isso significa: estados de erro, estados de carregamento e confirmação em aç�
 
 ---
 
-## Motor de cálculo (`backend/src/engine/calculoFicha.ts`)
+## Motor de cálculo (`backend/src/engine/calculoFicha.ts`) — só OP1
 
 Função pura chamada pela API REST e pelo WebSocket:
-1. Recebe: `classe`, `nex`, atributos (`for`, `agi`, `int`, `vig`, `pre`).
-2. Consulta `ProgressaoClasse` no banco.
-3. Retorna: `pv_maximo`, `pe_maximo`, `san_maximo`, bônus de perícias, habilidades desbloqueadas.
+1. Recebe: `classe`, `nex`, atributos (`for`, `agi`, `int`, `vig`, `pre`), perícias treinadas.
+2. Consulta `ClasseFormula` (base+incremento por classe) e `ProgressaoClasse` (habilidades por tier) — ambos passados como parâmetro, nunca via banco direto.
+3. Retorna: `pv_maximo`, `pe_maximo`, `san_maximo`, bônus de perícias, habilidades desbloqueadas (acumuladas de todos os tiers ≤ NEX atual).
+
+**Fórmula confirmada no livro (Ordem Paranormal RPG v1.3):** `pv_maximo = pvBase(classe) + Vigor + pvPorTier(classe) × tier`; mesma lógica pra PE com Presença; Sanidade **não soma atributo**. `tier` = posição de `nex` na sequência fixa de 20 degraus `[5,10,...,95,99]` (99% conta como mais um degrau mesmo sendo só +4%). NEX só pode ser um desses 20 valores — qualquer outro é erro tratado.
+
+Bônus de perícia = atributo-base + bônus por grau de treino (`Destreinado` 0 / `Treinado` +5 / `Veterano` +10 / `Expert` +15) — também confirmado no livro.
 
 `pv/pe/san_maximo_cache` na tabela `Ficha` são **cache** — nunca fonte da verdade.
 Botões de combate alteram só o valor **atual** (0 ≤ atual ≤ máximo), validado no servidor.
 NPCs **não** passam por este motor.
 
-A função deve rodar **sem conexão com o banco** nos testes — a tabela de progressão entra como parâmetro ou mock. Se ela precisar do Prisma para ser testada, não é pura o bastante.
+A função deve rodar **sem conexão com o banco** nos testes — as tabelas entram como parâmetro ou mock. Se precisar do Prisma para ser testada, não é pura o bastante.
+
+**OP2 não tem motor de cálculo equivalente** — o Playtest Alpha não publica fórmula de PV/PD (fichas são pré-prontas). `FichaOP2.pv_maximo`/`pd_maximo` são valores atribuídos diretamente, não calculados. Revisar quando o playtest completo (com criação de personagem) for lançado.
 
 ---
 
@@ -130,12 +144,19 @@ rpg-online/
 │       │   ├── documento/
 │       │   └── mensagem/
 │       ├── engine/
-│       │   ├── calculoFicha.ts
-│       │   └── progressaoClasse.ts
+│       │   ├── calculoFicha.ts       ← só OP1
+│       │   ├── progressaoClasse.ts   ← só OP1
+│       │   ├── convite.ts
+│       │   └── op2/
+│       │       ├── escalaDados.ts    ← step d4-d12
+│       │       └── catalogo.ts       ← atributos + perícias de OP2
 │       ├── sockets/
 │       │   └── salaSocket.ts
 │       ├── middlewares/
 │       │   └── auth.ts
+│       ├── lib/
+│       │   ├── prisma.ts
+│       │   └── jwt.ts
 │       └── generated/prisma/   ← gerado pelo Prisma, não editar nem versionar
 ├── frontend/
 │   └── src/
@@ -163,10 +184,10 @@ Cada módulo em `modules/` tem: `<modulo>.controller.ts`, `<modulo>.service.ts`,
 
 ## Banco de dados — decisões de design
 
-- `Ficha` usa colunas tipadas (não JSON livre) para Ordem Paranormal — permite queries como "fichas com NEX >= 30".
-- Se D&D entrar no futuro: tabela separada `FichaDnd` ou campo `extra Json`.
-- `ProgressaoClasse` existe para não mexer em código ao ajustar valores do livro.
-- `Pericia` (~30 fixas) e `Ritual` são catálogos populados via **seed**, não criados pelo usuário. O seed deve ser **idempotente** (rodar duas vezes não duplica).
+- `Ficha` (OP1) usa colunas tipadas (não JSON livre) — permite queries como "fichas com NEX >= 30".
+- **OP2 usa tabela separada (`FichaOP2`)** em vez de esticar `Ficha` com campos nulos — mesmo padrão já previsto aqui pra um eventual D&D no futuro (`FichaDnd` ou campo `extra Json`), só que aplicado agora pro próprio Ordem Paranormal (v1.3 x RPG II).
+- `ProgressaoClasse` guarda só **habilidades por tier de NEX** (uma linha por classe+NEX). PV/PE/San **não** ficam lá — são fórmula em `ClasseFormula` (uma linha fixa por classe: base + incremento por tier) somada ao atributo do personagem no motor de cálculo. Ver seção "Motor de cálculo".
+- `Pericia` (26 fixas, confirmado no livro v1.3 — Agilidade 7, Força 2, Intelecto 9, Presença 7, Vigor 1) e `Ritual` são catálogos populados via **seed**, não criados pelo usuário. O seed deve ser **idempotente** (rodar duas vezes não duplica). `Pericia`/`FichaPericia`/`Ritual`/`FichaRitual` são **só de OP1** — OP2 guarda perícias como Json direto em `FichaOP2` (ver "Os dois sistemas").
 - `Npc` é entidade separada de `Ficha` — monstros não têm progressão por NEX.
 - `Pasta` é genérica e autorreferenciada; relação com Npc/Mapa/Documento é opcional.
 - `Sessao` é enxuta — base para histórico futuro sem vínculo obrigatório com mensagens.
@@ -177,8 +198,25 @@ Cada módulo em `modules/` tem: `<modulo>.controller.ts`, `<modulo>.service.ts`,
 - **Convite não é entidade própria** (não está nas 16) — vive como `conviteToken`/`conviteExpiraEm` direto em `Sala` (um convite ativo por vez, sobrescrito ao gerar outro). Se precisar de histórico de convites no futuro, aí sim vira tabela.
 - **Nomenclatura de campos:** `Ficha` usa os nomes citados literalmente neste arquivo (`usuario_id`, `pv_atual`/`pv_maximo_cache`, etc. em snake_case); `Token` usa `fichaId`/`npcId` em camelCase (citado assim no checklist da Etapa 2). Os demais campos seguem camelCase padrão do Prisma.
 
-### Entidades (16)
-`Usuario`, `Sala`, `MembroSala`, `Sessao`, `Ficha`, `ProgressaoClasse`, `Pericia`, `FichaPericia`, `Ritual`, `FichaRitual`, `Npc`, `Pasta`, `Documento`, `Mapa`, `Token`, `Mensagem`
+### Entidades (18)
+`Usuario`, `Sala`, `MembroSala`, `Sessao`, `Ficha`, `FichaOP2`, `ClasseFormula`, `ProgressaoClasse`, `Pericia`, `FichaPericia`, `Ritual`, `FichaRitual`, `Npc`, `Pasta`, `Documento`, `Mapa`, `Token`, `Mensagem`
+
+> Eram 16 na Etapa 2 (só OP1). `FichaOP2` e `ClasseFormula` entraram em 22/09/2026 com o suporte a dois sistemas.
+
+---
+
+## Os dois sistemas
+
+| | Ordem Paranormal RPG (v1.3) | Ordem Paranormal RPG II (Playtest Alpha, Ago/2026) |
+|---|---|---|
+| Progressão | NEX% (20 tiers: 5,10,...,95,99) + classe (Combatente/Especialista/Ocultista) | Nível 1-10 + Perfil (Executor/Analista/Vigilante) + Ocupação (texto livre) |
+| Atributos | 5, numéricos 0-5 (For/Agi/Int/Vig/Pre) | 3, em dado de step (Físico/Mente/Emoção, d4-d12) |
+| Teste | Rola N d20 (N = valor do atributo), pega o melhor; 0 rola 2d20 e pega o pior | Rola 1 dado do atributo + 1 da perícia, soma os dois |
+| Perícias | 26 fixas, grau Destreinado/Treinado/Veterano/Expert (bônus 0/+5/+10/+15) | 20 fixas, cada uma no próprio dado de step d4-d12 |
+| PV/PE/San | **Fórmula real, calculada** (`ClasseFormula` + atributo) — ver "Motor de cálculo" | **Sem fórmula publicada** — PV/PD atribuídos direto na ficha (fichas pré-prontas no playtest) |
+| Tabela no schema | `Ficha`, `FichaPericia`, `FichaRitual`, `ProgressaoClasse`, `ClasseFormula` | `FichaOP2` (perícias em Json, sem join table — catálogo em `engine/op2/catalogo.ts`) |
+
+`Sala.sistema` decide qual conjunto de tabelas vale pra aquela sala. Não existe conversão entre sistemas — trocar o sistema de uma sala em andamento não está no escopo (não foi pedido e não há regra de conversão de ficha entre os dois jogos).
 
 ---
 
@@ -247,10 +285,10 @@ Ao fechar uma etapa: `chore: etapa N concluída — critérios verificados`.
 | # | Etapa | Status |
 |---|---|---|
 | 1 | Setup e configuração | 🔄 Quase — falta confirmar visualmente uma classe Tailwind no navegador |
-| 2 | Modelagem no Prisma + migration + seeds | 🔄 Schema + migration prontos — falta o seed (bloqueado nos dados do livro) |
+| 2 | Modelagem no Prisma + migration + seeds | 🔄 Schema + migration prontos (18 entidades, multissistema) — falta o seed (só `Ritual` ainda não levantado) |
 | 3 | Autenticação (JWT, convite com expiração) | ✅ Concluída |
 | 4 | CRUD de Sala e Membros | ✅ Concluída |
-| 5 | Motor de cálculo isolado + testes | 🔄 Motor + testes prontos — falta conferir contra o livro (bloqueado, dados não levantados) |
+| 5 | Motor de cálculo isolado + testes | ✅ Concluída (só OP1 — OP2 não tem fórmula publicada, ver "Os dois sistemas") |
 | 6 | CRUD de Ficha (sem tempo real) | ⬜ |
 | 7 | CRUD de NPC e Pastas | ⬜ |
 | 8 | Frontend consumindo REST | ⬜ |
@@ -268,18 +306,18 @@ Ao fechar uma etapa: `chore: etapa N concluída — critérios verificados`.
 - [ ] Confirmar visualmente que uma classe Tailwind renderiza no navegador
 
 ### Etapa 2 — Modelagem no Prisma
-- [x] `schema.prisma` declara as **16 entidades** listadas acima
+- [x] `schema.prisma` declara as entidades de OP1 (16 na época; hoje 18 com `FichaOP2`/`ClasseFormula` — ver "Os dois sistemas")
 - [x] `npx prisma migrate dev --name init` cria a migration; `prisma/migrations/` passa a existir
-- [x] `npx prisma migrate status` reporta aplicada e **nenhuma pendente**
-- [x] `npx prisma studio` lista as 16 tabelas — verificado via `psql \dt` (17 tabelas: 16 entidades + `_prisma_migrations`), não pela GUI
+- [x] `npx prisma migrate status` reporta aplicada e **nenhuma pendente** (reconfirmado após a migration de 22/09/2026)
+- [x] `npx prisma studio` lista as tabelas — verificado via `psql \dt`, não pela GUI
 - [ ] Script `prisma.seed` no `package.json` e `npx prisma db seed` roda sem erro
 - [ ] Seed é **idempotente** — rodar duas vezes não duplica registros
-- [ ] `SELECT COUNT(*) FROM "Pericia"` retorna ~30
+- [ ] `SELECT COUNT(*) FROM "Pericia"` retorna **26** (não mais "~30" — contagem exata confirmada no livro)
 - [ ] `SELECT COUNT(*) FROM "ProgressaoClasse"` retorna ≥ 1 linha por classe × tier de NEX
 - [x] FKs opcionais (`pastaId` em Npc/Mapa/Documento, `fichaId`/`npcId` em `Token`) aceitam NULL — testado com insert real via Prisma Client
 - [x] **Novo:** `Token` tem CHECK constraint (`token_ficha_xor_npc`) impedindo `fichaId` e `npcId` preenchidos ao mesmo tempo — testado, insert violando a regra é rejeitado pelo Postgres
 
-> **Bloqueio conhecido:** os dados do livro (lista de perícias com atributo-base, tabela de progressão por NEX) ainda não foram levantados. O schema pode ser escrito sem eles; o **seed não**.
+> **Bloqueio parcialmente resolvido (22/09/2026):** a fórmula de PV/PE/San, os 20 tiers de NEX e a lista completa de 26 perícias com atributo-base **já foram confirmados** direto no livro (v1.3) — ver `ClasseFormula`/`engine/calculoFicha.ts`. O que falta pro seed: lista completa de `Ritual` (não levantada ainda) e transformar as tabelas 1.3/1.4/1.5 (habilidades por tier, já lidas) em linhas de `ProgressaoClasse`. Ninguém pediu o seed ainda nesta sessão — fica pra quando for pedido explicitamente.
 
 ### Etapa 3 — Autenticação
 - [x] `POST /auth/cadastro` cria usuário e retorna token válido
@@ -302,11 +340,11 @@ Ao fechar uma etapa: `chore: etapa N concluída — critérios verificados`.
 > Criador da sala vira `MembroSala` com papel `MESTRE` automaticamente (decisão nova: `donoId` e o papel em `MembroSala` são conceitos separados no schema, mas sem isso o dono nunca teria papel de mestre nas checagens de autorização). `Sala.donoId` não tem cascade delete (protege contra apagar usuário que ainda é dono de sala) — só `Sala → MembroSala/Ficha/Npc/...` casca.
 
 ### Etapa 5 — Motor de cálculo
-- [x] `npm test` passa cobrindo **cada classe × ≥ 3 tiers de NEX** (COMBATENTE/ESPECIALISTA/OCULTISTA × NEX 5/50/99)
+- [x] `npm test` passa cobrindo **cada classe × ≥ 3 tiers de NEX** (COMBATENTE/ESPECIALISTA/OCULTISTA × NEX 5/50/99, com fórmula real)
 - [x] Bordas cobertas: NEX 5% e NEX 99%
-- [x] Roda **sem banco** (progressão injetada como parâmetro — `calcularFicha(entrada, tabelaProgressao)`)
-- [ ] ≥ 3 resultados conferidos manualmente contra o livro ou o C.R.I.S. — **bloqueado**: os testes usam tabela **mock** (valores inventados só pra exercitar a lógica), não os valores reais do livro. Mesmo bloqueio da Etapa 2 (dados do livro não levantados). Não marcar esta etapa como concluída de fato até isso ser resolvido.
-- [x] Entrada inválida (NEX negativo, NEX 0, NEX > 99, classe inexistente, NEX sem linha na tabela) → erro tratado, não crash
+- [x] Roda **sem banco** (fórmula + habilidades injetadas como parâmetro — `calcularFicha(entrada, tabelaHabilidades, formulas)`)
+- [x] ≥ 3 resultados conferidos manualmente contra o livro — **resolvido em 22/09/2026**: PDF oficial (Ordem Paranormal RPG v1.3) fornecido, dados extraídos direto do texto (Cap. 1, p. 24-25/28-29/32-33). `pv_maximo`/`pe_maximo`/`san_maximo` das 3 classes em NEX 50% conferidos contra a fórmula do livro nos testes. Ainda não conferido contra o C.R.I.S. em si (não usado), mas o livro é a fonte primária aceita pelo critério.
+- [x] Entrada inválida (NEX que não é um dos 20 tiers, negativo, > 99, classe inexistente) → erro tratado, não crash
 
 > **OP2 (Ordem Paranormal RPG II — Playtest Alpha, Ago/2026):** o usuário pediu suporte aos dois sistemas. Investiguei o PDF enviado e **não há fórmula de PV/PD publicada nesse playtest** — as fichas são pré-prontas ("sobreviventes") e o texto diz explicitamente que a ficha de criação completa "será apresentada em um playtest futuro". Por isso não existe (ainda) um motor de cálculo de OP2 equivalente ao de OP1 — seria inventar uma regra que o próprio livro não publicou. O que É concreto e foi implementado: `engine/op2/escalaDados.ts` (a escala de step d4↔d12, com d20 como exceção — mecânica real e testada) e `engine/op2/catalogo.ts` (3 atributos — Físico/Mente/Emoção — e as 20 perícias com atributo-base, extraídos literalmente do PDF). Isso é só fundação de dados; schema/seed/ficha de OP2 **não fazem parte do pipeline de 11 etapas** (que é todo OP1) e ficam pra quando isso for decidido explicitamente.
 
