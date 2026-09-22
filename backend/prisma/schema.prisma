@@ -20,6 +20,12 @@ enum PapelSala {
   JOGADOR
 }
 
+// Sistema de regras da sala — escolhido na criação, a ficha herda da sala.
+enum Sistema {
+  ORDEM_PARANORMAL_1
+  ORDEM_PARANORMAL_2
+}
+
 enum ClasseOrdemParanormal {
   COMBATENTE
   ESPECIALISTA
@@ -34,11 +40,32 @@ enum AtributoOrdemParanormal {
   PRE
 }
 
+// Termo oficial do livro é "Destreinado" (não "Leigo").
 enum NivelTreinoPericia {
-  LEIGO
+  DESTREINADO
   TREINADO
   VETERANO
   EXPERT
+}
+
+// Ordem Paranormal RPG II (Playtest Alpha) — perfil psicológico do
+// personagem, um dos dois "pilares" da ficha (o outro é a ocupação, que é
+// texto livre no playtest, sem catálogo fechado ainda).
+enum PerfilOP2 {
+  EXECUTOR
+  ANALISTA
+  VIGILANTE
+}
+
+// Escala de step de atributos/perícias de OP2: d4 < d6 < d8 < d10 < d12,
+// d20 é exceção pontual liberada por texto específico (não pelo padrão).
+enum DadoOP2 {
+  d4
+  d6
+  d8
+  d10
+  d12
+  d20
 }
 
 model Usuario {
@@ -52,12 +79,14 @@ model Usuario {
   salasCriadas Sala[]       @relation("SalasCriadas")
   membros      MembroSala[]
   fichas       Ficha[]
+  fichasOP2    FichaOP2[]
   mensagens    Mensagem[]
 }
 
 model Sala {
   id              String    @id @default(uuid())
   nome            String
+  sistema         Sistema
   donoId          String
   conviteToken    String?   @unique
   conviteExpiraEm DateTime?
@@ -68,6 +97,7 @@ model Sala {
   membros    MembroSala[]
   sessoes    Sessao[]
   fichas     Ficha[]
+  fichasOP2  FichaOP2[]
   npcs       Npc[]
   pastas     Pasta[]
   documentos Documento[]
@@ -132,16 +162,72 @@ model Ficha {
   tokens   Token[]
 }
 
+// Habilidades desbloqueadas por classe a cada tier de NEX (5%, 10%, ...,
+// 95%, 99%). PV/PE/San NÃO ficam aqui — são fórmula (ClasseFormula) + o
+// atributo do personagem, não uma tabela de valores prontos (ver
+// engine/calculoFicha.ts e a nota no CLAUDE.md sobre essa correção).
+// `habilidades`: múltiplos itens no mesmo tier são separados por ";" (não
+// ","), porque o texto de uma única habilidade já pode conter vírgula
+// naturalmente — ex. "Ataque especial (2 PE, +5)" é UMA habilidade.
+// Ordem Paranormal RPG II (Playtest Alpha) — formato bem diferente de OP1
+// (perfil+ocupação+nível em vez de classe+NEX; atributos em dado de step
+// em vez de numérico). Tabela separada em vez de esticar Ficha com campos
+// nulos, seguindo a decisão já registrada pra D&D. NÃO existe fórmula de
+// PV/PD publicada neste playtest — pv_maximo/pd_maximo são valores
+// diretamente atribuídos na ficha (pré-prontos ou definidos na criação),
+// não calculados por um motor. Perícias ficam em Json (20 perícias fixas,
+// ver engine/op2/catalogo.ts) — sem join table própria por ora, dado o
+// caráter ainda experimental/playtest deste sistema.
+model FichaOP2 {
+  id        String    @id @default(uuid())
+  usuarioId String
+  salaId    String
+  nome      String
+  perfil    PerfilOP2
+  ocupacao  String
+  nivel     Int       @default(1)
+
+  fisico DadoOP2
+  mente  DadoOP2
+  emocao DadoOP2
+
+  pericias Json?
+
+  pv_atual   Int
+  pv_maximo  Int
+  pd_atual   Int
+  pd_maximo  Int
+
+  habilidades Json?
+  avatarUrl   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+  sala    Sala    @relation(fields: [salaId], references: [id], onDelete: Cascade)
+}
+
 model ProgressaoClasse {
   id          String                @id @default(uuid())
   classe      ClasseOrdemParanormal
   nex         Int
-  pvMaximo    Int
-  peMaximo    Int
-  sanMaximo   Int
   habilidades String?
 
   @@unique([classe, nex])
+}
+
+// Uma linha fixa por classe: base + incremento por tier de NEX. O motor de
+// cálculo soma o atributo do personagem (Vigor pra PV, Presença pra PE;
+// Sanidade não soma atributo). Valores confirmados no livro (Ordem
+// Paranormal RPG v1.3) — ver CLAUDE.md.
+model ClasseFormula {
+  classe     ClasseOrdemParanormal @id
+  pvBase     Int
+  pvPorTier  Int
+  peBase     Int
+  pePorTier  Int
+  sanBase    Int
+  sanPorTier Int
 }
 
 model Pericia {
@@ -156,7 +242,7 @@ model FichaPericia {
   id        String             @id @default(uuid())
   fichaId   String
   periciaId String
-  nivel     NivelTreinoPericia @default(LEIGO)
+  nivel     NivelTreinoPericia @default(DESTREINADO)
 
   ficha   Ficha   @relation(fields: [fichaId], references: [id], onDelete: Cascade)
   pericia Pericia @relation(fields: [periciaId], references: [id])
