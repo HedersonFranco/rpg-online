@@ -26,6 +26,7 @@ Isso significa: estados de erro, estados de carregamento e confirmação em aç�
 **`ts-node-dev` é incompatível com TS 7** — usar sempre `tsx`.
 **Tailwind v4** usa `@tailwindcss/vite` e `@import "tailwindcss"` no CSS, não PostCSS legado.
 **Prisma 7** usa `prisma7.config.ts` para `datasource.url` — o `schema.prisma` não declara `url` diretamente.
+**Prisma 7 exige driver adapter** — `PrismaClient` não conecta sem um adapter. Usar `@prisma/adapter-pg` + `pg`: `new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) })`. Todo service que instanciar o client precisa disso (idealmente um client singleton compartilhado quando os módulos forem escritos).
 **`typescript-eslint` não suporta TS 7** (bloqueio confirmado, não só peer warning — [issue #10940](https://github.com/typescript-eslint/typescript-eslint/issues/10940)). ESLint do backend usa `@babel/eslint-parser` + `@babel/preset-typescript` só para sintaxe — **sem regras tipadas**. Revisar quando a issue fechar.
 
 ---
@@ -173,6 +174,8 @@ Cada módulo em `modules/` tem: `<modulo>.controller.ts`, `<modulo>.service.ts`,
 - **Estado de combate (turno/iniciativa) não tem tabela** — vive em memória do processo Node.
 - Redis: adiado — estado de sessão ativa em memória do processo Node por ora.
 - Armazenamento de arquivos: abstraído em função `salvarArquivo()` para trocar disco local por S3 no futuro.
+- **Convite não é entidade própria** (não está nas 16) — vive como `conviteToken`/`conviteExpiraEm` direto em `Sala` (um convite ativo por vez, sobrescrito ao gerar outro). Se precisar de histórico de convites no futuro, aí sim vira tabela.
+- **Nomenclatura de campos:** `Ficha` usa os nomes citados literalmente neste arquivo (`usuario_id`, `pv_atual`/`pv_maximo_cache`, etc. em snake_case); `Token` usa `fichaId`/`npcId` em camelCase (citado assim no checklist da Etapa 2). Os demais campos seguem camelCase padrão do Prisma.
 
 ### Entidades (16)
 `Usuario`, `Sala`, `MembroSala`, `Sessao`, `Ficha`, `ProgressaoClasse`, `Pericia`, `FichaPericia`, `Ritual`, `FichaRitual`, `Npc`, `Pasta`, `Documento`, `Mapa`, `Token`, `Mensagem`
@@ -244,7 +247,7 @@ Ao fechar uma etapa: `chore: etapa N concluída — critérios verificados`.
 | # | Etapa | Status |
 |---|---|---|
 | 1 | Setup e configuração | 🔄 Quase — falta confirmar visualmente uma classe Tailwind no navegador |
-| 2 | Modelagem no Prisma + migration + seeds | 🔄 Iniciada — schema ainda é stub, sem models |
+| 2 | Modelagem no Prisma + migration + seeds | 🔄 Schema + migration prontos — falta o seed (bloqueado nos dados do livro) |
 | 3 | Autenticação (JWT, convite com expiração) | ⬜ |
 | 4 | CRUD de Sala e Membros | ⬜ |
 | 5 | Motor de cálculo isolado + testes | ⬜ |
@@ -265,15 +268,16 @@ Ao fechar uma etapa: `chore: etapa N concluída — critérios verificados`.
 - [ ] Confirmar visualmente que uma classe Tailwind renderiza no navegador
 
 ### Etapa 2 — Modelagem no Prisma
-- [ ] `schema.prisma` declara as **16 entidades** listadas acima (hoje tem 0)
-- [ ] `npx prisma migrate dev --name init` cria a migration; `prisma/migrations/` passa a existir
-- [ ] `npx prisma migrate status` reporta aplicada e **nenhuma pendente**
-- [ ] `npx prisma studio` lista as 16 tabelas
+- [x] `schema.prisma` declara as **16 entidades** listadas acima
+- [x] `npx prisma migrate dev --name init` cria a migration; `prisma/migrations/` passa a existir
+- [x] `npx prisma migrate status` reporta aplicada e **nenhuma pendente**
+- [x] `npx prisma studio` lista as 16 tabelas — verificado via `psql \dt` (17 tabelas: 16 entidades + `_prisma_migrations`), não pela GUI
 - [ ] Script `prisma.seed` no `package.json` e `npx prisma db seed` roda sem erro
 - [ ] Seed é **idempotente** — rodar duas vezes não duplica registros
 - [ ] `SELECT COUNT(*) FROM "Pericia"` retorna ~30
 - [ ] `SELECT COUNT(*) FROM "ProgressaoClasse"` retorna ≥ 1 linha por classe × tier de NEX
-- [ ] FKs opcionais (`pastaId`, `fichaId`/`npcId` em `Token`) aceitam NULL
+- [x] FKs opcionais (`pastaId` em Npc/Mapa/Documento, `fichaId`/`npcId` em `Token`) aceitam NULL — testado com insert real via Prisma Client
+- [x] **Novo:** `Token` tem CHECK constraint (`token_ficha_xor_npc`) impedindo `fichaId` e `npcId` preenchidos ao mesmo tempo — testado, insert violando a regra é rejeitado pelo Postgres
 
 > **Bloqueio conhecido:** os dados do livro (lista de perícias com atributo-base, tabela de progressão por NEX) ainda não foram levantados. O schema pode ser escrito sem eles; o **seed não**.
 
@@ -393,10 +397,12 @@ curl http://localhost:3333/health
 ## Variáveis de ambiente (`backend/.env`)
 
 ```
-DATABASE_URL="postgresql://rpg_user:rpg_pass@localhost:5432/rpg_online?schema=public"
+DATABASE_URL="postgresql://rpg_user:rpg_pass@localhost:5433/rpg_online?schema=public"
 JWT_SECRET="<valor secreto>"
 PORT=3333
 ```
+
+**Porta 5433, não 5432** — há um Postgres nativo do Windows (fora do Docker, de outra origem) ocupando a 5432 nesta máquina, e ele não pode ser encerrado sem privilégio de admin. `docker-compose.yml` mapeia `5433:5432` para não colidir. Se o Postgres nativo for removido/desligado no futuro, dá pra voltar pra 5432 — não é uma decisão de arquitetura, é workaround de ambiente.
 
 ---
 

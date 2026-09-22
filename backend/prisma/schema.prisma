@@ -1,8 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -10,4 +8,269 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+// Nomenclatura: campos citados literalmente no CLAUDE.md (usuario_id,
+// pv/pe/san_atual, pv/pe/san_maximo_cache em Ficha; pastaId/fichaId/npcId
+// em Token) usam exatamente a grafia do documento. Os demais campos usam
+// camelCase (padrão idiomático do Prisma).
+
+enum PapelSala {
+  MESTRE
+  JOGADOR
+}
+
+enum ClasseOrdemParanormal {
+  COMBATENTE
+  ESPECIALISTA
+  OCULTISTA
+}
+
+enum AtributoOrdemParanormal {
+  FOR
+  AGI
+  INT
+  VIG
+  PRE
+}
+
+enum NivelTreinoPericia {
+  LEIGO
+  TREINADO
+  VETERANO
+  EXPERT
+}
+
+model Usuario {
+  id         String   @id @default(uuid())
+  nome       String
+  email      String   @unique
+  senha_hash String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  salasCriadas Sala[]       @relation("SalasCriadas")
+  membros      MembroSala[]
+  fichas       Ficha[]
+  mensagens    Mensagem[]
+}
+
+model Sala {
+  id              String    @id @default(uuid())
+  nome            String
+  donoId          String
+  conviteToken    String?   @unique
+  conviteExpiraEm DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  dono       Usuario      @relation("SalasCriadas", fields: [donoId], references: [id])
+  membros    MembroSala[]
+  sessoes    Sessao[]
+  fichas     Ficha[]
+  npcs       Npc[]
+  pastas     Pasta[]
+  documentos Documento[]
+  mapas      Mapa[]
+  mensagens  Mensagem[]
+}
+
+model MembroSala {
+  id        String    @id @default(uuid())
+  usuarioId String
+  salaId    String
+  papel     PapelSala
+  createdAt DateTime  @default(now())
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+  sala    Sala    @relation(fields: [salaId], references: [id], onDelete: Cascade)
+
+  @@unique([usuarioId, salaId])
+}
+
+model Sessao {
+  id        String   @id @default(uuid())
+  salaId    String
+  titulo    String?
+  createdAt DateTime @default(now())
+
+  sala Sala @relation(fields: [salaId], references: [id], onDelete: Cascade)
+}
+
+model Ficha {
+  id         String                @id @default(uuid())
+  usuario_id String
+  salaId     String
+  nome       String
+  classe     ClasseOrdemParanormal
+  origem     String
+  trilha     String
+  nex        Int                   @default(5)
+
+  for Int
+  agi Int
+  int Int
+  vig Int
+  pre Int
+
+  pv_atual        Int
+  pv_maximo_cache Int
+  pe_atual        Int
+  pe_maximo_cache Int
+  san_atual       Int
+  san_maximo_cache Int
+
+  inventario String?
+  avatarUrl  String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  usuario  Usuario        @relation(fields: [usuario_id], references: [id])
+  sala     Sala           @relation(fields: [salaId], references: [id], onDelete: Cascade)
+  pericias FichaPericia[]
+  rituais  FichaRitual[]
+  tokens   Token[]
+}
+
+model ProgressaoClasse {
+  id          String                @id @default(uuid())
+  classe      ClasseOrdemParanormal
+  nex         Int
+  pvMaximo    Int
+  peMaximo    Int
+  sanMaximo   Int
+  habilidades String?
+
+  @@unique([classe, nex])
+}
+
+model Pericia {
+  id           String                  @id @default(uuid())
+  nome         String                  @unique
+  atributoBase AtributoOrdemParanormal
+
+  fichas FichaPericia[]
+}
+
+model FichaPericia {
+  id        String             @id @default(uuid())
+  fichaId   String
+  periciaId String
+  nivel     NivelTreinoPericia @default(LEIGO)
+
+  ficha   Ficha   @relation(fields: [fichaId], references: [id], onDelete: Cascade)
+  pericia Pericia @relation(fields: [periciaId], references: [id])
+
+  @@unique([fichaId, periciaId])
+}
+
+model Ritual {
+  id        String  @id @default(uuid())
+  nome      String  @unique
+  elemento  String?
+  circulo   Int
+  descricao String
+
+  fichas FichaRitual[]
+}
+
+model FichaRitual {
+  id       String @id @default(uuid())
+  fichaId  String
+  ritualId String
+
+  ficha  Ficha  @relation(fields: [fichaId], references: [id], onDelete: Cascade)
+  ritual Ritual @relation(fields: [ritualId], references: [id])
+
+  @@unique([fichaId, ritualId])
+}
+
+model Npc {
+  id         String   @id @default(uuid())
+  salaId     String
+  pastaId    String?
+  nome       String
+  pv         Int?
+  pe         Int?
+  san        Int?
+  atributos  String?
+  avatarUrl  String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  sala   Sala    @relation(fields: [salaId], references: [id], onDelete: Cascade)
+  pasta  Pasta?  @relation(fields: [pastaId], references: [id], onDelete: SetNull)
+  tokens Token[]
+}
+
+model Pasta {
+  id        String   @id @default(uuid())
+  salaId    String
+  nome      String
+  paiId     String?
+  createdAt DateTime @default(now())
+
+  sala        Sala        @relation(fields: [salaId], references: [id], onDelete: Cascade)
+  pai         Pasta?      @relation("Subpastas", fields: [paiId], references: [id], onDelete: SetNull)
+  subpastas   Pasta[]     @relation("Subpastas")
+  npcs        Npc[]
+  documentos  Documento[]
+  mapas       Mapa[]
+}
+
+model Documento {
+  id        String   @id @default(uuid())
+  salaId    String
+  pastaId   String?
+  titulo    String
+  conteudo  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sala  Sala   @relation(fields: [salaId], references: [id], onDelete: Cascade)
+  pasta Pasta? @relation(fields: [pastaId], references: [id], onDelete: SetNull)
+}
+
+model Mapa {
+  id        String   @id @default(uuid())
+  salaId    String
+  pastaId   String?
+  nome      String
+  imagemUrl String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sala   Sala    @relation(fields: [salaId], references: [id], onDelete: Cascade)
+  pasta  Pasta?  @relation(fields: [pastaId], references: [id], onDelete: SetNull)
+  tokens Token[]
+}
+
+// Regra "Token = Ficha, NPC ou objeto genérico (nunca os dois primeiros ao
+// mesmo tempo)" é reforçada por CHECK constraint adicionada manualmente na
+// migration (fichaId e npcId não podem estar preenchidos simultaneamente).
+model Token {
+  id        String   @id @default(uuid())
+  mapaId    String
+  fichaId   String?
+  npcId     String?
+  nome      String?
+  x         Float
+  y         Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  mapa  Mapa   @relation(fields: [mapaId], references: [id], onDelete: Cascade)
+  ficha Ficha? @relation(fields: [fichaId], references: [id], onDelete: SetNull)
+  npc   Npc?   @relation(fields: [npcId], references: [id], onDelete: SetNull)
+}
+
+model Mensagem {
+  id        String   @id @default(uuid())
+  salaId    String
+  usuarioId String
+  conteudo  String
+  createdAt DateTime @default(now())
+
+  sala    Sala    @relation(fields: [salaId], references: [id], onDelete: Cascade)
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
 }
