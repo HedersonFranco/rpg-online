@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import { usuarioRoutes } from "./modules/usuario/usuario.routes.js";
+import { salaRoutes } from "./modules/sala/sala.routes.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 
 dotenv.config();
@@ -15,6 +16,7 @@ app.get("/health", (_req, res) => {
 });
 
 app.use("/auth", usuarioRoutes);
+app.use("/salas", salaRoutes);
 
 app.use(errorHandler);
 
