@@ -71,6 +71,16 @@ export async function buscarSalaOuFalhar(salaId: string, usuarioId: string) {
   return sala
 }
 
+// Membro que não é mestre recebe 403; não-membro recebe 404 (via buscarSalaOuFalhar).
+export async function garantirMestre(salaId: string, usuarioId: string) {
+  const sala = await buscarSalaOuFalhar(salaId, usuarioId)
+  const membro = sala.membros.find((m) => m.usuarioId === usuarioId)
+  if (membro?.papel !== 'MESTRE') {
+    throw new AppError('Apenas o mestre da sala pode fazer isso', 403)
+  }
+  return sala
+}
+
 export async function deletarSala(salaId: string, usuarioId: string) {
   const sala = await buscarSalaOuFalhar(salaId, usuarioId)
 
