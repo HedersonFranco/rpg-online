@@ -2,7 +2,7 @@ import { prisma } from '../../lib/prisma.js'
 import { AppError } from '../../errors/AppError.js'
 import { buscarSalaOuFalhar } from '../sala/sala.service.js'
 import { calcularFicha, type AtributosOP1 } from '../../engine/calculoFicha.js'
-import { emitirParaSala } from '../../sockets/io.js'
+import { emitirParaSala } from '../../sockets/emissor.js'
 
 type DadosFicha = {
   nome: string

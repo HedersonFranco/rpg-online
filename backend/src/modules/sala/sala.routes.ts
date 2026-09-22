@@ -19,6 +19,13 @@ import {
 } from '../npc/npc.controller.js'
 import { listarController as listarMensagensController } from '../mensagem/mensagem.controller.js'
 import {
+  buscarAtivoController,
+  criarController as criarMapaController,
+  definirAtivoController,
+  listarController as listarMapasController,
+} from '../mapa/mapa.controller.js'
+import { uploadMapa } from '../../middlewares/upload.js'
+import {
   criarController as criarPastaController,
   listarBibliotecaController,
 } from '../pasta/pasta.controller.js'
@@ -40,5 +47,9 @@ salaRoutes.get('/:id/fichas', listarFichasController)
 salaRoutes.post('/:id/npcs', criarNpcController)
 salaRoutes.get('/:id/npcs', listarNpcsController)
 salaRoutes.get('/:id/mensagens', listarMensagensController)
+salaRoutes.post('/:id/mapas', uploadMapa, criarMapaController)
+salaRoutes.get('/:id/mapas', listarMapasController)
+salaRoutes.get('/:id/mapa-ativo', buscarAtivoController)
+salaRoutes.put('/:id/mapa-ativo', definirAtivoController)
 salaRoutes.post('/:id/pastas', criarPastaController)
 salaRoutes.get('/:id/biblioteca', listarBibliotecaController)
