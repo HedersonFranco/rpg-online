@@ -188,7 +188,9 @@ Cada módulo em `modules/` tem: `<modulo>.controller.ts`, `<modulo>.service.ts`,
 - **OP2 usa tabela separada (`FichaOP2`)** em vez de esticar `Ficha` com campos nulos — mesmo padrão já previsto aqui pra um eventual D&D no futuro (`FichaDnd` ou campo `extra Json`), só que aplicado agora pro próprio Ordem Paranormal (v1.3 x RPG II).
 - `ProgressaoClasse` guarda só **habilidades por tier de NEX** (uma linha por classe+NEX). PV/PE/San **não** ficam lá — são fórmula em `ClasseFormula` (uma linha fixa por classe: base + incremento por tier) somada ao atributo do personagem no motor de cálculo. Ver seção "Motor de cálculo".
 - `Pericia` (26 fixas, confirmado no livro v1.3 — Agilidade 7, Força 2, Intelecto 9, Presença 7, Vigor 1) e `Ritual` são catálogos populados via **seed**, não criados pelo usuário. O seed deve ser **idempotente** (rodar duas vezes não duplica). `Pericia`/`FichaPericia`/`Ritual`/`FichaRitual` são **só de OP1** — OP2 guarda perícias como Json direto em `FichaOP2` (ver "Os dois sistemas").
-- `Npc` é entidade separada de `Ficha` — monstros não têm progressão por NEX.
+- `Npc` é entidade separada de `Ficha` — monstros não têm progressão por NEX. Tem `pv/pe/san` (OP1) e `pd` (OP2), todos opcionais; o service rejeita campo do sistema errado pra sala. `atributos` é texto livre (bloco de estatística fixo).
+- **NPC e Pasta são ferramentas do mestre**: leitura e escrita exigem papel `MESTRE` (NPC não tem dono, então "propriedade" não se aplica). Jogador → 403. Quando tokens de NPC aparecerem no mapa (Etapa 10), o que o jogador enxerga do NPC é decisão daquela etapa.
+- **Deletar pasta nunca apaga conteúdo** — tudo sobe pra pasta-pai (ou raiz), numa transação. Mover pasta pra dentro de um descendente é rejeitado (ciclo).
 - `Pasta` é genérica e autorreferenciada; relação com Npc/Mapa/Documento é opcional.
 - `Sessao` é enxuta — base para histórico futuro sem vínculo obrigatório com mensagens.
 - Rolagem de dados **não tem tabela** — é evento em tempo real.
@@ -290,7 +292,7 @@ Ao fechar uma etapa: `chore: etapa N concluída — critérios verificados`.
 | 4 | CRUD de Sala e Membros | ✅ Concluída |
 | 5 | Motor de cálculo isolado + testes | ✅ Concluída (só OP1 — OP2 não tem fórmula publicada, ver "Os dois sistemas") |
 | 6 | CRUD de Ficha (sem tempo real) | 🔄 OP1 pronto — falta conferir contra o C.R.I.S. (sem acesso); FichaOP2 sem CRUD ainda |
-| 7 | CRUD de NPC e Pastas | ⬜ |
+| 7 | CRUD de NPC e Pastas | ✅ Concluída |
 | 8 | Frontend consumindo REST | ⬜ |
 | 9 | Tempo real (Socket.IO) + turno + reconexão | ⬜ |
 | 10 | Mapa, tokens e webcam | ⬜ |
@@ -359,11 +361,13 @@ Ao fechar uma etapa: `chore: etapa N concluída — critérios verificados`.
 > **FichaOP2 ainda não tem CRUD** — só o schema existe (Etapa "multissistema"). Como OP2 não tem motor de cálculo (fichas pré-prontas, sem fórmula), o CRUD dela seria mais simples (sem cálculo, só atribuição direta de pv/pd) mas não foi pedido nesta etapa — Etapa 6 como documentada é só OP1.
 
 ### Etapa 7 — NPC e Pastas
-- [ ] NPC criado retorna valores idênticos aos inseridos (sem passar pelo motor)
-- [ ] Criar pasta → subpasta → mover NPC entre pastas funciona
-- [ ] NPC sem `pastaId` aparece na raiz
-- [ ] Comportamento de deletar pasta com conteúdo está **definido e testado**
-- [ ] O mesmo NPC vira token em dois mapas sem duplicar o registro
+- [x] NPC criado retorna valores idênticos aos inseridos (sem passar pelo motor) — no `POST` e no `GET`
+- [x] Criar pasta → subpasta → mover NPC entre pastas funciona (`PATCH /npcs/:id { pastaId }`)
+- [x] NPC sem `pastaId` aparece na raiz (`GET /salas/:id/biblioteca` sem `pastaId`); NPC dentro de pasta **não** aparece na raiz
+- [x] Comportamento de deletar pasta com conteúdo está **definido e testado**: o conteúdo (NPCs, documentos, mapas, subpastas) **sobe pra pasta-pai**, ou pra raiz se a pasta era de raiz — nada é apagado junto. Testado nos dois casos (pasta aninhada e pasta de raiz).
+- [x] O mesmo NPC vira token em dois mapas sem duplicar o registro — verificado **no modelo de dados** (Prisma direto: 2 mapas, 2 tokens, contagem de NPC inalterada), porque Mapa/Token só ganham endpoints na Etapa 10. Também confirmado: deletar o NPC deixa os tokens no mapa com `npcId = null`.
+
+> Extras testados: mover pasta pra dentro da própria filha → 400 (ciclo); jogador criando NPC ou vendo a biblioteca → 403; não-membro → 404; `pv` negativo → 400; campo do sistema errado (`pd` em sala OP1, `san` em sala OP2) → 400.
 
 ### Etapa 8 — Frontend REST
 - [ ] Login persiste: refresh na página mantém logado
@@ -425,6 +429,9 @@ docker compose up -d
 
 # Backend
 cd backend && npm run dev          # tsx watch src/server.ts → porta 3333
+# Pra testes automatizados, prefira `npx tsx src/server.ts` (sem watch): o `tsx watch`
+# é um processo-pai que ressuscita o filho — matar só o dono da porta 3333 não para
+# nada, e rodar `npm run dev &` várias vezes acumula watchers órfãos (aconteceu: 5).
 
 # Frontend
 cd frontend && npm run dev         # Vite → porta 5173
