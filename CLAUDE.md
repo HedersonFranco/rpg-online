@@ -31,6 +31,8 @@ Isso significa: estados de erro, estados de carregamento e confirmação em aç�
 **A tela de mesa é desktop-first** (mínimo 1280px) — mapa + vídeo + ficha não cabem bem em 375px.
 **`ts-node-dev` é incompatível com TS 7** — usar sempre `tsx`.
 **Tailwind v4** usa `@tailwindcss/vite` e `@import "tailwindcss"` no CSS, não PostCSS legado.
+**Roteamento do frontend: `react-router`** (adicionado na Etapa 8 — o stack não definia router; URLs reais tipo `/salas/:id` e `/convite/:token` precisam de um). Sem outras libs de UI/estado/requisição: `fetch` num wrapper próprio (`services/api.ts`).
+**Frontend usa TypeScript 6** (não 7 como o backend) — é o que o template trouxe e o que o `typescript-eslint` do front suporta. `tsconfig` tem `verbatimModuleSyntax` (tipos só via `import type`) e `erasableSyntaxOnly` (sem enum, sem parameter properties).
 **Prisma 7** usa `prisma7.config.ts` para `datasource.url` — o `schema.prisma` não declara `url` diretamente.
 **Prisma 7 exige driver adapter** — `PrismaClient` não conecta sem um adapter. Usar `@prisma/adapter-pg` + `pg`: `new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) })`. Todo service que instanciar o client precisa disso (idealmente um client singleton compartilhado quando os módulos forem escritos).
 **`prisma migrate dev` recusa rodar neste ambiente** (detecta shell não-interativo e recusa, mesmo com `--create-only`). Workaround: `prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --script` gera o SQL, salva manualmente em `prisma/migrations/<timestamp>_<nome>/migration.sql`, aplica com `prisma migrate deploy` (não-interativo).
@@ -161,20 +163,28 @@ rpg-online/
 ├── frontend/
 │   └── src/
 │       ├── pages/
-│       │   ├── Login/
+│       │   ├── Login/          ← + LayoutAuth (compartilhado com Cadastro)
 │       │   ├── Cadastro/
 │       │   ├── ListaSalas/
-│       │   └── Sala/
+│       │   ├── Sala/           ← mesa + BotaoConvite
+│       │   └── Convite/        ← /convite/:token (link de convite)
 │       ├── components/
 │       │   ├── FichaOrdemParanormal/
 │       │   ├── MapaToken/
 │       │   ├── Biblioteca/
 │       │   ├── Chat/
-│       │   └── TurnoTracker/
+│       │   ├── TurnoTracker/
+│       │   ├── ui/             ← Feedback (Spinner/Carregando/Alerta), Icone, estilos
+│       │   ├── Rotas.tsx       ← RotaProtegida / RotaPublica
+│       │   └── ErrorBoundary.tsx
 │       ├── hooks/
-│       │   └── useSocket.ts
+│       │   ├── useSocket.ts    ← Etapa 9
+│       │   ├── AuthProvider.tsx / authContext.ts / useAuth.ts
+│       │   ├── useRecurso.ts   ← GET com estados carregando/erro/ok
+│       │   └── useAtrasado.ts  ← spinner só depois de 300ms
 │       └── services/
-│           └── api.ts
+│           ├── api.ts          ← fetch + token + erro de conexão legível
+│           └── tipos.ts
 └── CLAUDE.md
 ```
 
@@ -286,14 +296,14 @@ Ao fechar uma etapa: `chore: etapa N concluída — critérios verificados`.
 
 | # | Etapa | Status |
 |---|---|---|
-| 1 | Setup e configuração | 🔄 Quase — falta confirmar visualmente uma classe Tailwind no navegador |
+| 1 | Setup e configuração | ✅ Concluída |
 | 2 | Modelagem no Prisma + migration + seeds | 🔄 Schema + migration prontos (18 entidades, multissistema) — falta o seed (só `Ritual` ainda não levantado) |
 | 3 | Autenticação (JWT, convite com expiração) | ✅ Concluída |
 | 4 | CRUD de Sala e Membros | ✅ Concluída |
 | 5 | Motor de cálculo isolado + testes | ✅ Concluída (só OP1 — OP2 não tem fórmula publicada, ver "Os dois sistemas") |
 | 6 | CRUD de Ficha (sem tempo real) | 🔄 OP1 pronto — falta conferir contra o C.R.I.S. (sem acesso); FichaOP2 sem CRUD ainda |
 | 7 | CRUD de NPC e Pastas | ✅ Concluída |
-| 8 | Frontend consumindo REST | ⬜ |
+| 8 | Frontend consumindo REST | ✅ Concluída (UI de ficha só OP1) |
 | 9 | Tempo real (Socket.IO) + turno + reconexão | ⬜ |
 | 10 | Mapa, tokens e webcam | ⬜ |
 | 11 | Polimento e documentação formal | ⬜ |
@@ -305,7 +315,7 @@ Ao fechar uma etapa: `chore: etapa N concluída — critérios verificados`.
 - [x] `.env` fora do Git, `.env.example` presente
 - [x] **ESLint configurado no backend** (hoje só existe no frontend) + script `lint`
 - [x] **Runner de teste no backend** — `vitest` instalado e confirmado rodando sob TS 7 + `tsx` (teste sanity temporário passou); `npm test` hoje falha com "no test files" porque a Etapa 5 ainda não escreveu testes
-- [ ] Confirmar visualmente que uma classe Tailwind renderiza no navegador
+- [x] Confirmar visualmente que uma classe Tailwind renderiza no navegador — verificado na Etapa 8 (screenshots do navegador real com o tema aplicado)
 
 ### Etapa 2 — Modelagem no Prisma
 - [x] `schema.prisma` declara as entidades de OP1 (16 na época; hoje 18 com `FichaOP2`/`ClasseFormula` — ver "Os dois sistemas")
@@ -370,13 +380,16 @@ Ao fechar uma etapa: `chore: etapa N concluída — critérios verificados`.
 > Extras testados: mover pasta pra dentro da própria filha → 400 (ciclo); jogador criando NPC ou vendo a biblioteca → 403; não-membro → 404; `pv` negativo → 400; campo do sistema errado (`pd` em sala OP1, `san` em sala OP2) → 400.
 
 ### Etapa 8 — Frontend REST
-- [ ] Login persiste: refresh na página mantém logado
-- [ ] Lista de salas renderiza dados reais da API (não mock)
-- [ ] Ficha renderiza valores vindos do backend — o front não recalcula nada
-- [ ] Layout bate com as zonas da seção "Layout da tela de mesa"
-- [ ] Login/cadastro/lista testados em 375px **sem scroll horizontal**
-- [ ] Backend desligado → **mensagem de erro clara**, não tela branca
-- [ ] Operação > 300ms mostra spinner ou skeleton
+> Verificado em navegador real (Edge headless via `playwright-core`, rodado de um diretório temporário fora do repo — não é dependência do projeto), 25 asserções + screenshots conferidos visualmente.
+- [x] Login persiste: refresh na página mantém logado (token em `localStorage`, revalidado com `GET /auth/me` no carregamento)
+- [x] Lista de salas renderiza dados reais da API (não mock) — contagem e nome conferidos contra `GET /salas`
+- [x] Ficha renderiza valores vindos do backend — o front não recalcula nada. Botões +/− só **pedem** um novo `*_atual`; a tela exibe o que o `PATCH` devolve (conferido no banco: 23 → 22)
+- [x] Layout bate com as zonas da seção "Layout da tela de mesa" — header, sidebar (6 seções na ordem), faixa de vídeo com badge "Mestre", área do mapa (toolbar, zoom, "Piso 1"), barra de turno recolhida, painel da ficha
+- [x] Login/cadastro/lista testados em 375px **sem scroll horizontal** (`scrollWidth <= innerWidth`)
+- [x] Backend desligado → **mensagem de erro clara**, não tela branca — testado com o backend realmente parado (não só simulado), com botão "Tentar novamente"
+- [x] Operação > 300ms mostra spinner ou skeleton — resposta atrasada em 1,2s mostra o spinner; abaixo de 300ms nada pisca (`useAtrasado`)
+
+> Extras: sessão expirada/token inválido volta pro login; rota protegida sem sessão redireciona pra `/login` e retorna ao destino depois; `ErrorBoundary` na raiz pega erro de render; zero erros inesperados no console. Seções da sidebar além de "Mesa", mapa, rolagem e áudio aparecem como "ainda não disponível" (são das Etapas 9/10) — honesto, não quebrado. **Fichas de OP2 não têm UI** (não há CRUD de `FichaOP2`); a mesa OP2 mostra essa explicação no painel.
 
 ### Etapa 9 — Tempo real (testar sempre com duas abas)
 - [ ] Alterar PV numa aba reflete na outra em < 1s
