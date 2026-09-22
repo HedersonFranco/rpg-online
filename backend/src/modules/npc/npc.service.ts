@@ -67,6 +67,12 @@ export async function criarNpc(usuarioId: string, salaId: string, dados: DadosNp
   })
 }
 
+// Todos os NPCs da sala, sem olhar pasta — pra montar o combate.
+export async function listarNpcs(usuarioId: string, salaId: string) {
+  await garantirMestre(salaId, usuarioId)
+  return prisma.npc.findMany({ where: { salaId }, orderBy: { nome: 'asc' } })
+}
+
 export async function buscarNpc(usuarioId: string, npcId: string) {
   const { npc } = await buscarNpcComoMestre(npcId, usuarioId)
   return npc

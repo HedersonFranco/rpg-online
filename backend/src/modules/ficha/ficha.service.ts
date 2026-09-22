@@ -2,6 +2,7 @@ import { prisma } from '../../lib/prisma.js'
 import { AppError } from '../../errors/AppError.js'
 import { buscarSalaOuFalhar } from '../sala/sala.service.js'
 import { calcularFicha, type AtributosOP1 } from '../../engine/calculoFicha.js'
+import { emitirParaSala } from '../../sockets/io.js'
 
 type DadosFicha = {
   nome: string
@@ -120,6 +121,7 @@ export async function criarFicha(usuarioId: string, salaId: string, dados: Dados
     include: INCLUIR_PERICIAS,
   })
 
+  emitirParaSala(salaId, 'ficha:atualizada', { ficha })
   return { ficha, habilidadesDesbloqueadas: resultado.habilidadesDesbloqueadas }
 }
 
@@ -226,6 +228,7 @@ export async function atualizarFicha(
     include: INCLUIR_PERICIAS,
   })
 
+  emitirParaSala(atualizado.salaId, 'ficha:atualizada', { ficha: atualizado })
   return { ficha: atualizado, habilidadesDesbloqueadas }
 }
 
@@ -248,10 +251,14 @@ export async function treinarPericia(
     throw new AppError(`Perícia "${periciaNome}" não encontrada`, 404)
   }
 
-  return prisma.fichaPericia.upsert({
+  const fichaPericia = await prisma.fichaPericia.upsert({
     where: { fichaId_periciaId: { fichaId, periciaId: pericia.id } },
     create: { fichaId, periciaId: pericia.id, nivel: nivel as never },
     update: { nivel: nivel as never },
     include: { pericia: true },
   })
+
+  const atualizada = await prisma.ficha.findUnique({ where: { id: fichaId }, include: INCLUIR_PERICIAS })
+  emitirParaSala(ficha.salaId, 'ficha:atualizada', { ficha: atualizada })
+  return fichaPericia
 }
