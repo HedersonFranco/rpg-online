@@ -2,8 +2,8 @@ import type { Request, Response } from 'express'
 import * as salaService from './sala.service.js'
 
 export async function criarController(req: Request, res: Response) {
-  const { nome } = req.body ?? {}
-  const sala = await salaService.criarSala(req.usuarioId!, nome)
+  const { nome, sistema } = req.body ?? {}
+  const sala = await salaService.criarSala(req.usuarioId!, nome, sistema)
   res.status(201).json(sala)
 }
 

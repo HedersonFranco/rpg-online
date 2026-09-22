@@ -3,6 +3,7 @@ import { AppError } from '../../errors/AppError.js'
 import { gerarConvite, validarConvite } from '../../engine/convite.js'
 
 const LIMITE_SALAS_POR_DONO = 3
+const SISTEMAS_VALIDOS = ['ORDEM_PARANORMAL_1', 'ORDEM_PARANORMAL_2'] as const
 
 function mensagemMotivoConvite(motivo: 'convite_inexistente' | 'token_invalido' | 'convite_expirado') {
   switch (motivo) {
@@ -13,9 +14,12 @@ function mensagemMotivoConvite(motivo: 'convite_inexistente' | 'token_invalido' 
   }
 }
 
-export async function criarSala(usuarioId: string, nome: string) {
+export async function criarSala(usuarioId: string, nome: string, sistema: string) {
   if (!nome?.trim()) {
     throw new AppError('Nome da sala é obrigatório', 400)
+  }
+  if (!SISTEMAS_VALIDOS.includes(sistema as (typeof SISTEMAS_VALIDOS)[number])) {
+    throw new AppError(`Sistema inválido — use um de: ${SISTEMAS_VALIDOS.join(', ')}`, 400)
   }
 
   const salasComoDono = await prisma.sala.count({ where: { donoId: usuarioId } })
@@ -28,6 +32,7 @@ export async function criarSala(usuarioId: string, nome: string) {
   const sala = await prisma.sala.create({
     data: {
       nome: nome.trim(),
+      sistema: sistema as (typeof SISTEMAS_VALIDOS)[number],
       donoId: usuarioId,
       conviteToken: convite.token,
       conviteExpiraEm: convite.expiraEm,
