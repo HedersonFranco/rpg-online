@@ -23,6 +23,17 @@ export async function atualizarController(req: Request, res: Response) {
 
 export async function treinarPericiaController(req: Request, res: Response) {
   const { nome, nivel } = req.body ?? {}
-  const fichaPericia = await fichaService.treinarPericia(req.params.id!, req.usuarioId!, nome, nivel)
-  res.json(fichaPericia)
+  res.json(await fichaService.treinarPericia(req.params.id!, req.usuarioId!, nome, nivel))
+}
+
+export async function criarEntradaController(req: Request, res: Response) {
+  res.status(201).json(await fichaService.criarEntrada(req.params.id!, req.usuarioId!, req.body ?? {}))
+}
+
+export async function atualizarEntradaController(req: Request, res: Response) {
+  res.json(await fichaService.atualizarEntrada(req.params.id!, req.params.entradaId!, req.usuarioId!, req.body ?? {}))
+}
+
+export async function removerEntradaController(req: Request, res: Response) {
+  res.json(await fichaService.removerEntrada(req.params.id!, req.params.entradaId!, req.usuarioId!))
 }

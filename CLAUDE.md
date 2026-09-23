@@ -54,7 +54,8 @@ Isso significa: estados de erro, estados de carregamento e confirmação em aç�
 - Criação livre — jogador escolhe tudo sem aprovação prévia do mestre.
 - Jogador edita a própria ficha; mestre edita qualquer ficha da sala.
 - Conflito simultâneo: last-write-wins, sem aviso na v1.
-- Inventário: campo de texto livre (sem tabela estruturada na v1).
+- Inventário: campo de texto livre (anotações soltas), editável na aba "Inventário".
+- **Rituais, habilidades, poderes e equipamentos (decisão de 23/09/2026):** cada ficha cadastra os seus em `FichaEntrada` (não há catálogo). Campos: todos têm nome + descrição; **ritual** + círculo (1–4) + elemento (Sangue/Morte/Conhecimento/Energia/Medo/Varia) — as condições (execução, alcance, duração, resistência) vão na descrição; **poder** + pré-requisito (opcional); **equipamento** + categoria (0–IV) + espaços. Habilidade é só nome + descrição. O service rejeita campo de outro tipo (`400`) e o tipo não muda depois de criado. Apagar pede confirmação. Rotas: `POST /fichas/:id/entradas`, `PATCH`/`DELETE /fichas/:id/entradas/:entradaId` — todas devolvem `{ ficha }` e emitem `ficha:atualizada`.
 - **O backend é o único que calcula valores derivados** (PV/PE/San máximos, bônus de perícias). O frontend nunca calcula — sempre confia no backend.
 
 ### NPCs / Tokens
@@ -126,11 +127,11 @@ Isso significa: estados de erro, estados de carregamento e confirmação em aç�
 Função pura chamada pela API REST e pelo WebSocket:
 1. Recebe: `classe`, `nex`, atributos (`for`, `agi`, `int`, `vig`, `pre`), perícias treinadas.
 2. Consulta `ClasseFormula` (base+incremento por classe) e `ProgressaoClasse` (habilidades por tier) — ambos passados como parâmetro, nunca via banco direto.
-3. Retorna: `pv_maximo`, `pe_maximo`, `san_maximo`, bônus de perícias, habilidades desbloqueadas (acumuladas de todos os tiers ≤ NEX atual).
+3. Retorna: `pv_maximo`, `pe_maximo`, `san_maximo`, testes de perícia (`testesPericias`), habilidades desbloqueadas (acumuladas de todos os tiers ≤ NEX atual).
 
 **Fórmula confirmada no livro (Ordem Paranormal RPG v1.3):** `pv_maximo = pvBase(classe) + Vigor + pvPorTier(classe) × tier`; mesma lógica pra PE com Presença; Sanidade **não soma atributo**. `tier` = posição de `nex` na sequência fixa de 20 degraus `[5,10,...,95,99]` (99% conta como mais um degrau mesmo sendo só +4%). NEX só pode ser um desses 20 valores — qualquer outro é erro tratado.
 
-Bônus de perícia = atributo-base + bônus por grau de treino (`Destreinado` 0 / `Treinado` +5 / `Veterano` +10 / `Expert` +15) — também confirmado no livro.
+**Teste de perícia = (atributo-base)d20, fica com o melhor, + bônus do grau de treino** (`Destreinado` 0 / `Treinado` +5 / `Veterano` +10 / `Expert` +15). O atributo é a **quantidade de dados**, não soma no bônus — ex.: Vigor 3 + Fortitude Treinado = **3d20+5**. Atributo 0 rola 2d20 e fica com o **pior** (`modo: 'menor'`). Confirmado no livro (p. 10, "Modificador" e graus de treino). *(Corrigido em 23/09/2026 — a versão anterior deste arquivo e do motor somava atributo + treino, o que estava errado.)* `montarTestesPericias()` é a função pura; toda ficha que sai da API/socket traz `testesPericias` com as 28 (sem linha em `FichaPericia` = Destreinado).
 
 `pv/pe/san_maximo_cache` na tabela `Ficha` são **cache** — nunca fonte da verdade.
 Botões de combate alteram só o valor **atual** (0 ≤ atual ≤ máximo), validado no servidor.
@@ -230,7 +231,7 @@ Cada módulo em `modules/` tem: `<modulo>.controller.ts`, `<modulo>.service.ts`,
 - `Ficha` (OP1) usa colunas tipadas (não JSON livre) — permite queries como "fichas com NEX >= 30".
 - **OP2 usa tabela separada (`FichaOP2`)** em vez de esticar `Ficha` com campos nulos — mesmo padrão já previsto aqui pra um eventual D&D no futuro (`FichaDnd` ou campo `extra Json`), só que aplicado agora pro próprio Ordem Paranormal (v1.3 x RPG II).
 - `ProgressaoClasse` guarda só **habilidades por tier de NEX** (uma linha por classe+NEX). PV/PE/San **não** ficam lá — são fórmula em `ClasseFormula` (uma linha fixa por classe: base + incremento por tier) somada ao atributo do personagem no motor de cálculo. Ver seção "Motor de cálculo".
-- `Pericia` (26 fixas, confirmado no livro v1.3 — Agilidade 7, Força 2, Intelecto 9, Presença 7, Vigor 1) e `Ritual` são catálogos populados via **seed**, não criados pelo usuário. O seed deve ser **idempotente** (rodar duas vezes não duplica). `Pericia`/`FichaPericia`/`Ritual`/`FichaRitual` são **só de OP1** — OP2 guarda perícias como Json direto em `FichaOP2` (ver "Os dois sistemas").
+- `Pericia` (**28** fixas — Tabela 2.1, p. 41 do livro v1.3: Agilidade 7, Força 2, Intelecto 9, **Presença 9**, Vigor 1; a contagem "26" anterior estava errada) é catálogo populado via **seed** a partir de `engine/pericias.ts`, não criado pelo usuário. O seed deve ser **idempotente** (rodar duas vezes não duplica). **`Ritual`/`FichaRitual` foram removidos em 23/09/2026** (estavam vazios) — ritual virou `FichaEntrada` escrita pelo jogador. `Pericia`/`FichaPericia`/`FichaEntrada` são **só de OP1** — OP2 guarda perícias como Json direto em `FichaOP2` (ver "Os dois sistemas").
 - `Npc` é entidade separada de `Ficha` — monstros não têm progressão por NEX. Tem `pv/pe/san` (OP1) e `pd` (OP2), todos opcionais; o service rejeita campo do sistema errado pra sala. `atributos` é texto livre (bloco de estatística fixo).
 - **NPC e Pasta são ferramentas do mestre**: leitura e escrita exigem papel `MESTRE` (NPC não tem dono, então "propriedade" não se aplica). Jogador → 403. Quando tokens de NPC aparecerem no mapa (Etapa 10), o que o jogador enxerga do NPC é decisão daquela etapa.
 - **Deletar pasta nunca apaga conteúdo** — tudo sobe pra pasta-pai (ou raiz), numa transação. Mover pasta pra dentro de um descendente é rejeitado (ciclo).
@@ -243,10 +244,10 @@ Cada módulo em `modules/` tem: `<modulo>.controller.ts`, `<modulo>.service.ts`,
 - **Convite não é entidade própria** (não está nas 16) — vive como `conviteToken`/`conviteExpiraEm` direto em `Sala` (um convite ativo por vez, sobrescrito ao gerar outro). Se precisar de histórico de convites no futuro, aí sim vira tabela.
 - **Nomenclatura de campos:** `Ficha` usa os nomes citados literalmente neste arquivo (`usuario_id`, `pv_atual`/`pv_maximo_cache`, etc. em snake_case); `Token` usa `fichaId`/`npcId` em camelCase (citado assim no checklist da Etapa 2). Os demais campos seguem camelCase padrão do Prisma.
 
-### Entidades (18)
-`Usuario`, `Sala`, `MembroSala`, `Sessao`, `Ficha`, `FichaOP2`, `ClasseFormula`, `ProgressaoClasse`, `Pericia`, `FichaPericia`, `Ritual`, `FichaRitual`, `Npc`, `Pasta`, `Documento`, `Mapa`, `Token`, `Mensagem`
+### Entidades (17)
+`Usuario`, `Sala`, `MembroSala`, `Sessao`, `Ficha`, `FichaOP2`, `ClasseFormula`, `ProgressaoClasse`, `Pericia`, `FichaPericia`, `FichaEntrada`, `Npc`, `Pasta`, `Documento`, `Mapa`, `Token`, `Mensagem`
 
-> Eram 16 na Etapa 2 (só OP1). `FichaOP2` e `ClasseFormula` entraram em 22/09/2026 com o suporte a dois sistemas.
+> Eram 16 na Etapa 2 (só OP1). `FichaOP2` e `ClasseFormula` entraram em 22/09/2026 com o suporte a dois sistemas. Em 23/09/2026 `Ritual` + `FichaRitual` (catálogo) saíram e `FichaEntrada` entrou.
 
 ---
 
@@ -257,9 +258,9 @@ Cada módulo em `modules/` tem: `<modulo>.controller.ts`, `<modulo>.service.ts`,
 | Progressão | NEX% (20 tiers: 5,10,...,95,99) + classe (Combatente/Especialista/Ocultista) | Nível 1-10 + Perfil (Executor/Analista/Vigilante) + Ocupação (texto livre) |
 | Atributos | 5, numéricos 0-5 (For/Agi/Int/Vig/Pre) | 3, em dado de step (Físico/Mente/Emoção, d4-d12) |
 | Teste | Rola N d20 (N = valor do atributo), pega o melhor; 0 rola 2d20 e pega o pior | Rola 1 dado do atributo + 1 da perícia, soma os dois |
-| Perícias | 26 fixas, grau Destreinado/Treinado/Veterano/Expert (bônus 0/+5/+10/+15) | 20 fixas, cada uma no próprio dado de step d4-d12 |
+| Perícias | 28 fixas, grau Destreinado/Treinado/Veterano/Expert (bônus 0/+5/+10/+15); teste = (atributo)d20 + bônus | 20 fixas, cada uma no próprio dado de step d4-d12 |
 | PV/PE/San | **Fórmula real, calculada** (`ClasseFormula` + atributo) — ver "Motor de cálculo" | **Sem fórmula publicada** — PV/PD atribuídos direto na ficha (fichas pré-prontas no playtest) |
-| Tabela no schema | `Ficha`, `FichaPericia`, `FichaRitual`, `ProgressaoClasse`, `ClasseFormula` | `FichaOP2` (perícias em Json, sem join table — catálogo em `engine/op2/catalogo.ts`) |
+| Tabela no schema | `Ficha`, `FichaPericia`, `FichaEntrada`, `ProgressaoClasse`, `ClasseFormula` | `FichaOP2` (perícias em Json, sem join table — catálogo em `engine/op2/catalogo.ts`) |
 
 `Sala.sistema` decide qual conjunto de tabelas vale pra aquela sala. Não existe conversão entre sistemas — trocar o sistema de uma sala em andamento não está no escopo (não foi pedido e não há regra de conversão de ficha entre os dois jogos).
 
@@ -288,7 +289,7 @@ Referência visual: `preview.webp` (no Project do Claude). Estrutura-alvo:
 - **Faixa de vídeo:** feeds horizontais com nome, indicador de áudio e badge "Mestre". Sem câmera → placeholder com inicial.
 - **Mapa:** toolbar vertical à esquerda (cursor e pan na v1; lápis/linha/texto/régua/grade são v2). Zoom +/− e tela cheia no canto inferior esquerdo. Seletor "Piso 1" é **placeholder na v1** (multi-piso é v2).
 - **Painel direito é recolhível (decisão de 23/09/2026):** botão `>` recolhe pra uma faixa de 48px com atalhos Ficha/Chat; aberto/recolhido fica no `localStorage` do navegador. A aba Ficha do painel mostra a lista "Agentes da mesa" (cards à la C.R.I.S. `/agentes`: nome, classe·NEX, jogador, data, "Acessar ficha"). A lista é **só da sala** — não existe "meus agentes" global (a ficha continua pertencendo à sala). Ao entrar na mesa, abre direto na ficha do próprio usuário, se houver.
-- **Painel direito (ficha):** avatar + nome + origem/classe/trilha/NEX%, chips de PV/PE/Sanidade, barra de NEX, grade de atributos **FOR/AGI/INT/VIG/PRE**, tabs (Atributos-Perícias / Rituais / Inventário / Características), barras de recurso com botões +/−.
+- **Painel direito (ficha):** avatar + nome + origem/classe/trilha/NEX%, chips de PV/PE/Sanidade, barra de NEX, grade de atributos **FOR/AGI/INT/VIG/PRE**, grade de atributos sempre visível, tabs **Perícias / Rituais / Habilidades / Poderes / Equipamentos / Inventário** (referência de estilo: ficha do RPGpédia, `docs/referencias/rpgpedia.png` — cor do elemento na borda do card de ritual, sem copiar arte). Perícias: busca + filtro Todas/Treinadas, teste "3d20+5" vindo do backend, grau editável num select. Barras de recurso com botões +/−.
 - **Barra de turno:** jogador ativo + iniciativa à esquerda, fila de próximos no centro, botão primário "Encerrar turno", botão "Rolagem" à direita. Sem combate ativo → barra recolhida.
 
 > O `preview.webp` mostra atributos de D&D (FOR/DES/CON/INT/SAB/CAR, CA, Descanso Curto/Longo). **A estrutura é a referência, o conteúdo não.** Mapear sempre para Ordem Paranormal.
@@ -299,7 +300,7 @@ Referência visual: `preview.webp` (no Project do Claude). Estrutura-alvo:
 
 - Histórico de rolagens persistido
 - Redis / estado distribuído
-- Tabela estruturada de itens no inventário
+- Regras mecânicas de itens (dano/crítico/munição como campos; equipamento tem só categoria e espaços, o resto é descrição)
 - Motor de cálculo para NPCs
 - D&D ou outros sistemas além de Ordem Paranormal
 - Ferramentas de anotação no mapa (lápis, linha, texto, régua, grade)
@@ -331,7 +332,7 @@ Ao fechar uma etapa: `chore: etapa N concluída — critérios verificados`.
 | # | Etapa | Status |
 |---|---|---|
 | 1 | Setup e configuração | ✅ Concluída |
-| 2 | Modelagem no Prisma + migration + seeds | 🔄 Schema + migration prontos (18 entidades, multissistema) — falta o seed (só `Ritual` ainda não levantado) |
+| 2 | Modelagem no Prisma + migration + seeds | 🔄 Schema + migration prontos (17 entidades, multissistema); seed de `ClasseFormula` + 28 `Pericia` pronto — falta `ProgressaoClasse` |
 | 3 | Autenticação (JWT, convite com expiração) | ✅ Concluída |
 | 4 | CRUD de Sala e Membros | ✅ Concluída |
 | 5 | Motor de cálculo isolado + testes | ✅ Concluída (só OP1 — OP2 não tem fórmula publicada, ver "Os dois sistemas") |
@@ -356,14 +357,14 @@ Ao fechar uma etapa: `chore: etapa N concluída — critérios verificados`.
 - [x] `npx prisma migrate dev --name init` cria a migration; `prisma/migrations/` passa a existir
 - [x] `npx prisma migrate status` reporta aplicada e **nenhuma pendente** (reconfirmado após a migration de 22/09/2026)
 - [x] `npx prisma studio` lista as tabelas — verificado via `psql \dt`, não pela GUI
-- [ ] Script `prisma.seed` no `package.json` e `npx prisma db seed` roda sem erro
-- [ ] Seed é **idempotente** — rodar duas vezes não duplica registros
-- [ ] `SELECT COUNT(*) FROM "Pericia"` retorna **26** (não mais "~30" — contagem exata confirmada no livro)
+- [x] Seed configurado (`migrations.seed` em `prisma7.config.ts` — Prisma 7 não lê `package.json`) e `npx prisma db seed` roda sem erro
+- [x] Seed é **idempotente** — rodado duas vezes, contagens iguais (upsert por `classe`/`nome`)
+- [x] `SELECT COUNT(*) FROM "Pericia"` retorna **28** (AGI 7, FOR 2, INT 9, PRE 9, VIG 1 — conferido por `GROUP BY` contra a Tabela 2.1 do livro; o critério antigo dizia 26, contagem errada)
 - [ ] `SELECT COUNT(*) FROM "ProgressaoClasse"` retorna ≥ 1 linha por classe × tier de NEX
 - [x] FKs opcionais (`pastaId` em Npc/Mapa/Documento, `fichaId`/`npcId` em `Token`) aceitam NULL — testado com insert real via Prisma Client
 - [x] **Novo:** `Token` tem CHECK constraint (`token_ficha_xor_npc`) impedindo `fichaId` e `npcId` preenchidos ao mesmo tempo — testado, insert violando a regra é rejeitado pelo Postgres
 
-> **Bloqueio parcialmente resolvido (22/09/2026):** a fórmula de PV/PE/San, os 20 tiers de NEX e a lista completa de 26 perícias com atributo-base **já foram confirmados** direto no livro (v1.3) — ver `ClasseFormula`/`engine/calculoFicha.ts`. O que falta pro seed: lista completa de `Ritual` (não levantada ainda) e transformar as tabelas 1.3/1.4/1.5 (habilidades por tier, já lidas) em linhas de `ProgressaoClasse`. Ninguém pediu o seed ainda nesta sessão — fica pra quando for pedido explicitamente.
+> **Bloqueio parcialmente resolvido (22/09/2026):** a fórmula de PV/PE/San, os 20 tiers de NEX e a lista completa de 26 perícias com atributo-base **já foram confirmados** direto no livro (v1.3) — ver `ClasseFormula`/`engine/calculoFicha.ts`. O que falta pro seed: ~~lista de `Ritual`~~ (não é mais necessária — ritual virou entrada da ficha) e transformar as tabelas 1.3/1.4/1.5 (habilidades por tier, já lidas) em linhas de `ProgressaoClasse`. Ninguém pediu o seed ainda nesta sessão — fica pra quando for pedido explicitamente.
 
 ### Etapa 3 — Autenticação
 - [x] `POST /auth/cadastro` cria usuário e retorna token válido

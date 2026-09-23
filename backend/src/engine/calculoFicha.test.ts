@@ -93,13 +93,14 @@ describe('calcularFicha', () => {
     expect(ocultista.san_maximo).toBe(20 + 9 * 5)
   })
 
-  it('calcula bônus de perícia como atributo-base + bônus de treino (0/5/10/15)', () => {
+  it('monta o teste de perícia como (atributo)d20 + treino — o atributo não soma no bônus', () => {
     const r = calcularFicha(
       {
         classe: 'OCULTISTA',
         nex: 50,
-        atributos: ATRIBUTOS_BASE,
+        atributos: { ...ATRIBUTOS_BASE, vig: 3 },
         pericias: [
+          { nome: 'Fortitude', atributoBase: 'vig', nivel: 'TREINADO' },
           { nome: 'Ocultismo', atributoBase: 'int', nivel: 'EXPERT' },
           { nome: 'Luta', atributoBase: 'for', nivel: 'DESTREINADO' },
         ],
@@ -107,9 +108,26 @@ describe('calcularFicha', () => {
       [],
       FORMULAS,
     )
+    const teste = (nome: string) => r.testesPericias.find((t) => t.nome === nome)
 
-    expect(r.bonusPericias.Ocultismo).toBe(ATRIBUTOS_BASE.int + 15)
-    expect(r.bonusPericias.Luta).toBe(ATRIBUTOS_BASE.for + 0)
+    // Exemplo do livro/usuário: Vigor 3 + Fortitude Treinado = 3d20+5.
+    expect(teste('Fortitude')).toMatchObject({ dados: 3, bonus: 5, modo: 'maior', nivel: 'TREINADO' })
+    expect(teste('Ocultismo')).toMatchObject({ dados: ATRIBUTOS_BASE.int, bonus: 15 })
+    expect(teste('Luta')).toMatchObject({ dados: ATRIBUTOS_BASE.for, bonus: 0 })
+  })
+
+  it('perícia com atributo 0 rola 2d20 e fica com o pior', () => {
+    const r = calcularFicha(
+      {
+        classe: 'COMBATENTE',
+        nex: 5,
+        atributos: { ...ATRIBUTOS_BASE, pre: 0 },
+        pericias: [{ nome: 'Vontade', atributoBase: 'pre', nivel: 'VETERANO' }],
+      },
+      [],
+      FORMULAS,
+    )
+    expect(r.testesPericias[0]).toMatchObject({ dados: 2, bonus: 10, modo: 'menor' })
   })
 
   it('rejeita NEX que não é um tier válido (ex.: 7) sem crashar', () => {

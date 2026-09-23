@@ -2,7 +2,10 @@ import { Router } from 'express'
 import { autenticar } from '../../middlewares/auth.js'
 import {
   atualizarController,
+  atualizarEntradaController,
   buscarController,
+  criarEntradaController,
+  removerEntradaController,
   treinarPericiaController,
 } from './ficha.controller.js'
 
@@ -15,3 +18,6 @@ fichaRoutes.use(autenticar)
 fichaRoutes.get('/:id', buscarController)
 fichaRoutes.patch('/:id', atualizarController)
 fichaRoutes.post('/:id/pericias', treinarPericiaController)
+fichaRoutes.post('/:id/entradas', criarEntradaController)
+fichaRoutes.patch('/:id/entradas/:entradaId', atualizarEntradaController)
+fichaRoutes.delete('/:id/entradas/:entradaId', removerEntradaController)

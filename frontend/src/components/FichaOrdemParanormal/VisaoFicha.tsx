@@ -1,9 +1,12 @@
 import { useState } from 'react'
 import { useAtrasado } from '../../hooks/useAtrasado'
 import { api, mensagemDeErro } from '../../services/api'
-import { NEX_TIERS, NOME_CLASSE, NOME_NIVEL_TREINO, type Ficha } from '../../services/tipos'
+import { NEX_TIERS, NOME_CLASSE, type Ficha, type TipoEntrada } from '../../services/tipos'
 import { Alerta, Spinner } from '../ui/Feedback'
 import { Icone } from '../ui/Icone'
+import { AbaEntradas } from './AbaEntradas'
+import { AbaInventario } from './AbaInventario'
+import { AbaPericias } from './AbaPericias'
 
 type Recurso = 'pv' | 'pe' | 'san'
 
@@ -16,13 +19,17 @@ const RECURSOS: { chave: Recurso; rotulo: string; cor: string }[] = [
 const ATRIBUTOS = [['for', 'FOR'], ['agi', 'AGI'], ['int', 'INT'], ['vig', 'VIG'], ['pre', 'PRE']] as const
 
 const ABAS = [
-  ['pericias', 'Atributos e Perícias'],
-  ['rituais', 'Rituais'],
+  ['pericias', 'Perícias'],
+  ['RITUAL', 'Rituais'],
+  ['HABILIDADE', 'Habilidades'],
+  ['PODER', 'Poderes'],
+  ['EQUIPAMENTO', 'Equipamentos'],
   ['inventario', 'Inventário'],
-  ['caracteristicas', 'Características'],
 ] as const
 
 type Aba = (typeof ABAS)[number][0]
+
+const TIPOS_ENTRADA: readonly string[] = ['RITUAL', 'HABILIDADE', 'PODER', 'EQUIPAMENTO'] satisfies TipoEntrada[]
 
 function atualDe(ficha: Ficha, recurso: Recurso) {
   return ficha[`${recurso}_atual`]
@@ -141,8 +148,17 @@ export function VisaoFicha({
         {erro && <Alerta mensagem={erro} />}
       </div>
 
+      <div className="grid grid-cols-5 gap-2" aria-label="Atributos">
+        {ATRIBUTOS.map(([chave, rotulo]) => (
+          <div key={chave} className="rounded-lg border border-zinc-800 bg-zinc-900 py-2 text-center">
+            <p className="text-[10px] font-semibold tracking-wider text-zinc-500">{rotulo}</p>
+            <p className="text-xl font-semibold">{ficha[chave]}</p>
+          </div>
+        ))}
+      </div>
+
       <div>
-        <div role="tablist" aria-label="Seções da ficha" className="flex gap-1 border-b border-zinc-800">
+        <div role="tablist" aria-label="Seções da ficha" className="flex flex-wrap gap-x-1 border-b border-zinc-800">
           {ABAS.map(([chave, rotulo]) => (
             <button key={chave} type="button" role="tab" aria-selected={aba === chave} onClick={() => setAba(chave)}
               className={`-mb-px border-b-2 px-2 py-2 text-xs font-medium ${aba === chave ? 'border-violet-500 text-violet-300' : 'border-transparent text-zinc-400 hover:text-zinc-200'}`}>
@@ -151,38 +167,12 @@ export function VisaoFicha({
           ))}
         </div>
 
-        <div role="tabpanel" className="pt-3 text-sm">
-          {aba === 'pericias' && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-5 gap-2">
-                {ATRIBUTOS.map(([chave, rotulo]) => (
-                  <div key={chave} className="rounded-lg border border-zinc-800 bg-zinc-900 py-2 text-center">
-                    <p className="text-[10px] font-semibold tracking-wider text-zinc-500">{rotulo}</p>
-                    <p className="text-xl font-semibold">{ficha[chave]}</p>
-                  </div>
-                ))}
-              </div>
-              {ficha.pericias.length === 0 ? (
-                <p className="text-zinc-500">Nenhuma perícia treinada.</p>
-              ) : (
-                <ul className="divide-y divide-zinc-800">
-                  {ficha.pericias.map((fp) => (
-                    <li key={fp.id} className="flex justify-between py-1.5">
-                      <span>{fp.pericia.nome} <span className="text-xs text-zinc-500">({fp.pericia.atributoBase})</span></span>
-                      <span className="text-zinc-400">{NOME_NIVEL_TREINO[fp.nivel]}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+        <div role="tabpanel" aria-label={ABAS.find(([chave]) => chave === aba)?.[1]} className="pt-3 text-sm">
+          {aba === 'pericias' && <AbaPericias ficha={ficha} podeEditar={podeEditar} onAtualizada={onAtualizada} />}
+          {TIPOS_ENTRADA.includes(aba) && (
+            <AbaEntradas key={aba} ficha={ficha} tipo={aba as TipoEntrada} podeEditar={podeEditar} onAtualizada={onAtualizada} />
           )}
-          {aba === 'rituais' && <p className="text-zinc-500">Nenhum ritual conhecido.</p>}
-          {aba === 'inventario' && (
-            ficha.inventario?.trim()
-              ? <p className="whitespace-pre-wrap text-zinc-300">{ficha.inventario}</p>
-              : <p className="text-zinc-500">Inventário vazio.</p>
-          )}
-          {aba === 'caracteristicas' && <p className="text-zinc-500">Nenhuma habilidade registrada ainda.</p>}
+          {aba === 'inventario' && <AbaInventario ficha={ficha} podeEditar={podeEditar} onAtualizada={onAtualizada} />}
         </div>
       </div>
     </div>
