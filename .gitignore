@@ -28,3 +28,6 @@ graphify-out/
 *.njsproj
 *.sln
 *.sw?
+
+# Prints de referência de design (produtos de terceiros — não versionar)
+docs/referencias/
