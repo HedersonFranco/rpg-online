@@ -55,6 +55,7 @@ export type Ficha = {
   inventario: string | null
   avatarUrl: string | null
   pericias: FichaPericia[]
+  createdAt: string
 }
 
 export type Mensagem = {

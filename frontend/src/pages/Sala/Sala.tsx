@@ -10,7 +10,7 @@ import { AreaMapa } from '../../components/MapaToken/AreaMapa'
 import { GerenciarMapas } from '../../components/MapaToken/GerenciarMapas'
 import { FaixaVideo } from '../../components/Video/FaixaVideo'
 import { BarraTurno } from '../../components/TurnoTracker/BarraTurno'
-import { PainelFicha } from '../../components/FichaOrdemParanormal/PainelFicha'
+import { PainelFicha, type VisaoPainelFicha } from '../../components/FichaOrdemParanormal/PainelFicha'
 import { PainelChat } from '../../components/Chat/PainelChat'
 import { SalaSocketProvider } from '../../hooks/SalaSocketProvider'
 import { useSalaSocket } from '../../hooks/useSocket'
@@ -33,31 +33,88 @@ function IndicadorConexao() {
   )
 }
 
-function PainelDireito({ sala, usuario }: { sala: SalaDetalhe; usuario: Usuario }) {
-  const [aba, setAba] = useState<'ficha' | 'chat'>('ficha')
-  return (
-    <aside aria-label="Painel lateral" className="flex w-[380px] shrink-0 flex-col border-l border-zinc-800">
-      <div role="tablist" aria-label="Painel lateral" className="flex shrink-0 border-b border-zinc-800">
-        {(['ficha', 'chat'] as const).map((a) => (
-          <button key={a} type="button" role="tab" aria-selected={aba === a} onClick={() => setAba(a)}
-            className={`flex-1 border-b-2 py-2.5 text-sm font-medium ${aba === a ? 'border-violet-500 text-violet-300' : 'border-transparent text-zinc-400 hover:text-zinc-200'}`}>
-            {a === 'ficha' ? 'Ficha' : 'Chat'}
+type AbaPainel = 'ficha' | 'chat'
+
+const ABAS_PAINEL: { chave: AbaPainel; rotulo: string; icone: NomeIcone }[] = [
+  { chave: 'ficha', rotulo: 'Ficha', icone: 'fichas' },
+  { chave: 'chat', rotulo: 'Chat', icone: 'chat' },
+]
+
+const CHAVE_PAINEL_ABERTO = 'mesa:painelAberto'
+
+// Preferência só deste navegador; sem storage (aba privada etc.) o painel simplesmente nasce aberto.
+function lerPainelAberto() {
+  try {
+    return localStorage.getItem(CHAVE_PAINEL_ABERTO) !== 'nao'
+  } catch {
+    return true
+  }
+}
+
+function gravarPainelAberto(aberto: boolean) {
+  try {
+    localStorage.setItem(CHAVE_PAINEL_ABERTO, aberto ? 'sim' : 'nao')
+  } catch {
+    // sem storage: vale só até recarregar
+  }
+}
+
+// Painel lateral que abre e fecha (a "gaveta" da ficha). Recolhido, sobra uma faixa com os atalhos.
+function PainelDireito({ sala, usuario, aberto, aba, onAbrir, onRecolher, visaoFicha, onVisaoFicha }: {
+  sala: SalaDetalhe
+  usuario: Usuario
+  aberto: boolean
+  aba: AbaPainel
+  onAbrir: (aba: AbaPainel) => void
+  onRecolher: () => void
+  visaoFicha: VisaoPainelFicha
+  onVisaoFicha: (visao: VisaoPainelFicha) => void
+}) {
+  if (!aberto) {
+    return (
+      <aside aria-label="Painel lateral (recolhido)" className="flex w-12 shrink-0 flex-col items-center gap-1 border-l border-zinc-800 py-2">
+        {ABAS_PAINEL.map(({ chave, rotulo, icone }) => (
+          <button key={chave} type="button" onClick={() => onAbrir(chave)} title={`Abrir ${rotulo.toLowerCase()}`}
+            aria-label={`Abrir ${rotulo.toLowerCase()}`}
+            className="flex w-10 flex-col items-center gap-1 rounded-lg py-2 text-[10px] text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200">
+            <Icone nome={icone} />
+            {rotulo}
           </button>
         ))}
+      </aside>
+    )
+  }
+  return (
+    <aside aria-label="Painel lateral" className="flex w-[380px] shrink-0 flex-col border-l border-zinc-800">
+      <div className="flex shrink-0 border-b border-zinc-800">
+        <button type="button" onClick={onRecolher} title="Recolher painel" aria-label="Recolher painel"
+          className="px-3 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200">
+          <Icone nome="recolher" className="h-4 w-4" />
+        </button>
+        <div role="tablist" aria-label="Painel lateral" className="flex flex-1">
+          {ABAS_PAINEL.map(({ chave, rotulo }) => (
+            <button key={chave} type="button" role="tab" aria-selected={aba === chave} onClick={() => onAbrir(chave)}
+              className={`flex-1 border-b-2 py-2.5 text-sm font-medium ${aba === chave ? 'border-violet-500 text-violet-300' : 'border-transparent text-zinc-400 hover:text-zinc-200'}`}>
+              {rotulo}
+            </button>
+          ))}
+        </div>
       </div>
       <div role="tabpanel" aria-label={aba === 'ficha' ? 'Ficha de personagem' : 'Chat'} className="min-h-0 flex-1 overflow-y-auto p-4">
-        {aba === 'ficha' ? <PainelFicha sala={sala} usuario={usuario} /> : <PainelChat salaId={sala.id} />}
+        {aba === 'ficha'
+          ? <PainelFicha sala={sala} usuario={usuario} visao={visaoFicha} onVisao={onVisaoFicha} />
+          : <PainelChat salaId={sala.id} />}
       </div>
     </aside>
   )
 }
 
-type Secao = 'mesa' | 'mapa' | 'fichas' | 'biblioteca' | 'notas' | 'npcs'
+// Fichas não é seção: ficam só no painel direito (decisão de 23/09/2026).
+type Secao = 'mesa' | 'mapa' | 'biblioteca' | 'notas' | 'npcs'
 
 const SECOES: { chave: Secao; rotulo: string; icone: NomeIcone }[] = [
   { chave: 'mesa', rotulo: 'Mesa', icone: 'mesa' },
   { chave: 'mapa', rotulo: 'Mapa', icone: 'mapa' },
-  { chave: 'fichas', rotulo: 'Fichas', icone: 'fichas' },
   { chave: 'biblioteca', rotulo: 'Biblioteca', icone: 'biblioteca' },
   { chave: 'notas', rotulo: 'Notas', icone: 'notas' },
   { chave: 'npcs', rotulo: 'NPCs', icone: 'npcs' },
@@ -95,6 +152,19 @@ function Mesa({ sala }: { sala: SalaDetalhe }) {
   const usuario = useUsuarioLogado()
   const { sair } = useAuth()
   const [secao, setSecao] = useState<Secao>('mesa')
+  const [painelAberto, setPainelAberto] = useState(lerPainelAberto)
+  const [abaPainel, setAbaPainel] = useState<AbaPainel>('ficha')
+  const [visaoFicha, setVisaoFicha] = useState<VisaoPainelFicha>(null)
+
+  function abrirPainel(aba: AbaPainel) {
+    setAbaPainel(aba)
+    setPainelAberto(true)
+    gravarPainelAberto(true)
+  }
+  function recolherPainel() {
+    setPainelAberto(false)
+    gravarPainelAberto(false)
+  }
   const souMestre = sala.membros.some((m) => m.usuarioId === usuario.id && m.papel === 'MESTRE')
 
   return (
@@ -149,7 +219,8 @@ function Mesa({ sala }: { sala: SalaDetalhe }) {
               <BarraTurno salaId={sala.id} usuarioId={usuario.id} souMestre={souMestre} />
             </div>
 
-            <PainelDireito sala={sala} usuario={usuario} />
+            <PainelDireito sala={sala} usuario={usuario} aberto={painelAberto} aba={abaPainel}
+              onAbrir={abrirPainel} onRecolher={recolherPainel} visaoFicha={visaoFicha} onVisaoFicha={setVisaoFicha} />
           </div>
         </div>
       </div>

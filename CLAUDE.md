@@ -284,9 +284,10 @@ Referência visual: `preview.webp` (no Project do Claude). Estrutura-alvo:
 └────┴────────────────────────────────────────┴────────────────┘
 ```
 
-- **Sidebar esquerda:** Mesa, Mapa, Fichas, Biblioteca, Notas, NPCs (ícone + label).
+- **Sidebar esquerda:** Mesa, Mapa, Biblioteca, Notas, NPCs (ícone + label). **Fichas saiu da sidebar em 23/09/2026** — ficha fica só no painel direito, pra não ter dois caminhos pro mesmo lugar.
 - **Faixa de vídeo:** feeds horizontais com nome, indicador de áudio e badge "Mestre". Sem câmera → placeholder com inicial.
 - **Mapa:** toolbar vertical à esquerda (cursor e pan na v1; lápis/linha/texto/régua/grade são v2). Zoom +/− e tela cheia no canto inferior esquerdo. Seletor "Piso 1" é **placeholder na v1** (multi-piso é v2).
+- **Painel direito é recolhível (decisão de 23/09/2026):** botão `>` recolhe pra uma faixa de 48px com atalhos Ficha/Chat; aberto/recolhido fica no `localStorage` do navegador. A aba Ficha do painel mostra a lista "Agentes da mesa" (cards à la C.R.I.S. `/agentes`: nome, classe·NEX, jogador, data, "Acessar ficha"). A lista é **só da sala** — não existe "meus agentes" global (a ficha continua pertencendo à sala). Ao entrar na mesa, abre direto na ficha do próprio usuário, se houver.
 - **Painel direito (ficha):** avatar + nome + origem/classe/trilha/NEX%, chips de PV/PE/Sanidade, barra de NEX, grade de atributos **FOR/AGI/INT/VIG/PRE**, tabs (Atributos-Perícias / Rituais / Inventário / Características), barras de recurso com botões +/−.
 - **Barra de turno:** jogador ativo + iniciativa à esquerda, fila de próximos no centro, botão primário "Encerrar turno", botão "Rolagem" à direita. Sem combate ativo → barra recolhida.
 
