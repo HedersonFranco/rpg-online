@@ -15,6 +15,9 @@ dist-ssr
 # Scratch (nunca versionar — pode conter texto extraído de PDFs com direitos autorais)
 .tmp
 
+# Saída do graphify (grafo gerado localmente, regenerável com /graphify .)
+graphify-out/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
