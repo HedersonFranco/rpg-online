@@ -105,7 +105,7 @@ Isso significa: estados de erro, estados de carregamento e confirmação em aç�
 | Carregamento da tela de mesa | < 3s em 10 Mbps |
 | Participantes por sala (v1) | 6 (1 mestre + 5 jogadores) |
 | Navegadores | Chrome 120+, Firefox 120+, Safari 17+, Edge 120+ |
-| Tema | **Escuro é o padrão** (violeta como cor primária). Tema claro é pós-lançamento. |
+| Tema | **Escuro é o padrão.** Tema claro é pós-lançamento. Identidade visual "Dossiê de caso" (decisão de 28/09/2026 — o violeta deixou de ser obrigatório), ver `DESIGN.md`. |
 | Expiração do JWT | 24h (sem refresh token na v1 — relogin) |
 | Rate limit em `/auth` | 10 tentativas/min por IP → 429 |
 | Upload de mapa | máx. 10MB; avatar máx. 2MB |
@@ -265,6 +265,15 @@ Cada módulo em `modules/` tem: `<modulo>.controller.ts`, `<modulo>.service.ts`,
 `Sala.sistema` decide qual conjunto de tabelas vale pra aquela sala. Não existe conversão entre sistemas — trocar o sistema de uma sala em andamento não está no escopo (não foi pedido e não há regra de conversão de ficha entre os dois jogos).
 
 ---
+
+## Identidade visual — "Dossiê de caso" (28/09/2026)
+
+Escolhida via `/impeccable shape` para tirar o frontend do visual genérico (zinc + violeta). Contexto do produto em `PRODUCT.md`; sistema visual em `DESIGN.md` (fonte da verdade dos tokens, em `@theme` no `index.css`).
+- Cada mesa é um caso num arquivo escuro: pastas kraft com aba (sistema), etiqueta com o nome, data datilografada, **carimbo** com o papel. Folhas de papel para formulários.
+- Vermelho de carimbo **só para estado** (papel, erro, acesso negado) — nunca ação. Courier Prime só para valor digitado e data; Archivo condensado para títulos, rótulos e botões.
+- **Nada da identidade oficial de Ordem Paranormal** (sigilos, símbolos, arte) — é ferramenta de fã.
+- **Migração parcial:** hoje só login, cadastro, lista de mesas, convite, 404 e checagem de sessão usam o novo mundo (`components/ui/arquivo.tsx` + `estilosArquivo.ts`, raiz `.mundo-arquivo`). **A mesa ainda usa zinc/violeta** (`ui/estilos.ts`) e migra numa próxima etapa.
+- `GET /salas` passou a devolver `papel` (o do próprio usuário em cada sala) para o carimbo.
 
 ## Layout da tela de mesa
 

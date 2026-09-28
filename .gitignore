@@ -31,3 +31,8 @@ graphify-out/
 
 # Prints de referência de design (produtos de terceiros — não versionar)
 docs/referencias/
+
+# Impeccable: capturas de revisão e rodadas de decisão são descartáveis
+.impeccable/review/
+.impeccable/questions/
+.impeccable/decision/

@@ -45,13 +45,16 @@ export async function criarSala(usuarioId: string, nome: string, sistema: string
   return sala
 }
 
+// Cada sala vem com o papel do próprio usuário nela (a lista mostra "mestre"/"jogador").
 export async function listarSalasDoUsuario(usuarioId: string) {
-  return prisma.sala.findMany({
+  const salas = await prisma.sala.findMany({
     where: {
       OR: [{ donoId: usuarioId }, { membros: { some: { usuarioId } } }],
     },
+    include: { membros: { where: { usuarioId }, select: { papel: true } } },
     orderBy: { createdAt: 'desc' },
   })
+  return salas.map(({ membros, ...sala }) => ({ ...sala, papel: membros[0]?.papel ?? null }))
 }
 
 // Não-membro recebe 404 (não 403) para não confirmar que a sala existe.

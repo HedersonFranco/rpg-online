@@ -4,7 +4,7 @@ import { useAuth } from '../hooks/useAuth'
 import { Alerta, Carregando } from './ui/Feedback'
 
 function TelaCheia({ children }: { children: ReactNode }) {
-  return <main className="flex min-h-full items-center justify-center px-4">{children}</main>
+  return <main className="mundo-arquivo flex items-center justify-center px-4">{children}</main>
 }
 
 export function RotaProtegida({ children }: { children: ReactNode }) {
@@ -15,7 +15,7 @@ export function RotaProtegida({ children }: { children: ReactNode }) {
     return <TelaCheia><Carregando texto="Verificando sua sessão..." /></TelaCheia>
   }
   if (estado.status === 'erro') {
-    return <TelaCheia><div className="w-full max-w-md"><Alerta mensagem={estado.mensagem} onTentarNovamente={tentarNovamente} /></div></TelaCheia>
+    return <TelaCheia><div className="w-full max-w-md"><Alerta tom="arquivo" mensagem={estado.mensagem} onTentarNovamente={tentarNovamente} /></div></TelaCheia>
   }
   if (estado.status === 'anonimo') {
     return <Navigate to="/login" replace state={{ de: location.pathname }} />
