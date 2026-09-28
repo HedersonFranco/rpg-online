@@ -10,6 +10,9 @@ isso NÃO é o "D&D no futuro" mencionado nas decisões de design; é o mesmo IP
 escopo de "Ordem Paranormal".
 
 **Natureza do projeto:** produto **real, para lançamento** — não portfólio, não MVP descartável.
+**Código fechado (decisão de 28/09/2026):** o repositório é público só como portfólio — todos os direitos
+reservados (`LICENSE`), sem permissão de uso, cópia, hospedagem ou redistribuição. Isso não muda a natureza
+do projeto: continua sendo produto para lançamento. Nunca adicionar licença open source sem pedido explícito.
 Referências de qualidade: **Owlbear Rodeo** (mapa/tokens/biblioteca) e **C.R.I.S.** (ficha de Ordem Paranormal).
 Isso significa: estados de erro, estados de carregamento e confirmação em ações destrutivas são **requisito**, não polimento opcional.
 
