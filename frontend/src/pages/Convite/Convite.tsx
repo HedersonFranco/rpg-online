@@ -3,6 +3,8 @@ import { Link, useNavigate, useParams } from 'react-router'
 import { api, mensagemDeErro } from '../../services/api'
 import type { SalaDetalhe } from '../../services/tipos'
 import { Alerta, Carregando } from '../../components/ui/Feedback'
+import { Carimbo, Folha, Pasta } from '../../components/ui/arquivo'
+import { classeLinkPapel, classeTituloArquivo } from '../../components/ui/estilosArquivo'
 
 // /convite/:token — o link que o mestre compartilha. Entrar é idempotente no
 // backend, então o duplo efeito do StrictMode em dev não cria membro duplicado.
@@ -26,15 +28,26 @@ export default function Convite() {
   }, [token, navigate])
 
   return (
-    <main className="flex min-h-full items-center justify-center px-4">
+    <main className="mundo-arquivo flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         {erro ? (
-          <>
-            <Alerta mensagem={erro} />
-            <Link to="/salas" className="mt-4 inline-block text-sm text-violet-400 hover:text-violet-300">
-              Voltar para suas mesas
-            </Link>
-          </>
+          <Pasta aba="Convite">
+            <div className="px-3 pt-4 pb-5 sm:px-5">
+              <Folha>
+                <div className="mb-4 flex items-start justify-between gap-3">
+                  <h1 className={`text-3xl leading-none ${classeTituloArquivo}`}>Não deu para entrar</h1>
+                  <Carimbo>Sem acesso</Carimbo>
+                </div>
+                <Alerta tom="papel" mensagem={erro} />
+                <p className="mt-3 text-sm text-tinta-700">
+                  Convites valem 7 dias. Se o link expirou ou foi trocado, peça um novo ao mestre da mesa.
+                </p>
+                <Link to="/salas" className={`mt-5 inline-block text-sm ${classeLinkPapel}`}>
+                  Voltar para suas mesas
+                </Link>
+              </Folha>
+            </div>
+          </Pasta>
         ) : (
           <Carregando texto="Entrando na mesa..." />
         )}

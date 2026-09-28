@@ -1,8 +1,51 @@
 @import "tailwindcss";
 
-/* Tema escuro é o padrão (tema claro é pós-lançamento). Violeta = cor primária. */
+/* Tema escuro é o padrão (tema claro é pós-lançamento). */
 :root {
   color-scheme: dark;
+}
+
+/*
+ * Mundo "Dossiê de caso": arquivo escuro, pastas kraft, folhas de papel, tinta e carimbo.
+ * Vale hoje nas telas de entrada (login, cadastro, lista, convite); a mesa ainda usa zinc/violeta.
+ * Vermelho de carimbo é só para estado (papel na mesa, erro), nunca para ação.
+ */
+@theme {
+  --font-arquivo: "Archivo", ui-sans-serif, system-ui, sans-serif;
+  --font-datilo: "Courier Prime", ui-monospace, monospace;
+
+  --color-arquivo-950: #0e0f10;
+  --color-arquivo-900: #16181a;
+  --color-arquivo-850: #1c1f22;
+  --color-arquivo-800: #24282c;
+  --color-arquivo-700: #33383d;
+  --color-arquivo-600: #4a5057;
+
+  /* texto sobre o arquivo escuro */
+  --color-grafite-100: #ece7dc;
+  --color-grafite-300: #bdb6a7;
+  --color-grafite-400: #9a9385;
+
+  --color-kraft-300: #e0c697;
+  --color-kraft-400: #d4b27d;
+  --color-kraft-500: #c9a36b;
+  --color-kraft-600: #a98650;
+  --color-kraft-700: #7c6035;
+
+  --color-papel-50: #f5f1e8;
+  --color-papel-100: #e8e2d4;
+  --color-papel-200: #d8cfbb;
+  --color-papel-300: #bfb398;
+
+  --color-tinta-900: #1b1915;
+  --color-tinta-700: #3a362f;
+  --color-tinta-600: #4f4a41;
+
+  --color-carimbo-900: #6e1a15;
+  --color-carimbo-800: #86201a;
+  --color-carimbo-600: #c2352b;
+  --color-carimbo-300: #ec8a80;
+  --color-carimbo-100: #f6dcd6;
 }
 
 html,
@@ -15,4 +58,63 @@ body {
   background-color: var(--color-zinc-950);
   color: var(--color-zinc-100);
   -webkit-font-smoothing: antialiased;
+}
+
+/* Raiz das telas do arquivo: fundo, fonte e as superfícies do navegador no mesmo mundo. */
+.mundo-arquivo {
+  min-height: 100%;
+  background-color: var(--color-arquivo-900);
+  color: var(--color-grafite-100);
+  font-family: var(--font-arquivo);
+  font-variant-numeric: tabular-nums;
+  scrollbar-color: var(--color-arquivo-600) var(--color-arquivo-900);
+}
+
+.mundo-arquivo ::selection {
+  background-color: var(--color-kraft-400);
+  color: var(--color-tinta-900);
+}
+
+/* Fibra do papel e do kraft: ruído fraco, só para o material não parecer plástico. */
+.textura-fibra {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .1 0 0 0 0 .08 0 0 0 0 .05 0 0 0 .09 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23f)'/%3E%3C/svg%3E");
+}
+
+/* Pasta saindo da gaveta: sobe um pouco no hover/foco. Sem movimento para quem pediu menos. */
+.pasta-gaveta {
+  transition: translate 180ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.pasta-gaveta:hover,
+.pasta-gaveta:focus-visible {
+  translate: 0 -4px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pasta-gaveta {
+    transition: box-shadow 180ms ease-out;
+  }
+  .pasta-gaveta:hover,
+  .pasta-gaveta:focus-visible {
+    translate: none;
+  }
+}
+
+/* Seta do select, desenhada em tinta. */
+.seta-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231b1915' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.6rem center;
+  background-size: 1.1rem;
+  padding-right: 2.25rem;
+}
+
+/* Tinta de carimbo: falhas de entintamento reais (máscara de ruído), não um contorno limpo. */
+.tinta-carimbo {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.55' numOctaves='3' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -5 0 0 0 3.9'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23f)'/%3E%3C/svg%3E");
+  mask-size: 140px 140px;
+}
+
+/* Aba da pasta com o ombro cortado em diagonal, como uma pasta suspensa de verdade. */
+.aba-pasta {
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 100%, 0 100%);
+  padding-right: 1.5rem;
 }

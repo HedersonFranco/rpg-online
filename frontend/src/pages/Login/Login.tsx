@@ -4,7 +4,7 @@ import { useAuth } from '../../hooks/useAuth'
 import { useAtrasado } from '../../hooks/useAtrasado'
 import { mensagemDeErro } from '../../services/api'
 import { Alerta, Spinner } from '../../components/ui/Feedback'
-import { classeBotaoPrimario, classeInput, classeLabel } from '../../components/ui/estilos'
+import { classeBotaoTinta, classeCampo, classeLinkPapel, classeRotulo } from '../../components/ui/estilosArquivo'
 import { LayoutAuth } from './LayoutAuth'
 
 export default function Login() {
@@ -29,30 +29,29 @@ export default function Login() {
   }
 
   return (
-    <LayoutAuth titulo="Entrar" subtitulo="Acesse suas mesas de Ordem Paranormal.">
+    <LayoutAuth titulo="Entrar" subtitulo="Acesse suas mesas de Ordem Paranormal." rodape={
+      <>
+        Não tem conta?{' '}
+        <Link to="/cadastro" state={location.state} className={classeLinkPapel}>Criar conta</Link>
+      </>
+    }>
       <form onSubmit={enviar} className="space-y-4">
         <div>
-          <label htmlFor="email" className={classeLabel}>Email</label>
+          <label htmlFor="email" className={classeRotulo}>Email</label>
           <input id="email" type="email" autoComplete="email" required value={email}
-            onChange={(e) => setEmail(e.target.value)} disabled={enviando} className={classeInput} />
+            onChange={(e) => setEmail(e.target.value)} disabled={enviando} className={classeCampo} />
         </div>
         <div>
-          <label htmlFor="senha" className={classeLabel}>Senha</label>
+          <label htmlFor="senha" className={classeRotulo}>Senha</label>
           <input id="senha" type="password" autoComplete="current-password" required value={senha}
-            onChange={(e) => setSenha(e.target.value)} disabled={enviando} className={classeInput} />
+            onChange={(e) => setSenha(e.target.value)} disabled={enviando} className={classeCampo} />
         </div>
-        {erro && <Alerta mensagem={erro} />}
-        <button type="submit" disabled={enviando} className={`${classeBotaoPrimario} w-full`}>
+        {erro && <Alerta tom="papel" mensagem={erro} />}
+        <button type="submit" disabled={enviando} className={`${classeBotaoTinta} w-full`}>
           {mostrarSpinner && <Spinner tamanho="sm" />}
           {enviando ? 'Entrando...' : 'Entrar'}
         </button>
       </form>
-      <p className="mt-6 text-center text-sm text-zinc-400">
-        Não tem conta?{' '}
-        <Link to="/cadastro" state={location.state} className="font-medium text-violet-400 hover:text-violet-300">
-          Criar conta
-        </Link>
-      </p>
     </LayoutAuth>
   )
 }

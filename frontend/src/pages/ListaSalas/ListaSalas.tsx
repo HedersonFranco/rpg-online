@@ -4,10 +4,20 @@ import { useAuth, useUsuarioLogado } from '../../hooks/useAuth'
 import { useAtrasado } from '../../hooks/useAtrasado'
 import { useRecurso } from '../../hooks/useRecurso'
 import { api, mensagemDeErro } from '../../services/api'
-import { NOME_SISTEMA, type SalaDetalhe, type SalaResumo, type Sistema } from '../../services/tipos'
+import { NOME_SISTEMA, type SalaDetalhe, type SalaNaLista, type SalaResumo, type Sistema } from '../../services/tipos'
 import { Alerta, Carregando, Spinner } from '../../components/ui/Feedback'
 import { Icone } from '../../components/ui/Icone'
-import { classeBotaoPrimario, classeBotaoSecundario, classeInput, classeLabel } from '../../components/ui/estilos'
+import { CarimboPapel, Folha, Pasta, PastaVazia, PlacaGaveta } from '../../components/ui/arquivo'
+import {
+  classeBotaoArquivo,
+  classeBotaoContorno,
+  classeBotaoTinta,
+  classeCampo,
+  classeRotulo,
+  classeSelect,
+  classeTituloArquivo,
+  condensado,
+} from '../../components/ui/estilosArquivo'
 
 // Aceita tanto o código puro quanto o link inteiro (…/convite/<código>).
 function extrairCodigoConvite(texto: string) {
@@ -17,7 +27,7 @@ function extrairCodigoConvite(texto: string) {
   return indice >= 0 ? limpo.slice(indice + marcador.length).replace(/\/+$/, '') : limpo
 }
 
-function FormCriarMesa() {
+function FormCriarMesa({ mesasComoDono }: { mesasComoDono: number | null }) {
   const navigate = useNavigate()
   const [nome, setNome] = useState('')
   const [sistema, setSistema] = useState<Sistema | ''>('')
@@ -39,24 +49,29 @@ function FormCriarMesa() {
   }
 
   return (
-    <form onSubmit={enviar} className="space-y-3">
+    <form onSubmit={enviar} className="space-y-4">
       <div>
-        <label htmlFor="nome-mesa" className={classeLabel}>Nome da mesa</label>
+        <label htmlFor="nome-mesa" className={classeRotulo}>Nome da mesa</label>
         <input id="nome-mesa" required value={nome} onChange={(e) => setNome(e.target.value)}
-          disabled={enviando} className={classeInput} placeholder="Ex.: Operação Casarão" />
+          disabled={enviando} className={classeCampo} placeholder="Ex.: Operação Casarão" />
       </div>
       <div>
-        <label htmlFor="sistema" className={classeLabel}>Sistema de regras</label>
+        <label htmlFor="sistema" className={classeRotulo}>Sistema de regras</label>
         <select id="sistema" required value={sistema} onChange={(e) => setSistema(e.target.value as Sistema)}
-          disabled={enviando} className={classeInput}>
+          disabled={enviando} className={classeSelect(sistema === '')}>
           <option value="" disabled>Escolha o sistema</option>
           <option value="ORDEM_PARANORMAL_1">{NOME_SISTEMA.ORDEM_PARANORMAL_1}</option>
           <option value="ORDEM_PARANORMAL_2">{NOME_SISTEMA.ORDEM_PARANORMAL_2}</option>
         </select>
-        <p className="mt-1 text-xs text-zinc-500">Não dá pra trocar depois — as fichas herdam o sistema da mesa.</p>
+        <p className="mt-1 text-xs text-tinta-700">Não dá pra trocar depois — as fichas herdam o sistema da mesa.</p>
       </div>
-      {erro && <Alerta mensagem={erro} />}
-      <button type="submit" disabled={enviando} className={`${classeBotaoPrimario} w-full sm:w-auto`}>
+      {mesasComoDono !== null && (
+        <p className="text-sm text-tinta-700">
+          {mesasComoDono === 0 ? 'Você pode criar até 3 mesas.' : `Você é dono de ${mesasComoDono} de 3 mesas possíveis.`}
+        </p>
+      )}
+      {erro && <Alerta tom="papel" mensagem={erro} />}
+      <button type="submit" disabled={enviando} className={`${classeBotaoTinta} w-full sm:w-auto`}>
         {mostrarSpinner && <Spinner tamanho="sm" />}
         {enviando ? 'Criando...' : 'Criar mesa'}
       </button>
@@ -88,14 +103,14 @@ function FormEntrarComConvite() {
   }
 
   return (
-    <form onSubmit={enviar} className="space-y-3">
+    <form onSubmit={enviar} className="space-y-4">
       <div>
-        <label htmlFor="convite" className={classeLabel}>Link ou código do convite</label>
+        <label htmlFor="convite" className={classeRotulo}>Link ou código do convite</label>
         <input id="convite" required value={codigo} onChange={(e) => setCodigo(e.target.value)}
-          disabled={enviando} className={classeInput} placeholder="Cole aqui o que o mestre te enviou" />
+          disabled={enviando} className={classeCampo} placeholder="Cole aqui o que o mestre te enviou" />
       </div>
-      {erro && <Alerta mensagem={erro} />}
-      <button type="submit" disabled={enviando} className={`${classeBotaoSecundario} w-full sm:w-auto`}>
+      {erro && <Alerta tom="papel" mensagem={erro} />}
+      <button type="submit" disabled={enviando} className={`${classeBotaoContorno} w-full sm:w-auto`}>
         {mostrarSpinner && <Spinner tamanho="sm" />}
         {enviando ? 'Entrando...' : 'Entrar na mesa'}
       </button>
@@ -103,19 +118,48 @@ function FormEntrarComConvite() {
   )
 }
 
+// Aba da pasta: o sistema da mesa, curto o bastante para caber.
+const ABA_SISTEMA: Record<Sistema, string> = {
+  ORDEM_PARANORMAL_1: 'Ordem Paranormal',
+  ORDEM_PARANORMAL_2: 'Ordem Paranormal II · playtest',
+}
+
+function PastaDaMesa({ sala, souDono }: { sala: SalaNaLista; souDono: boolean }) {
+  return (
+    <Link to={`/salas/${sala.id}`} aria-label={`${sala.nome} — ${NOME_SISTEMA[sala.sistema]}`}
+      className="pasta-gaveta block h-full rounded-[5px] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-kraft-300">
+      <Pasta aba={ABA_SISTEMA[sala.sistema]} className="h-full">
+        <div className="flex h-full min-h-44 flex-col justify-between gap-4 p-4">
+          <p className={`rounded-[2px] bg-papel-50 px-3 py-2.5 text-xl leading-tight font-bold break-words text-tinta-900 shadow-[0_1px_2px_rgb(0_0_0/0.25)] ${condensado}`}>
+            {sala.nome}
+          </p>
+          <div className="flex items-end justify-between gap-3">
+            <p className="font-datilo text-sm leading-tight text-tinta-900">
+              Aberta em {new Date(sala.createdAt).toLocaleDateString('pt-BR')}
+              {souDono && <><br />Criada por você</>}
+            </p>
+            {sala.papel && <CarimboPapel papel={sala.papel} />}
+          </div>
+        </div>
+      </Pasta>
+    </Link>
+  )
+}
+
 export default function ListaSalas() {
   const usuario = useUsuarioLogado()
   const { sair } = useAuth()
-  const { estado, recarregar } = useRecurso<SalaResumo[]>('/salas')
+  const { estado, recarregar } = useRecurso<SalaNaLista[]>('/salas')
+  const mesasComoDono = estado.tipo === 'ok' ? estado.dados.filter((s) => s.donoId === usuario.id).length : null
 
   return (
-    <div className="min-h-full">
-      <header className="border-b border-zinc-800">
-        <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-3">
-          <span className="text-sm font-semibold tracking-widest text-violet-400 uppercase">RPG Online</span>
+    <div className="mundo-arquivo">
+      <header className="border-b border-arquivo-700 bg-arquivo-950/60">
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3">
+          <PlacaGaveta />
           <div className="flex min-w-0 items-center gap-3">
-            <span className="truncate text-sm text-zinc-400">{usuario.nome}</span>
-            <button type="button" onClick={sair} className={`${classeBotaoSecundario} px-2 py-1.5 text-sm`}>
+            <span className="truncate text-sm text-grafite-300">{usuario.nome}</span>
+            <button type="button" onClick={sair} className={classeBotaoArquivo}>
               <Icone nome="sair" className="h-4 w-4" />
               Sair
             </button>
@@ -123,42 +167,49 @@ export default function ListaSalas() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-3xl space-y-8 px-4 py-6">
+      <main className="mx-auto max-w-5xl space-y-12 px-4 pt-8 pb-16 sm:pt-12">
         <section aria-labelledby="titulo-mesas">
-          <h1 id="titulo-mesas" className="mb-4 text-xl font-semibold">Suas mesas</h1>
+          <div className="mb-8 flex flex-wrap items-baseline gap-x-4 gap-y-1">
+            <h1 id="titulo-mesas" className={`text-5xl leading-none sm:text-6xl ${classeTituloArquivo}`}>Suas mesas</h1>
+            {estado.tipo === 'ok' && estado.dados.length > 0 && (
+              <p className="text-sm text-grafite-300">
+                {estado.dados.length === 1 ? '1 mesa no arquivo' : `${estado.dados.length} mesas no arquivo`}
+              </p>
+            )}
+          </div>
           {estado.tipo === 'carregando' && <Carregando texto="Carregando suas mesas..." />}
-          {estado.tipo === 'erro' && <Alerta mensagem={estado.mensagem} onTentarNovamente={recarregar} />}
+          {estado.tipo === 'erro' && <Alerta tom="arquivo" mensagem={estado.mensagem} onTentarNovamente={recarregar} />}
           {estado.tipo === 'ok' && estado.dados.length === 0 && (
-            <p className="rounded-lg border border-dashed border-zinc-700 px-4 py-8 text-center text-sm text-zinc-400">
-              Você ainda não está em nenhuma mesa. Crie uma abaixo ou entre com o convite do seu mestre.
-            </p>
+            <PastaVazia>
+              <p className={`text-2xl text-kraft-300 ${classeTituloArquivo}`}>Nenhuma mesa nesta gaveta</p>
+              <p className="mx-auto mt-2 max-w-md text-sm text-grafite-300">
+                Você ainda não está em nenhuma mesa. Crie uma abaixo ou entre com o convite do seu mestre.
+              </p>
+            </PastaVazia>
           )}
           {estado.tipo === 'ok' && estado.dados.length > 0 && (
-            <ul className="grid gap-3 sm:grid-cols-2">
+            <ul className="grid gap-x-5 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
               {estado.dados.map((sala) => (
                 <li key={sala.id}>
-                  <Link to={`/salas/${sala.id}`}
-                    className="block rounded-lg border border-zinc-800 bg-zinc-900/60 p-4 hover:border-violet-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400">
-                    <p className="truncate font-medium text-zinc-100">{sala.nome}</p>
-                    <p className="mt-1 text-xs text-zinc-400">{NOME_SISTEMA[sala.sistema]}</p>
-                    {sala.donoId === usuario.id && (
-                      <span className="mt-2 inline-block rounded bg-violet-950 px-2 py-0.5 text-xs text-violet-300">Você é o dono</span>
-                    )}
-                  </Link>
+                  <PastaDaMesa sala={sala} souDono={sala.donoId === usuario.id} />
                 </li>
               ))}
             </ul>
           )}
         </section>
 
-        <div className="grid gap-6 sm:grid-cols-2">
-          <section aria-labelledby="titulo-criar" className="rounded-lg border border-zinc-800 p-4">
-            <h2 id="titulo-criar" className="mb-3 font-semibold">Criar mesa</h2>
-            <FormCriarMesa />
+        <div className="grid items-start gap-6 md:grid-cols-2">
+          <section aria-labelledby="titulo-criar">
+            <Folha>
+              <h2 id="titulo-criar" className={`mb-5 text-3xl leading-none ${classeTituloArquivo}`}>Criar mesa</h2>
+              <FormCriarMesa mesasComoDono={mesasComoDono} />
+            </Folha>
           </section>
-          <section aria-labelledby="titulo-entrar" className="rounded-lg border border-zinc-800 p-4">
-            <h2 id="titulo-entrar" className="mb-3 font-semibold">Entrar com convite</h2>
-            <FormEntrarComConvite />
+          <section aria-labelledby="titulo-entrar">
+            <Folha>
+              <h2 id="titulo-entrar" className={`mb-5 text-3xl leading-none ${classeTituloArquivo}`}>Entrar com convite</h2>
+              <FormEntrarComConvite />
+            </Folha>
           </section>
         </div>
       </main>
