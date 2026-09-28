@@ -20,6 +20,9 @@ export type SalaResumo = {
   createdAt: string
 }
 
+// GET /salas traz também o papel de quem pediu em cada sala.
+export type SalaNaLista = SalaResumo & { papel: Papel | null }
+
 export type SalaDetalhe = SalaResumo & {
   conviteToken: string | null
   conviteExpiraEm: string | null
