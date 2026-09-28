@@ -3,20 +3,19 @@ import { useAtrasado } from '../../hooks/useAtrasado'
 import { api, mensagemDeErro } from '../../services/api'
 import { NEX_TIERS, NOME_CLASSE, type Ficha, type TipoEntrada } from '../../services/tipos'
 import { Alerta, Spinner } from '../ui/Feedback'
-import { Icone } from '../ui/Icone'
 import { AbaEntradas } from './AbaEntradas'
 import { AbaInventario } from './AbaInventario'
 import { AbaPericias } from './AbaPericias'
+import { PentagonoAtributos } from './PentagonoAtributos'
 
 type Recurso = 'pv' | 'pe' | 'san'
 
+// Ordem e nomes da ficha oficial: Vida, Sanidade, Esforço.
 const RECURSOS: { chave: Recurso; rotulo: string; cor: string }[] = [
-  { chave: 'pv', rotulo: 'PV', cor: 'bg-red-500' },
-  { chave: 'pe', rotulo: 'PE', cor: 'bg-amber-400' },
-  { chave: 'san', rotulo: 'Sanidade', cor: 'bg-sky-400' },
+  { chave: 'pv', rotulo: 'Vida', cor: 'bg-red-700' },
+  { chave: 'san', rotulo: 'Sanidade', cor: 'bg-violet-700' },
+  { chave: 'pe', rotulo: 'Esforço', cor: 'bg-amber-600' },
 ]
-
-const ATRIBUTOS = [['for', 'FOR'], ['agi', 'AGI'], ['int', 'INT'], ['vig', 'VIG'], ['pre', 'PRE']] as const
 
 const ABAS = [
   ['pericias', 'Perícias'],
@@ -89,14 +88,6 @@ export function VisaoFicha({
         </div>
       </div>
 
-      <div className="flex gap-2" aria-label="Recursos">
-        {RECURSOS.map(({ chave, rotulo }) => (
-          <span key={chave} className="rounded-full border border-zinc-700 px-2.5 py-0.5 text-xs text-zinc-300">
-            {rotulo} <strong className="text-zinc-100">{atualDe(ficha, chave)}/{maximoDe(ficha, chave)}</strong>
-          </span>
-        ))}
-      </div>
-
       <div>
         <div className="mb-1 flex items-center justify-between text-xs text-zinc-400">
           <span>NEX</span>
@@ -115,46 +106,38 @@ export function VisaoFicha({
         </div>
       </div>
 
-      <div className="space-y-2">
+      <PentagonoAtributos atributos={ficha} />
+
+      <div className="space-y-2.5" aria-label="Recursos">
         {RECURSOS.map(({ chave, rotulo, cor }) => {
           const atual = atualDe(ficha, chave)
           const maximo = maximoDe(ficha, chave)
+          const botao = 'flex h-full w-8 items-center justify-center text-lg leading-none text-white/80 hover:bg-black/25 hover:text-white disabled:opacity-30 disabled:hover:bg-transparent'
           return (
-            <div key={chave} className="flex items-center gap-2">
-              <span className="w-16 text-xs font-medium text-zinc-400">{rotulo}</span>
-              {podeEditar && (
-                <button type="button" aria-label={`Diminuir ${rotulo}`} onClick={() => ajustar(chave, -1)}
-                  disabled={pendente !== null || atual <= 0}
-                  className="rounded border border-zinc-700 p-1 text-zinc-300 hover:bg-zinc-800 disabled:opacity-40">
-                  <Icone nome="menos" className="h-3.5 w-3.5" />
-                </button>
-              )}
-              <div className="h-2.5 flex-1 rounded-full bg-zinc-800">
-                <div className={`h-2.5 rounded-full ${cor}`} style={{ width: `${maximo > 0 ? (atual / maximo) * 100 : 0}%` }} />
+            <div key={chave}>
+              <p className="mb-1 font-serif text-sm font-bold uppercase tracking-wider text-zinc-200">{rotulo}</p>
+              <div className="relative flex h-8 items-center overflow-hidden rounded-md bg-zinc-800 ring-1 ring-zinc-700">
+                <div className={`absolute inset-y-0 left-0 ${cor} transition-[width]`} style={{ width: `${maximo > 0 ? (atual / maximo) * 100 : 0}%` }} />
+                {podeEditar && (
+                  <button type="button" aria-label={`Diminuir ${rotulo}`} onClick={() => ajustar(chave, -1)}
+                    disabled={pendente !== null || atual <= 0} className={`relative ${botao}`}>
+                    ‹
+                  </button>
+                )}
+                <span className="relative flex-1 text-center text-sm font-semibold tabular-nums text-white [text-shadow:0_1px_2px_rgb(0_0_0/0.8)]">
+                  {pendente === chave && mostrarSpinner ? <Spinner tamanho="sm" /> : `${atual}/${maximo}`}
+                </span>
+                {podeEditar && (
+                  <button type="button" aria-label={`Aumentar ${rotulo}`} onClick={() => ajustar(chave, 1)}
+                    disabled={pendente !== null || atual >= maximo} className={`relative ${botao}`}>
+                    ›
+                  </button>
+                )}
               </div>
-              {podeEditar && (
-                <button type="button" aria-label={`Aumentar ${rotulo}`} onClick={() => ajustar(chave, 1)}
-                  disabled={pendente !== null || atual >= maximo}
-                  className="rounded border border-zinc-700 p-1 text-zinc-300 hover:bg-zinc-800 disabled:opacity-40">
-                  <Icone nome="mais" className="h-3.5 w-3.5" />
-                </button>
-              )}
-              <span className="w-14 text-right text-xs tabular-nums text-zinc-300">
-                {pendente === chave && mostrarSpinner ? <Spinner tamanho="sm" /> : `${atual}/${maximo}`}
-              </span>
             </div>
           )
         })}
         {erro && <Alerta mensagem={erro} />}
-      </div>
-
-      <div className="grid grid-cols-5 gap-2" aria-label="Atributos">
-        {ATRIBUTOS.map(([chave, rotulo]) => (
-          <div key={chave} className="rounded-lg border border-zinc-800 bg-zinc-900 py-2 text-center">
-            <p className="text-[10px] font-semibold tracking-wider text-zinc-500">{rotulo}</p>
-            <p className="text-xl font-semibold">{ficha[chave]}</p>
-          </div>
-        ))}
       </div>
 
       <div>
