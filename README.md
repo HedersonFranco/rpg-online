@@ -7,6 +7,9 @@ aconteça sem ninguém precisar abrir Discord, um VTT e uma ferramenta de ficha 
 Cada mesa escolhe, na criação, entre as duas edições do jogo: **Ordem Paranormal RPG (v1.3)** e
 **Ordem Paranormal RPG II (Playtest Alpha)**.
 
+> **Projeto de portfólio — todos os direitos reservados.** O código está público só para leitura e
+> avaliação; não é permitido usar, copiar, hospedar ou redistribuir. Ver [Licença](#licença).
+>
 > Projeto de fã, sem vínculo com a Jambô Editora nem com os criadores de Ordem Paranormal.
 > Não usa logo, arte ou material protegido da obra. "RPG Online" é um nome provisório.
 
@@ -77,6 +80,9 @@ carimbos — ver [`DESIGN.md`](DESIGN.md)). A mesa migra em seguida.
 
 ## Como rodar localmente
 
+Para quem estiver avaliando o projeto. Rodar localmente para avaliação não concede nenhum outro direito
+de uso (ver [Licença](#licença)).
+
 Pré-requisitos: Node.js 20.19+ (ou 22.12+) e Docker.
 
 ```bash
@@ -122,6 +128,13 @@ frontend/src/
 - [`PRODUCT.md`](PRODUCT.md) — para quem é, o que resolve e os compromissos de marca.
 - [`DESIGN.md`](DESIGN.md) — o sistema visual: tokens, tipografia, componentes e regras.
 - [`CLAUDE.md`](CLAUDE.md) — regras de negócio, decisões de arquitetura e os critérios de cada etapa.
+
+## Licença
+
+© 2026 Hederson Franco. **Todos os direitos reservados.** Este repositório é público apenas como
+portfólio. Nenhuma permissão é concedida para usar, copiar, modificar, hospedar, implantar ou
+redistribuir o código, no todo ou em parte, sem autorização prévia e por escrito. Texto completo em
+[`LICENSE`](LICENSE).
 
 ---
 
