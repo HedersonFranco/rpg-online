@@ -73,6 +73,9 @@ VTT (mapa), nem para uma ferramenta de ficha.
 - Referências de qualidade (não de identidade): **Owlbear Rodeo** para mapa/tokens/biblioteca e
   **C.R.I.S.** para a ficha.
 - Interface em português do Brasil.
+- **Código fechado.** O repositório no GitHub é público só como portfólio (leitura e avaliação); todos os
+  direitos reservados (`LICENSE`). Ninguém pode usar, hospedar ou redistribuir o código. O produto em si
+  continua sendo para lançamento.
 
 ## Evidence on Hand
 

@@ -7,8 +7,8 @@ aconteça sem ninguém precisar abrir Discord, um VTT e uma ferramenta de ficha 
 Cada mesa escolhe, na criação, entre as duas edições do jogo: **Ordem Paranormal RPG (v1.3)** e
 **Ordem Paranormal RPG II (Playtest Alpha)**.
 
-> **Projeto de portfólio — todos os direitos reservados.** O código está público só para leitura e
-> avaliação; não é permitido usar, copiar, hospedar ou redistribuir. Ver [Licença](#licença).
+> **Código fechado — todos os direitos reservados.** O repositório está público só para leitura e
+> avaliação (portfólio); não é permitido usar, copiar, hospedar ou redistribuir. Ver [Licença](#licença).
 >
 > Projeto de fã, sem vínculo com a Jambô Editora nem com os criadores de Ordem Paranormal.
 > Não usa logo, arte ou material protegido da obra. "RPG Online" é um nome provisório.
@@ -131,8 +131,8 @@ frontend/src/
 
 ## Licença
 
-© 2026 Hederson Franco. **Todos os direitos reservados.** Este repositório é público apenas como
-portfólio. Nenhuma permissão é concedida para usar, copiar, modificar, hospedar, implantar ou
+© 2026 Hederson Franco. **Todos os direitos reservados.** O RPG Online é um produto em desenvolvimento;
+este repositório é público apenas para que o código possa ser lido como portfólio. Nenhuma permissão é concedida para usar, copiar, modificar, hospedar, implantar ou
 redistribuir o código, no todo ou em parte, sem autorização prévia e por escrito. Texto completo em
 [`LICENSE`](LICENSE).
 
