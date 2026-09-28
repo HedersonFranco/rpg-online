@@ -48,6 +48,26 @@ enum NivelTreinoPericia {
   EXPERT
 }
 
+// O que o jogador cadastra na própria ficha (OP1). Não é catálogo: cada ficha
+// tem as suas entradas, escritas à mão (decisão de 23/09/2026).
+enum TipoEntradaFicha {
+  RITUAL
+  HABILIDADE
+  PODER
+  EQUIPAMENTO
+}
+
+// Elementos do Outro Lado (livro v1.3). VARIA = ritual que muda de elemento
+// conforme a versão (ex.: Amaldiçoar Arma).
+enum ElementoRitual {
+  SANGUE
+  MORTE
+  CONHECIMENTO
+  ENERGIA
+  MEDO
+  VARIA
+}
+
 // Ordem Paranormal RPG II (Playtest Alpha) — perfil psicológico do
 // personagem, um dos dois "pilares" da ficha (o outro é a ocupação, que é
 // texto livre no playtest, sem catálogo fechado ainda).
@@ -147,11 +167,11 @@ model Ficha {
   vig Int
   pre Int
 
-  pv_atual        Int
-  pv_maximo_cache Int
-  pe_atual        Int
-  pe_maximo_cache Int
-  san_atual       Int
+  pv_atual         Int
+  pv_maximo_cache  Int
+  pe_atual         Int
+  pe_maximo_cache  Int
+  san_atual        Int
   san_maximo_cache Int
 
   inventario String?
@@ -162,7 +182,7 @@ model Ficha {
   usuario  Usuario        @relation(fields: [usuario_id], references: [id])
   sala     Sala           @relation(fields: [salaId], references: [id], onDelete: Cascade)
   pericias FichaPericia[]
-  rituais  FichaRitual[]
+  entradas FichaEntrada[]
   tokens   Token[]
 }
 
@@ -197,10 +217,10 @@ model FichaOP2 {
 
   pericias Json?
 
-  pv_atual   Int
-  pv_maximo  Int
-  pd_atual   Int
-  pd_maximo  Int
+  pv_atual  Int
+  pv_maximo Int
+  pd_atual  Int
+  pd_maximo Int
 
   habilidades Json?
   avatarUrl   String?
@@ -254,42 +274,21 @@ model FichaPericia {
   @@unique([fichaId, periciaId])
 }
 
-model Ritual {
-  id        String  @id @default(uuid())
-  nome      String  @unique
-  elemento  String?
-  circulo   Int
-  descricao String
-
-  fichas FichaRitual[]
-}
-
-model FichaRitual {
-  id       String @id @default(uuid())
-  fichaId  String
-  ritualId String
-
-  ficha  Ficha  @relation(fields: [fichaId], references: [id], onDelete: Cascade)
-  ritual Ritual @relation(fields: [ritualId], references: [id])
-
-  @@unique([fichaId, ritualId])
-}
-
 // Bloco de estatística fixo — não passa pelo motor de cálculo. pe/san são
 // de OP1, pd é de OP2; o service rejeita campo do sistema errado pra sala.
 model Npc {
-  id         String   @id @default(uuid())
-  salaId     String
-  pastaId    String?
-  nome       String
-  pv         Int?
-  pe         Int?
-  san        Int?
-  pd         Int?
-  atributos  String?
-  avatarUrl  String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id        String   @id @default(uuid())
+  salaId    String
+  pastaId   String?
+  nome      String
+  pv        Int?
+  pe        Int?
+  san       Int?
+  pd        Int?
+  atributos String?
+  avatarUrl String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   sala   Sala    @relation(fields: [salaId], references: [id], onDelete: Cascade)
   pasta  Pasta?  @relation(fields: [pastaId], references: [id], onDelete: SetNull)
@@ -303,12 +302,12 @@ model Pasta {
   paiId     String?
   createdAt DateTime @default(now())
 
-  sala        Sala        @relation(fields: [salaId], references: [id], onDelete: Cascade)
-  pai         Pasta?      @relation("Subpastas", fields: [paiId], references: [id], onDelete: SetNull)
-  subpastas   Pasta[]     @relation("Subpastas")
-  npcs        Npc[]
-  documentos  Documento[]
-  mapas       Mapa[]
+  sala       Sala        @relation(fields: [salaId], references: [id], onDelete: Cascade)
+  pai        Pasta?      @relation("Subpastas", fields: [paiId], references: [id], onDelete: SetNull)
+  subpastas  Pasta[]     @relation("Subpastas")
+  npcs       Npc[]
+  documentos Documento[]
+  mapas      Mapa[]
 }
 
 model Documento {
@@ -367,4 +366,27 @@ model Mensagem {
 
   sala    Sala    @relation(fields: [salaId], references: [id], onDelete: Cascade)
   usuario Usuario @relation(fields: [usuarioId], references: [id])
+}
+
+// Ritual/habilidade/poder/equipamento da ficha. Colunas específicas de cada
+// tipo ficam nulas nos outros tipos — o service rejeita campo do tipo errado.
+model FichaEntrada {
+  id        String           @id @default(uuid())
+  fichaId   String
+  tipo      TipoEntradaFicha
+  nome      String
+  descricao String           @default("")
+
+  circulo      Int? // RITUAL: 1 a 4
+  elemento     ElementoRitual? // RITUAL
+  preRequisito String? // PODER
+  categoria    Int? // EQUIPAMENTO: 0 a 4 (0, I, II, III, IV)
+  espacos      Int? // EQUIPAMENTO
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  ficha Ficha @relation(fields: [fichaId], references: [id], onDelete: Cascade)
+
+  @@index([fichaId, tipo])
 }

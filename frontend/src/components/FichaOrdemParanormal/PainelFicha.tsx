@@ -1,16 +1,25 @@
-import { useState } from 'react'
 import { useRecurso } from '../../hooks/useRecurso'
 import { useAoResincronizar, useEventoSocket } from '../../hooks/useSocket'
 import type { Ficha, SalaDetalhe, Usuario } from '../../services/tipos'
 import { Alerta, Carregando } from '../ui/Feedback'
-import { classeInput } from '../ui/estilos'
+import { Icone } from '../ui/Icone'
 import { FormNovaFicha } from './FormNovaFicha'
+import { ListaAgentes } from './ListaAgentes'
 import { VisaoFicha } from './VisaoFicha'
 
-const NOVA = 'nova'
+// O que o painel mostra: a lista de agentes, o formulário de criação ou uma ficha (pelo id).
+// `null` = ainda não escolhido: abre direto na ficha do próprio usuário, se ele tiver uma.
+export type VisaoPainelFicha = 'lista' | 'nova' | { fichaId: string } | null
 
-export function PainelFicha({ sala, usuario }: { sala: SalaDetalhe; usuario: Usuario }) {
-  if (sala.sistema === 'ORDEM_PARANORMAL_2') {
+type PropsPainel = {
+  sala: SalaDetalhe
+  usuario: Usuario
+  visao: VisaoPainelFicha
+  onVisao: (visao: VisaoPainelFicha) => void
+}
+
+export function PainelFicha(props: PropsPainel) {
+  if (props.sala.sistema === 'ORDEM_PARANORMAL_2') {
     return (
       <p className="text-sm text-zinc-400">
         Fichas de Ordem Paranormal RPG II ainda não estão disponíveis: o playtest oficial ainda não publicou
@@ -18,12 +27,11 @@ export function PainelFicha({ sala, usuario }: { sala: SalaDetalhe; usuario: Usu
       </p>
     )
   }
-  return <PainelFichaOP1 sala={sala} usuario={usuario} />
+  return <PainelFichaOP1 {...props} />
 }
 
-function PainelFichaOP1({ sala, usuario }: { sala: SalaDetalhe; usuario: Usuario }) {
+function PainelFichaOP1({ sala, usuario, visao, onVisao }: PropsPainel) {
   const { estado, recarregar, revalidar, atualizar } = useRecurso<Ficha[]>(`/salas/${sala.id}/fichas`)
-  const [selecionada, setSelecionada] = useState<string | null>(null)
 
   // Qualquer alteração de ficha na sala (inclusive de outra aba/jogador) chega aqui já calculada pelo backend.
   useEventoSocket<{ ficha: Ficha }>('ficha:atualizada', ({ ficha }) =>
@@ -42,39 +50,40 @@ function PainelFichaOP1({ sala, usuario }: { sala: SalaDetalhe; usuario: Usuario
   const nomeDono = (usuarioId: string) =>
     usuarioId === usuario.id ? 'você' : sala.membros.find((m) => m.usuarioId === usuarioId)?.usuario.nome ?? '—'
 
-  const idAtivo =
-    selecionada ?? fichas.find((f) => f.usuario_id === usuario.id)?.id ?? fichas[0]?.id ?? NOVA
-  const fichaAtiva = fichas.find((f) => f.id === idAtivo)
+  const propria = fichas.find((f) => f.usuario_id === usuario.id)
+  const efetiva = visao ?? (propria ? { fichaId: propria.id } : 'lista')
+  // Ficha selecionada que deixou de existir → volta pra lista em vez de tela vazia.
+  const fichaAtiva = typeof efetiva === 'object' ? fichas.find((f) => f.id === efetiva.fichaId) : undefined
+
+  if (efetiva === 'nova') {
+    return (
+      <FormNovaFicha
+        salaId={sala.id}
+        onCriada={(nova) => {
+          atualizar((lista) => (lista.some((f) => f.id === nova.id) ? lista : [...lista, nova]))
+          onVisao({ fichaId: nova.id })
+        }}
+        onCancelar={() => onVisao('lista')}
+      />
+    )
+  }
+
+  if (!fichaAtiva) {
+    return <ListaAgentes fichas={fichas} nomeDono={nomeDono} onAbrir={(fichaId) => onVisao({ fichaId })} onNova={() => onVisao('nova')} />
+  }
 
   return (
     <div className="space-y-4">
-      {fichas.length > 0 && (
-        <div>
-          <label htmlFor="seletor-ficha" className="sr-only">Ficha exibida</label>
-          <select id="seletor-ficha" value={idAtivo} onChange={(e) => setSelecionada(e.target.value)} className={`${classeInput} py-1.5 text-sm`}>
-            {fichas.map((f) => <option key={f.id} value={f.id}>{f.nome} ({nomeDono(f.usuario_id)})</option>)}
-            <option value={NOVA}>+ Nova ficha</option>
-          </select>
-        </div>
-      )}
-
-      {fichaAtiva ? (
-        <VisaoFicha
-          key={fichaAtiva.id}
-          ficha={fichaAtiva}
-          podeEditar={fichaAtiva.usuario_id === usuario.id || souMestre}
-          onAtualizada={(nova) => atualizar((lista) => lista.map((f) => (f.id === nova.id ? nova : f)))}
-        />
-      ) : (
-        <FormNovaFicha
-          salaId={sala.id}
-          onCriada={(nova) => {
-            atualizar((lista) => [...lista, nova])
-            setSelecionada(nova.id)
-          }}
-          onCancelar={fichas.length > 0 ? () => setSelecionada(fichas[0].id) : undefined}
-        />
-      )}
+      <button type="button" onClick={() => onVisao('lista')}
+        className="inline-flex items-center gap-1 text-sm text-zinc-400 hover:text-zinc-200">
+        <Icone nome="voltar" className="h-4 w-4" /> Agentes da mesa
+      </button>
+      <VisaoFicha
+        key={fichaAtiva.id}
+        ficha={fichaAtiva}
+        podeEditar={fichaAtiva.usuario_id === usuario.id || souMestre}
+        onAtualizada={(nova) => atualizar((lista) => lista.map((f) => (f.id === nova.id ? nova : f)))}
+      />
     </div>
   )
 }

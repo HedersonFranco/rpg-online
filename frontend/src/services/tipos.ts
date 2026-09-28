@@ -55,6 +55,37 @@ export type Ficha = {
   inventario: string | null
   avatarUrl: string | null
   pericias: FichaPericia[]
+  // Os 28 testes de perícia, já montados pelo backend (o front só exibe).
+  testesPericias: TestePericia[]
+  entradas: EntradaFicha[]
+  createdAt: string
+}
+
+export type AtributoOP1 = 'for' | 'agi' | 'int' | 'vig' | 'pre'
+
+// Teste = `dados`d20 (fica com o melhor; `modo: 'menor'` = atributo 0, fica com o pior) + `bonus`.
+export type TestePericia = {
+  nome: string
+  atributoBase: AtributoOP1
+  nivel: NivelTreino
+  dados: number
+  bonus: number
+  modo: 'maior' | 'menor'
+}
+
+export type TipoEntrada = 'RITUAL' | 'HABILIDADE' | 'PODER' | 'EQUIPAMENTO'
+export type ElementoRitual = 'SANGUE' | 'MORTE' | 'CONHECIMENTO' | 'ENERGIA' | 'MEDO' | 'VARIA'
+
+export type EntradaFicha = {
+  id: string
+  tipo: TipoEntrada
+  nome: string
+  descricao: string
+  circulo: number | null
+  elemento: ElementoRitual | null
+  preRequisito: string | null
+  categoria: number | null
+  espacos: number | null
 }
 
 export type Mensagem = {
@@ -131,3 +162,22 @@ export const NOME_NIVEL_TREINO: Record<NivelTreino, string> = {
 
 // Os 20 degraus de NEX do livro — a UI só oferece esses valores; o cálculo é do backend.
 export const NEX_TIERS = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 99]
+
+export const NOME_ELEMENTO: Record<ElementoRitual, string> = {
+  SANGUE: 'Sangue',
+  MORTE: 'Morte',
+  CONHECIMENTO: 'Conhecimento',
+  ENERGIA: 'Energia',
+  MEDO: 'Medo',
+  VARIA: 'Varia',
+}
+
+export const BONUS_NIVEL_TREINO: Record<NivelTreino, string> = {
+  DESTREINADO: '+0',
+  TREINADO: '+5',
+  VETERANO: '+10',
+  EXPERT: '+15',
+}
+
+// Categoria de equipamento no livro: 0, I, II, III, IV.
+export const CATEGORIAS_EQUIPAMENTO = ['0', 'I', 'II', 'III', 'IV'] as const

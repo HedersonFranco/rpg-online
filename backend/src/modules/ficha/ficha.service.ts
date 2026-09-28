@@ -1,7 +1,8 @@
 import { prisma } from '../../lib/prisma.js'
 import { AppError } from '../../errors/AppError.js'
 import { buscarSalaOuFalhar } from '../sala/sala.service.js'
-import { calcularFicha, type AtributosOP1 } from '../../engine/calculoFicha.js'
+import { calcularFicha, montarTestesPericias, type AtributosOP1, type NivelTreinoPericia } from '../../engine/calculoFicha.js'
+import { PERICIAS_OP1 } from '../../engine/pericias.js'
 import { emitirParaSala } from '../../sockets/emissor.js'
 
 type DadosFicha = {
@@ -20,7 +21,35 @@ type DadosFicha = {
 }
 
 const ATRIBUTOS = ['for', 'agi', 'int', 'vig', 'pre'] as const
-const INCLUIR_PERICIAS = { pericias: { include: { pericia: true } } } as const
+const LIMITE_INVENTARIO = 10000
+const INCLUIR_PERICIAS = {
+  pericias: { include: { pericia: true } },
+  entradas: { orderBy: { createdAt: 'asc' } },
+} as const
+
+type FichaComRelacoes = NonNullable<Awaited<ReturnType<typeof carregarFicha>>>
+
+function carregarFicha(fichaId: string) {
+  return prisma.ficha.findUnique({ where: { id: fichaId }, include: INCLUIR_PERICIAS })
+}
+
+// O que sai pra API/socket: a ficha + o teste de cada uma das 28 perícias
+// (dados e bônus calculados aqui — o frontend só exibe). Perícia sem linha em
+// FichaPericia conta como Destreinado.
+function apresentar(ficha: FichaComRelacoes) {
+  const nivelPorNome = new Map(ficha.pericias.map((fp) => [fp.pericia.nome, fp.nivel as NivelTreinoPericia]))
+  const testesPericias = montarTestesPericias(
+    { for: ficha.for, agi: ficha.agi, int: ficha.int, vig: ficha.vig, pre: ficha.pre },
+    PERICIAS_OP1.map((p) => ({ ...p, nivel: nivelPorNome.get(p.nome) ?? 'DESTREINADO' })),
+  )
+  return { ...ficha, testesPericias }
+}
+
+function emitirFicha(ficha: FichaComRelacoes) {
+  const apresentada = apresentar(ficha)
+  emitirParaSala(ficha.salaId, 'ficha:atualizada', { ficha: apresentada })
+  return apresentada
+}
 
 function validarAtributos(dados: Partial<DadosFicha>, obrigatorio: boolean) {
   for (const atributo of ATRIBUTOS) {
@@ -121,23 +150,23 @@ export async function criarFicha(usuarioId: string, salaId: string, dados: Dados
     include: INCLUIR_PERICIAS,
   })
 
-  emitirParaSala(salaId, 'ficha:atualizada', { ficha })
-  return { ficha, habilidadesDesbloqueadas: resultado.habilidadesDesbloqueadas }
+  return { ficha: emitirFicha(ficha), habilidadesDesbloqueadas: resultado.habilidadesDesbloqueadas }
 }
 
 export async function listarFichasDaSala(salaId: string, usuarioId: string) {
   await buscarSalaOuFalhar(salaId, usuarioId)
-  return prisma.ficha.findMany({
+  const fichas = await prisma.ficha.findMany({
     where: { salaId },
     orderBy: { createdAt: 'asc' },
     include: INCLUIR_PERICIAS,
   })
+  return fichas.map(apresentar)
 }
 
 // Qualquer membro da sala pode ver a ficha (não só o dono dela) — a mesa
 // toda enxerga as fichas uns dos outros. Não-membro recebe 404.
-export async function buscarFichaOuFalhar(fichaId: string, usuarioId: string) {
-  const ficha = await prisma.ficha.findUnique({ where: { id: fichaId }, include: INCLUIR_PERICIAS })
+async function buscarFichaInterna(fichaId: string, usuarioId: string) {
+  const ficha = await carregarFicha(fichaId)
   if (!ficha) {
     throw new AppError('Ficha não encontrada', 404)
   }
@@ -146,14 +175,21 @@ export async function buscarFichaOuFalhar(fichaId: string, usuarioId: string) {
   return ficha
 }
 
+export async function buscarFichaOuFalhar(fichaId: string, usuarioId: string) {
+  return apresentar(await buscarFichaInterna(fichaId, usuarioId))
+}
+
 export async function atualizarFicha(
   fichaId: string,
   usuarioId: string,
   dados: Partial<DadosFicha> & { pv_atual?: number; pe_atual?: number; san_atual?: number },
 ) {
-  const ficha = await buscarFichaOuFalhar(fichaId, usuarioId)
+  const ficha = await buscarFichaInterna(fichaId, usuarioId)
   await garantirAutorizacaoEdicao(ficha, usuarioId)
   validarCamposBasicos(dados, false)
+  if (dados.inventario !== undefined && (typeof dados.inventario !== 'string' || dados.inventario.length > LIMITE_INVENTARIO)) {
+    throw new AppError(`Inventário deve ser um texto de até ${LIMITE_INVENTARIO} caracteres`, 400)
+  }
 
   const nex = dados.nex ?? ficha.nex
   const atributos: AtributosOP1 = {
@@ -228,8 +264,7 @@ export async function atualizarFicha(
     include: INCLUIR_PERICIAS,
   })
 
-  emitirParaSala(atualizado.salaId, 'ficha:atualizada', { ficha: atualizado })
-  return { ficha: atualizado, habilidadesDesbloqueadas }
+  return { ficha: emitirFicha(atualizado), habilidadesDesbloqueadas }
 }
 
 export async function treinarPericia(
@@ -243,7 +278,7 @@ export async function treinarPericia(
     throw new AppError(`Nível de treino inválido — use um de: ${NIVEIS_VALIDOS.join(', ')}`, 400)
   }
 
-  const ficha = await buscarFichaOuFalhar(fichaId, usuarioId)
+  const ficha = await buscarFichaInterna(fichaId, usuarioId)
   await garantirAutorizacaoEdicao(ficha, usuarioId)
 
   const pericia = await prisma.pericia.findUnique({ where: { nome: periciaNome } })
@@ -258,7 +293,125 @@ export async function treinarPericia(
     include: { pericia: true },
   })
 
-  const atualizada = await prisma.ficha.findUnique({ where: { id: fichaId }, include: INCLUIR_PERICIAS })
-  emitirParaSala(ficha.salaId, 'ficha:atualizada', { ficha: atualizada })
-  return fichaPericia
+  return { fichaPericia, ficha: emitirFicha((await carregarFicha(fichaId))!) }
+}
+
+// ── Entradas da ficha: rituais, habilidades, poderes, equipamentos ──────────
+// Cada ficha cadastra as suas (não há catálogo). Cada tipo aceita só os campos
+// dele; campo de outro tipo é rejeitado em vez de ignorado, pra não gravar lixo.
+
+const TIPOS_ENTRADA = ['RITUAL', 'HABILIDADE', 'PODER', 'EQUIPAMENTO'] as const
+const ELEMENTOS = ['SANGUE', 'MORTE', 'CONHECIMENTO', 'ENERGIA', 'MEDO', 'VARIA'] as const
+const CAMPOS_POR_TIPO: Record<(typeof TIPOS_ENTRADA)[number], readonly string[]> = {
+  RITUAL: ['circulo', 'elemento'],
+  HABILIDADE: [],
+  PODER: ['preRequisito'],
+  EQUIPAMENTO: ['categoria', 'espacos'],
+}
+const CAMPOS_ESPECIFICOS = ['circulo', 'elemento', 'preRequisito', 'categoria', 'espacos'] as const
+const LIMITE_NOME = 100
+const LIMITE_DESCRICAO = 4000
+const LIMITE_PRE_REQUISITO = 200
+
+type DadosEntrada = {
+  tipo?: string
+  nome?: unknown
+  descricao?: unknown
+  circulo?: unknown
+  elemento?: unknown
+  preRequisito?: unknown
+  categoria?: unknown
+  espacos?: unknown
+}
+
+function inteiroEntre(valor: unknown, min: number, max: number) {
+  return Number.isInteger(valor) && (valor as number) >= min && (valor as number) <= max
+}
+
+// Valida o estado FINAL da entrada (na edição, já mesclado com o que estava gravado).
+function validarEntrada(tipo: string, dados: DadosEntrada) {
+  if (!TIPOS_ENTRADA.includes(tipo as never)) {
+    throw new AppError(`Tipo inválido — use um de: ${TIPOS_ENTRADA.join(', ')}`, 400)
+  }
+  const permitidos = CAMPOS_POR_TIPO[tipo as (typeof TIPOS_ENTRADA)[number]]
+  for (const campo of CAMPOS_ESPECIFICOS) {
+    if (!permitidos.includes(campo) && dados[campo] !== undefined && dados[campo] !== null) {
+      throw new AppError(`Campo "${campo}" não se aplica a ${tipo.toLowerCase()}`, 400)
+    }
+  }
+  if (typeof dados.nome !== 'string' || !dados.nome.trim() || dados.nome.trim().length > LIMITE_NOME) {
+    throw new AppError(`Nome é obrigatório (até ${LIMITE_NOME} caracteres)`, 400)
+  }
+  if (typeof dados.descricao !== 'string' || dados.descricao.length > LIMITE_DESCRICAO) {
+    throw new AppError(`Descrição deve ter até ${LIMITE_DESCRICAO} caracteres`, 400)
+  }
+  if (tipo === 'RITUAL') {
+    if (!inteiroEntre(dados.circulo, 1, 4)) throw new AppError('Círculo do ritual deve ser de 1 a 4', 400)
+    if (!ELEMENTOS.includes(dados.elemento as never)) {
+      throw new AppError(`Elemento inválido — use um de: ${ELEMENTOS.join(', ')}`, 400)
+    }
+  }
+  if (tipo === 'PODER' && dados.preRequisito != null &&
+      (typeof dados.preRequisito !== 'string' || dados.preRequisito.length > LIMITE_PRE_REQUISITO)) {
+    throw new AppError(`Pré-requisito deve ter até ${LIMITE_PRE_REQUISITO} caracteres`, 400)
+  }
+  if (tipo === 'EQUIPAMENTO') {
+    if (!inteiroEntre(dados.categoria, 0, 4)) throw new AppError('Categoria do equipamento deve ser de 0 a IV', 400)
+    if (!inteiroEntre(dados.espacos, 0, 99)) throw new AppError('Espaços deve ser um inteiro de 0 a 99', 400)
+  }
+}
+
+function camposGravaveis(tipo: string, dados: DadosEntrada) {
+  const texto = (v: unknown) => (typeof v === 'string' ? v.trim() : undefined)
+  return {
+    nome: texto(dados.nome)!,
+    descricao: texto(dados.descricao) ?? '',
+    circulo: tipo === 'RITUAL' ? (dados.circulo as number) : null,
+    elemento: tipo === 'RITUAL' ? (dados.elemento as never) : null,
+    preRequisito: tipo === 'PODER' ? texto(dados.preRequisito) || null : null,
+    categoria: tipo === 'EQUIPAMENTO' ? (dados.categoria as number) : null,
+    espacos: tipo === 'EQUIPAMENTO' ? (dados.espacos as number) : null,
+  }
+}
+
+async function fichaEditavel(fichaId: string, usuarioId: string) {
+  const ficha = await buscarFichaInterna(fichaId, usuarioId)
+  await garantirAutorizacaoEdicao(ficha, usuarioId)
+  return ficha
+}
+
+async function entradaDaFicha(fichaId: string, entradaId: string) {
+  const entrada = await prisma.fichaEntrada.findUnique({ where: { id: entradaId } })
+  if (!entrada || entrada.fichaId !== fichaId) throw new AppError('Entrada não encontrada nesta ficha', 404)
+  return entrada
+}
+
+export async function criarEntrada(fichaId: string, usuarioId: string, dados: DadosEntrada) {
+  await fichaEditavel(fichaId, usuarioId)
+  const tipo = String(dados.tipo ?? '')
+  const completos = { ...dados, descricao: dados.descricao ?? '' }
+  validarEntrada(tipo, completos)
+  await prisma.fichaEntrada.create({ data: { fichaId, tipo: tipo as never, ...camposGravaveis(tipo, completos) } })
+  return { ficha: emitirFicha((await carregarFicha(fichaId))!) }
+}
+
+export async function atualizarEntrada(fichaId: string, entradaId: string, usuarioId: string, dados: DadosEntrada) {
+  await fichaEditavel(fichaId, usuarioId)
+  const atual = await entradaDaFicha(fichaId, entradaId)
+  if (dados.tipo !== undefined && dados.tipo !== atual.tipo) {
+    throw new AppError('O tipo de uma entrada não pode ser trocado — apague e crie outra', 400)
+  }
+  // Campos ausentes mantêm o valor gravado (os de outro tipo estão null no banco);
+  // campo do tipo errado enviado em `dados` sobrescreve o null e é rejeitado.
+  const mesclados: DadosEntrada = { ...atual, ...dados }
+  validarEntrada(atual.tipo, mesclados)
+  await prisma.fichaEntrada.update({ where: { id: entradaId }, data: camposGravaveis(atual.tipo, mesclados) })
+  return { ficha: emitirFicha((await carregarFicha(fichaId))!) }
+}
+
+export async function removerEntrada(fichaId: string, entradaId: string, usuarioId: string) {
+  await fichaEditavel(fichaId, usuarioId)
+  await entradaDaFicha(fichaId, entradaId)
+  await prisma.fichaEntrada.delete({ where: { id: entradaId } })
+  return { ficha: emitirFicha((await carregarFicha(fichaId))!) }
 }

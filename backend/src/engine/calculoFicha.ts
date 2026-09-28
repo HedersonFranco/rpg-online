@@ -30,11 +30,23 @@ export type EntradaCalculoFicha = {
   pericias?: PericiaParaCalculo[]
 }
 
+// Teste de perícia em OP1 = rolar `dados` d20 (quantidade = valor do atributo-base),
+// ficar com o melhor, e somar `bonus` (só o grau de treino). Atributo 0 rola 2d20 e
+// fica com o PIOR (`modo: 'menor'`). Ex.: Vigor 3 + Fortitude Treinado = 3d20+5.
+export type TestePericia = {
+  nome: string
+  atributoBase: keyof AtributosOP1
+  nivel: NivelTreinoPericia
+  dados: number
+  bonus: number
+  modo: 'maior' | 'menor'
+}
+
 export type ResultadoCalculoFicha = {
   pv_maximo: number
   pe_maximo: number
   san_maximo: number
-  bonusPericias: Record<string, number>
+  testesPericias: TestePericia[]
   habilidadesDesbloqueadas: string[]
 }
 
@@ -46,6 +58,18 @@ const BONUS_TREINO: Record<NivelTreinoPericia, number> = {
   TREINADO: 5,
   VETERANO: 10,
   EXPERT: 15,
+}
+
+export function montarTestesPericias(atributos: AtributosOP1, pericias: PericiaParaCalculo[]): TestePericia[] {
+  return pericias.map((pericia) => {
+    const atributo = atributos[pericia.atributoBase]
+    return {
+      ...pericia,
+      dados: atributo > 0 ? atributo : 2,
+      bonus: BONUS_TREINO[pericia.nivel],
+      modo: atributo > 0 ? 'maior' : 'menor',
+    }
+  })
 }
 
 export function calcularFicha(
@@ -69,16 +93,11 @@ export function calcularFicha(
     throw new Error(`Fórmula de progressão não encontrada para classe ${entrada.classe}`)
   }
 
-  const bonusPericias: Record<string, number> = {}
-  for (const pericia of entrada.pericias ?? []) {
-    bonusPericias[pericia.nome] = entrada.atributos[pericia.atributoBase] + BONUS_TREINO[pericia.nivel]
-  }
-
   return {
     pv_maximo: formula.pvBase + entrada.atributos.vig + formula.pvPorTier * tier,
     pe_maximo: formula.peBase + entrada.atributos.pre + formula.pePorTier * tier,
     san_maximo: formula.sanBase + formula.sanPorTier * tier,
-    bonusPericias,
+    testesPericias: montarTestesPericias(entrada.atributos, entrada.pericias ?? []),
     habilidadesDesbloqueadas: habilidadesAcumuladas(tabelaHabilidades, entrada.classe, entrada.nex),
   }
 }
