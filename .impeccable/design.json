@@ -1,0 +1,506 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-28T23:24:46.819Z",
+  "title": "Design System: RPG Online",
+  "extensions": {
+    "colorMeta": {
+      "arquivo-950": {
+        "role": "neutral",
+        "displayName": "Gaveta Funda",
+        "canonical": "#0e0f10",
+        "tonalRamp": [
+          "#0e0f10",
+          "#16181a",
+          "#1c1f22",
+          "#24282c",
+          "#33383d",
+          "#4a5057"
+        ]
+      },
+      "arquivo-900": {
+        "role": "neutral",
+        "displayName": "Gaveta de Arquivo",
+        "canonical": "#16181a",
+        "tonalRamp": [
+          "#0e0f10",
+          "#16181a",
+          "#1c1f22",
+          "#24282c",
+          "#33383d",
+          "#4a5057"
+        ]
+      },
+      "arquivo-850": {
+        "role": "neutral",
+        "displayName": "Gaveta Média",
+        "canonical": "#1c1f22",
+        "tonalRamp": [
+          "#0e0f10",
+          "#16181a",
+          "#1c1f22",
+          "#24282c",
+          "#33383d",
+          "#4a5057"
+        ]
+      },
+      "arquivo-800": {
+        "role": "neutral",
+        "displayName": "Gaveta Clara",
+        "canonical": "#24282c",
+        "tonalRamp": [
+          "#0e0f10",
+          "#16181a",
+          "#1c1f22",
+          "#24282c",
+          "#33383d",
+          "#4a5057"
+        ]
+      },
+      "arquivo-700": {
+        "role": "neutral",
+        "displayName": "Divisor de Gaveta",
+        "canonical": "#33383d",
+        "tonalRamp": [
+          "#0e0f10",
+          "#16181a",
+          "#1c1f22",
+          "#24282c",
+          "#33383d",
+          "#4a5057"
+        ]
+      },
+      "arquivo-600": {
+        "role": "neutral",
+        "displayName": "Metal da Placa",
+        "canonical": "#4a5057",
+        "tonalRamp": [
+          "#0e0f10",
+          "#16181a",
+          "#1c1f22",
+          "#24282c",
+          "#33383d",
+          "#4a5057"
+        ]
+      },
+      "grafite-100": {
+        "role": "neutral",
+        "displayName": "Grafite Claro",
+        "canonical": "#ece7dc",
+        "tonalRamp": [
+          "#9a9385",
+          "#bdb6a7",
+          "#ece7dc"
+        ]
+      },
+      "grafite-300": {
+        "role": "neutral",
+        "displayName": "Grafite Médio",
+        "canonical": "#bdb6a7",
+        "tonalRamp": [
+          "#9a9385",
+          "#bdb6a7",
+          "#ece7dc"
+        ]
+      },
+      "grafite-400": {
+        "role": "neutral",
+        "displayName": "Grafite Apagado",
+        "canonical": "#9a9385",
+        "tonalRamp": [
+          "#9a9385",
+          "#bdb6a7",
+          "#ece7dc"
+        ]
+      },
+      "kraft-300": {
+        "role": "secondary",
+        "displayName": "Kraft Claro",
+        "canonical": "#e0c697",
+        "tonalRamp": [
+          "#7c6035",
+          "#a98650",
+          "#c9a36b",
+          "#d4b27d",
+          "#e0c697"
+        ]
+      },
+      "kraft-400": {
+        "role": "secondary",
+        "displayName": "Kraft de Foco",
+        "canonical": "#d4b27d",
+        "tonalRamp": [
+          "#7c6035",
+          "#a98650",
+          "#c9a36b",
+          "#d4b27d",
+          "#e0c697"
+        ]
+      },
+      "kraft-500": {
+        "role": "secondary",
+        "displayName": "Kraft de Pasta",
+        "canonical": "#c9a36b",
+        "tonalRamp": [
+          "#7c6035",
+          "#a98650",
+          "#c9a36b",
+          "#d4b27d",
+          "#e0c697"
+        ]
+      },
+      "kraft-600": {
+        "role": "secondary",
+        "displayName": "Kraft de Sublinhado",
+        "canonical": "#a98650",
+        "tonalRamp": [
+          "#7c6035",
+          "#a98650",
+          "#c9a36b",
+          "#d4b27d",
+          "#e0c697"
+        ]
+      },
+      "kraft-700": {
+        "role": "secondary",
+        "displayName": "Kraft Queimado",
+        "canonical": "#7c6035",
+        "tonalRamp": [
+          "#7c6035",
+          "#a98650",
+          "#c9a36b",
+          "#d4b27d",
+          "#e0c697"
+        ]
+      },
+      "papel-50": {
+        "role": "neutral",
+        "displayName": "Papel Novo",
+        "canonical": "#f5f1e8",
+        "tonalRamp": [
+          "#bfb398",
+          "#d8cfbb",
+          "#e8e2d4",
+          "#f5f1e8"
+        ]
+      },
+      "papel-100": {
+        "role": "neutral",
+        "displayName": "Papel de Folha",
+        "canonical": "#e8e2d4",
+        "tonalRamp": [
+          "#bfb398",
+          "#d8cfbb",
+          "#e8e2d4",
+          "#f5f1e8"
+        ]
+      },
+      "papel-200": {
+        "role": "neutral",
+        "displayName": "Papel Envelhecido",
+        "canonical": "#d8cfbb",
+        "tonalRamp": [
+          "#bfb398",
+          "#d8cfbb",
+          "#e8e2d4",
+          "#f5f1e8"
+        ]
+      },
+      "papel-300": {
+        "role": "neutral",
+        "displayName": "Papel Amarelado",
+        "canonical": "#bfb398",
+        "tonalRamp": [
+          "#bfb398",
+          "#d8cfbb",
+          "#e8e2d4",
+          "#f5f1e8"
+        ]
+      },
+      "tinta-900": {
+        "role": "primary",
+        "displayName": "Tinta de Escritório",
+        "canonical": "#1b1915",
+        "tonalRamp": [
+          "#1b1915",
+          "#3a362f",
+          "#4f4a41"
+        ]
+      },
+      "tinta-700": {
+        "role": "primary",
+        "displayName": "Tinta Gasta",
+        "canonical": "#3a362f",
+        "tonalRamp": [
+          "#1b1915",
+          "#3a362f",
+          "#4f4a41"
+        ]
+      },
+      "tinta-600": {
+        "role": "primary",
+        "displayName": "Tinta Rala",
+        "canonical": "#4f4a41",
+        "tonalRamp": [
+          "#1b1915",
+          "#3a362f",
+          "#4f4a41"
+        ]
+      },
+      "carimbo-900": {
+        "role": "tertiary",
+        "displayName": "Tinta de Carimbo",
+        "canonical": "#6e1a15",
+        "tonalRamp": [
+          "#6e1a15",
+          "#86201a",
+          "#c2352b",
+          "#ec8a80",
+          "#f6dcd6"
+        ]
+      },
+      "carimbo-800": {
+        "role": "tertiary",
+        "displayName": "Carimbo Vivo",
+        "canonical": "#86201a",
+        "tonalRamp": [
+          "#6e1a15",
+          "#86201a",
+          "#c2352b",
+          "#ec8a80",
+          "#f6dcd6"
+        ]
+      },
+      "carimbo-600": {
+        "role": "tertiary",
+        "displayName": "Carimbo Aceso",
+        "canonical": "#c2352b",
+        "tonalRamp": [
+          "#6e1a15",
+          "#86201a",
+          "#c2352b",
+          "#ec8a80",
+          "#f6dcd6"
+        ]
+      },
+      "carimbo-300": {
+        "role": "tertiary",
+        "displayName": "Carimbo Desbotado",
+        "canonical": "#ec8a80",
+        "tonalRamp": [
+          "#6e1a15",
+          "#86201a",
+          "#c2352b",
+          "#ec8a80",
+          "#f6dcd6"
+        ]
+      },
+      "carimbo-100": {
+        "role": "tertiary",
+        "displayName": "Rosa de Borrão",
+        "canonical": "#f6dcd6",
+        "tonalRamp": [
+          "#6e1a15",
+          "#86201a",
+          "#c2352b",
+          "#ec8a80",
+          "#f6dcd6"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Título da tela (ex.: \"Suas mesas\"); 3.75rem a partir de 640px. Caixa alta, condensado."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Título de folha; 2.25rem no login/cadastro. Caixa alta, condensado."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Nome da mesa na etiqueta da pasta."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Subtítulos, ajuda de campo, contagem, estado vazio."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Rótulos, abas, botões (0.875rem, 0.1em) e placa (0.875rem, 0.16em). Caixa alta, condensado."
+      },
+      "datilo": {
+        "displayName": "Datilografado",
+        "purpose": "Só valores digitados e datas de registro."
+      }
+    },
+    "shadows": [
+      {
+        "name": "pasta-pousada",
+        "value": "0 12px 24px -14px rgb(0 0 0 / 0.9)",
+        "purpose": "Corpo da pasta kraft sobre o arquivo."
+      },
+      {
+        "name": "folha-pousada",
+        "value": "0 10px 24px -12px rgb(0 0 0 / 0.8)",
+        "purpose": "Folhas de formulário."
+      },
+      {
+        "name": "etiqueta-colada",
+        "value": "0 1px 2px rgb(0 0 0 / 0.25)",
+        "purpose": "Etiqueta de papel na pasta."
+      }
+    ],
+    "motion": [
+      {
+        "name": "gaveta",
+        "value": "translate 0 -4px, 180ms cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Pasta subindo da gaveta no hover/foco; sem deslocamento com prefers-reduced-motion."
+      },
+      {
+        "name": "atraso-carregando",
+        "value": "300ms",
+        "purpose": "Spinner só aparece depois de 300ms."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "md",
+        "value": "768px"
+      },
+      {
+        "name": "lg",
+        "value": "1024px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Botão de tinta",
+      "kind": "button",
+      "refersTo": "button-tinta",
+      "description": "Ação principal numa folha de papel: tinta chapada. Um por folha.",
+      "html": "<button class=\"ds-btn-tinta\">Criar mesa</button>",
+      "css": ".ds-btn-tinta { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 20px; border-radius: 4px; font-size: 14px; font-weight: 700; letter-spacing: 0.1em; font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif; font-stretch: 72%; text-transform: uppercase; cursor: pointer; background: #1b1915; color: #f5f1e8; border: none; } .ds-btn-tinta:hover { background: #3a362f; } .ds-btn-tinta:focus-visible { outline: 2px solid #1b1915; outline-offset: 2px; } .ds-btn-tinta:disabled { opacity: .6; cursor: not-allowed; }"
+    },
+    {
+      "name": "Botão de contorno",
+      "kind": "button",
+      "refersTo": "button-contorno",
+      "description": "Ação secundária numa folha: contorno de tinta.",
+      "html": "<button class=\"ds-btn-contorno\">Entrar na mesa</button>",
+      "css": ".ds-btn-contorno { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 20px; border-radius: 4px; font-size: 14px; font-weight: 700; letter-spacing: 0.1em; font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif; font-stretch: 72%; text-transform: uppercase; cursor: pointer; background: transparent; color: #1b1915; border: 2px solid #1b1915; } .ds-btn-contorno:hover { background: rgb(27 25 21 / 0.1); } .ds-btn-contorno:focus-visible { outline: 2px solid #1b1915; outline-offset: 2px; }"
+    },
+    {
+      "name": "Botão do arquivo",
+      "kind": "button",
+      "refersTo": "button-arquivo",
+      "description": "Ação sobre o fundo escuro do arquivo (ex.: Sair).",
+      "html": "<div class=\"ds-fundo\"><button class=\"ds-btn-arquivo\">Sair</button></div>",
+      "css": ".ds-fundo { background: #16181a; padding: 16px; } .ds-btn-arquivo { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 20px; border-radius: 4px; font-size: 14px; font-weight: 700; letter-spacing: 0.1em; font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif; font-stretch: 72%; text-transform: uppercase; cursor: pointer; min-height: 40px; padding: 0 12px; background: transparent; color: #ece7dc; border: 1px solid #4a5057; transition: color .15s, border-color .15s; } .ds-btn-arquivo:hover { border-color: #c9a36b; color: #e0c697; } .ds-btn-arquivo:focus-visible { outline: 2px solid #d4b27d; outline-offset: 2px; }"
+    },
+    {
+      "name": "Campo na folha",
+      "kind": "input",
+      "refersTo": "campo-folha",
+      "description": "Linha de preenchimento; o valor digitado sai datilografado.",
+      "html": "<div class=\"ds-folha\"><label class=\"ds-rotulo\" for=\"ds-c\">Nome da mesa</label><input id=\"ds-c\" class=\"ds-campo\" placeholder=\"Ex.: Operação Casarão\"></div>",
+      "css": ".ds-folha { background: #e8e2d4 url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .1 0 0 0 0 .08 0 0 0 0 .05 0 0 0 .09 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23f)'/%3E%3C/svg%3E\"); padding: 20px; border-radius: 4px; } .ds-rotulo { display: block; margin-bottom: 4px; font-size: 12px; font-weight: 700; letter-spacing: .12em; color: #3a362f; font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif; font-stretch: 72%; text-transform: uppercase; } .ds-campo { width: 100%; border: 0; border-bottom: 2px solid #4f4a41; border-radius: 0; background: rgb(245 241 232 / .7); padding: 8px; color: #1b1915; caret-color: #1b1915; font-family: 'Courier Prime', ui-monospace, monospace; font-size: 16px; } .ds-campo::placeholder { font-family: 'Archivo', sans-serif; font-size: 14px; color: #4f4a41; } .ds-campo:focus { outline: 2px solid #1b1915; outline-offset: 2px; border-bottom-color: #1b1915; background: #f5f1e8; }"
+    },
+    {
+      "name": "Pasta da mesa",
+      "kind": "card",
+      "refersTo": "pasta",
+      "description": "A mesa como pasta kraft suspensa: aba com o sistema, etiqueta com o nome, data datilografada e carimbo do papel.",
+      "html": "<div class=\"ds-fundo2\"><a href=\"#\" class=\"ds-pasta\"><span class=\"ds-aba\">Ordem Paranormal</span><span class=\"ds-corpo\"><span class=\"ds-etiqueta\">Operação Casarão</span><span class=\"ds-rodape\"><span class=\"ds-data\">Aberta em 28/09/2026</span><span class=\"ds-carimbo\">Mestre</span></span></span></a></div>",
+      "css": ".ds-fundo2 { background: #16181a; padding: 24px 16px; } .ds-pasta { position: relative; display: block; padding-top: 24px; max-width: 320px; text-decoration: none; border-radius: 5px; transition: translate 180ms cubic-bezier(0.16,1,0.3,1); } .ds-pasta:hover, .ds-pasta:focus-visible { translate: 0 -4px; } .ds-pasta:focus-visible { outline: 2px solid #e0c697; outline-offset: 4px; } @media (prefers-reduced-motion: reduce) { .ds-pasta:hover, .ds-pasta:focus-visible { translate: none; } } .ds-aba { position: absolute; top: 0; left: 0; height: 28px; display: flex; align-items: center; padding: 0 24px 0 12px; background: #c9a36b url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .1 0 0 0 0 .08 0 0 0 0 .05 0 0 0 .09 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23f)'/%3E%3C/svg%3E\"); border-radius: 5px 0 0 0; clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 100%, 0 100%); font-size: 12px; font-weight: 700; letter-spacing: .12em; color: #1b1915; font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif; font-stretch: 72%; text-transform: uppercase; } .ds-corpo { display: flex; flex-direction: column; justify-content: space-between; gap: 16px; min-height: 176px; padding: 16px; background: #c9a36b url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .1 0 0 0 0 .08 0 0 0 0 .05 0 0 0 .09 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23f)'/%3E%3C/svg%3E\"); border-radius: 0 5px 5px 5px; box-shadow: 0 12px 24px -14px rgb(0 0 0 / .9); } .ds-etiqueta { background: #f5f1e8; padding: 10px 12px; border-radius: 2px; box-shadow: 0 1px 2px rgb(0 0 0 / .25); font-family: 'Archivo', sans-serif; font-stretch: 72%; font-size: 20px; font-weight: 700; line-height: 1.25; color: #1b1915; } .ds-rodape { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; } .ds-data { font-family: 'Courier Prime', monospace; font-size: 14px; color: #1b1915; } .ds-carimbo { display: inline-block; transform: rotate(-4deg); white-space: nowrap; border: 3px double #6e1a15; border-radius: 3px; padding: 2px 8px; color: #6e1a15; font-size: 16px; line-height: 1.25; font-weight: 800; letter-spacing: .12em; font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif; font-stretch: 72%; text-transform: uppercase; mask-image: url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.55' numOctaves='3' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -5 0 0 0 3.9'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23f)'/%3E%3C/svg%3E\"); mask-size: 140px 140px; }"
+    },
+    {
+      "name": "Carimbo",
+      "kind": "chip",
+      "refersTo": "carimbo",
+      "description": "Marca de estado (papel na mesa, sem acesso). Nunca ação.",
+      "html": "<div class=\"ds-kraft\"><span class=\"ds-carimbo2\">Jogador</span> <span class=\"ds-carimbo2\">Sem acesso</span></div>",
+      "css": ".ds-kraft { background: #c9a36b url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .1 0 0 0 0 .08 0 0 0 0 .05 0 0 0 .09 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23f)'/%3E%3C/svg%3E\"); padding: 20px; display: flex; gap: 16px; } .ds-carimbo2 { display: inline-block; transform: rotate(-4deg); white-space: nowrap; border: 3px double #6e1a15; border-radius: 3px; padding: 2px 8px; color: #6e1a15; font-size: 16px; line-height: 1.25; font-weight: 800; letter-spacing: .12em; font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif; font-stretch: 72%; text-transform: uppercase; mask-image: url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.55' numOctaves='3' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -5 0 0 0 3.9'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23f)'/%3E%3C/svg%3E\"); mask-size: 140px 140px; }"
+    },
+    {
+      "name": "Placa da gaveta",
+      "kind": "nav",
+      "refersTo": "placa-gaveta",
+      "description": "Identificação do produto no header: etiqueta de papel numa moldura plana de metal.",
+      "html": "<div class=\"ds-header\"><span class=\"ds-placa\"><span class=\"ds-placa-papel\">RPG Online</span></span><a href=\"#\" class=\"ds-link\">Suas mesas</a></div>",
+      "css": ".ds-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: rgb(14 15 16 / .6); border-bottom: 1px solid #33383d; padding: 12px 16px; } .ds-placa { display: inline-flex; background: #4a5057; padding: 3px; border-radius: 3px; } .ds-placa-papel { background: #e8e2d4 url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .1 0 0 0 0 .08 0 0 0 0 .05 0 0 0 .09 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23f)'/%3E%3C/svg%3E\"); border-radius: 2px; padding: 2px 10px; font-size: 14px; font-weight: 800; letter-spacing: .16em; color: #1b1915; font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif; font-stretch: 72%; text-transform: uppercase; } .ds-link { font-family: 'Archivo', sans-serif; font-weight: 600; color: #e0c697; text-decoration: underline; text-decoration-color: #a98650; text-underline-offset: 4px; } .ds-link:hover { color: #d4b27d; text-decoration-color: #d4b27d; } .ds-link:focus-visible { outline: 2px solid #d4b27d; outline-offset: 2px; border-radius: 4px; }"
+    },
+    {
+      "name": "Alerta na folha",
+      "kind": "custom",
+      "refersTo": "folha",
+      "description": "Erro dentro de uma folha, em tinta de carimbo, com Tentar novamente.",
+      "html": "<div class=\"ds-folha3\"><div role=\"alert\" class=\"ds-alerta\"><p>Convite expirado ou inválido.</p><button class=\"ds-btn-contorno3\">Tentar novamente</button></div></div>",
+      "css": ".ds-folha3 { background: #e8e2d4 url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .1 0 0 0 0 .08 0 0 0 0 .05 0 0 0 .09 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23f)'/%3E%3C/svg%3E\"); padding: 20px; border-radius: 4px; box-shadow: 0 10px 24px -12px rgb(0 0 0 / .8); } .ds-alerta { border: 2px solid #86201a; background: #f6dcd6; color: #86201a; border-radius: 4px; padding: 12px 16px; font-family: 'Archivo', sans-serif; font-size: 14px; } .ds-alerta p { margin: 0; } .ds-btn-contorno3 { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 20px; border-radius: 4px; font-size: 14px; font-weight: 700; letter-spacing: 0.1em; font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif; font-stretch: 72%; text-transform: uppercase; cursor: pointer; margin-top: 12px; font-size: 12px; background: transparent; color: #1b1915; border: 2px solid #1b1915; } .ds-btn-contorno3:hover { background: rgb(27 25 21 / .1); } .ds-btn-contorno3:focus-visible { outline: 2px solid #1b1915; outline-offset: 2px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Dossiê de caso",
+    "overview": "Cada mesa é um caso aberto num arquivo de investigação. A interface é um móvel de arquivo escuro, quase preto, onde as mesas são pastas kraft suspensas, com aba de classificação e etiqueta de papel; o que se preenche fica numa folha de papel por cima. A ação é tinta; o estado é carimbo. O mundo recusa o painel de SaaS (grade de cards cinza com botão colorido): nada aqui é \"tile\", tudo é um objeto de papelaria com material, fibra e peso.\n\nA densidade é baixa e a hierarquia é tipográfica: títulos grandes em Archivo condensado e caixa alta, etiquetas espaçadas, e o que é registro (valores digitados, datas) sai datilografado em Courier Prime. O material aparece por uma fibra de ruído muito fraca no papel e no kraft e por sombras difusas sob as pastas e folhas, nunca por brilho, gradiente ou vidro.\n\nÉ uma ferramenta de fã sem vínculo oficial: o mundo evoca o arquivo de investigação sem usar nenhum sigilo, símbolo, logo ou arte da Ordem Paranormal oficial.",
+    "keyCharacteristics": [
+      "Fundo de arquivo escuro, pastas kraft, folhas de papel, tinta quase preta e vermelho de carimbo.",
+      "Archivo com eixo de largura: condensado (72%) em títulos, rótulos, botões e abas.",
+      "Courier Prime só no que é datilografado: valores digitados e datas.",
+      "Vermelho de carimbo só para estado, nunca para ação.",
+      "Movimento único: a pasta sobe um pouco da gaveta no hover/foco."
+    ],
+    "rules": [
+      {
+        "name": "The Carimbo é Estado Rule",
+        "body": "O vermelho de carimbo marca só estado: o papel da pessoa numa mesa, erro, acesso negado. Nunca pinta botão, link, cursor, foco ou qualquer ação.",
+        "section": "colors"
+      },
+      {
+        "name": "The Tinta Age Rule",
+        "body": "Numa folha, quem age é a tinta: ação principal em tinta chapada (tinta-900), secundária em contorno de tinta. Sobre o arquivo escuro, a ação é borda grafite que esquenta para kraft no hover.",
+        "section": "colors"
+      },
+      {
+        "name": "The Carimbo Legível Rule",
+        "body": "Carimbo usa sempre carimbo-900 (≥ 4,5:1 sobre kraft e papel). Os tons mais claros da escala não servem de texto de carimbo.",
+        "section": "colors"
+      },
+      {
+        "name": "The Datilografado Rule",
+        "body": "Courier Prime só no que é datilografado: valores que a pessoa digitou e datas de registro. Instrução, rótulo, placeholder, select sem escolha e mensagem vão em Archivo.",
+        "section": "typography"
+      },
+      {
+        "name": "The Condensado Rule",
+        "body": "Largura 72% é para títulos, rótulos, botões, abas e etiquetas. Texto corrido fica em largura normal.",
+        "section": "typography"
+      },
+      {
+        "name": "The Gaveta Rule",
+        "body": "O único movimento do mundo é a pasta subir 4px da gaveta no hover e no foco (180ms, `cubic-bezier(0.16, 1, 0.3, 1)`). Com `prefers-reduced-motion`, a pasta não se desloca.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** envolver toda tela do mundo em `.mundo-arquivo` (fundo arquivo-900, texto grafite-100, Archivo, números tabulares).",
+      "**Do** usar tinta chapada (tinta-900) para a ação principal de uma folha e contorno de tinta para a secundária.",
+      "**Do** usar carimbo-900 para o carimbo de estado (≈ 4,9:1 sobre kraft-500).",
+      "**Do** escrever títulos, rótulos, botões e abas em Archivo condensado (72%) e caixa alta.",
+      "**Do** reservar Courier Prime para valores digitados e datas de registro.",
+      "**Do** manter o único movimento na pasta que sobe 4px, respeitando `prefers-reduced-motion`.",
+      "**Do** manter botões e alvos com pelo menos 44px de altura nas folhas."
+    ],
+    "donts": [
+      "**Don't** usar vermelho de carimbo em botão, link, cursor, foco ou qualquer ação.",
+      "**Don't** usar Courier Prime para instruções, rótulos, placeholders ou mensagens.",
+      "**Don't** usar sigilos, símbolos, logos, ilustrações ou qualquer arte da Ordem Paranormal oficial; o mundo é arquivo de investigação genérico.",
+      "**Don't** montar a lista como grade de cards cinza com botão colorido; mesas são pastas.",
+      "**Don't** copiar o visual zinc/violeta da mesa (`ui/estilos.ts`) para telas novas; ele é legado até a migração.",
+      "**Don't** adicionar gradientes, brilho, vidro ou bisel; profundidade é sombra difusa e fibra."
+    ]
+  }
+}
