@@ -382,7 +382,7 @@ Ao fechar uma etapa: `chore: etapa N concluída — critérios verificados`.
 - [x] FKs opcionais (`pastaId` em Npc/Mapa/Documento, `fichaId`/`npcId` em `Token`) aceitam NULL — testado com insert real via Prisma Client
 - [x] **Novo:** `Token` tem CHECK constraint (`token_ficha_xor_npc`) impedindo `fichaId` e `npcId` preenchidos ao mesmo tempo — testado, insert violando a regra é rejeitado pelo Postgres
 
-> **Bloqueio resolvido (29/09/2026):** fórmula de PV/PE/San, os 20 tiers de NEX, as 28 perícias e as habilidades por NEX das três classes (Tabelas 1.3/1.4/1.5) confirmados direto no livro (v1.3) e em seed. As habilidades desbloqueadas saem em `habilidadesDesbloqueadas` na resposta de criar/editar ficha; a interface ainda não as mostra.
+> **Bloqueio resolvido (29/09/2026):** fórmula de PV/PE/San, os 20 tiers de NEX, as 28 perícias e as habilidades por NEX das três classes (Tabelas 1.3/1.4/1.5) confirmados direto no livro (v1.3) e em seed. Toda ficha que sai da API/socket traz `habilidadesDesbloqueadas` (acumuladas até o NEX atual, calculadas no backend com a tabela do banco); a divisória Habilidades mostra essa lista "da classe", só de leitura, acima das que o jogador cadastra.
 
 ### Etapa 3 — Autenticação
 - [x] `POST /auth/cadastro` cria usuário e retorna token válido
