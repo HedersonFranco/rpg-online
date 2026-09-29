@@ -192,7 +192,7 @@ export function Apresentacao() {
               <h2 id="titulo-porque" className={`text-4xl leading-none sm:text-6xl ${classeTituloArquivo}`}>Por que existe</h2>
               {/* As três ferramentas que a mesa tinha abertas, e a uma que as substitui. */}
               <div aria-hidden="true" className="mt-10 space-y-2">
-                {['Discord', 'Owlbear Rodeo', 'C.R.I.S.'].map((nome) => (
+                {['Chamada de voz', 'Site de rolar dados', 'Mapa interativo'].map((nome) => (
                   <p key={nome} className={`w-fit rounded-t-[4px] border border-b-0 border-arquivo-600 px-4 py-2 text-sm font-bold tracking-[0.1em] text-grafite-400 uppercase line-through decoration-carimbo-300 decoration-2 ${condensado}`}>
                     {nome}
                   </p>
@@ -204,7 +204,7 @@ export function Apresentacao() {
             </div>
             <blockquote className="md:col-span-7 md:pt-2">
               <p className="text-2xl leading-snug text-grafite-100 sm:text-3xl">
-                A minha mesa jogava com três abas abertas: o Discord para a voz, o Owlbear para o mapa e o C.R.I.S. para a ficha.
+                A minha mesa jogava com três abas abertas: uma para a chamada de voz, um site que rolava os dados e outro com o mapa interativo.
                 Toda sessão alguém se perdia entre elas.
               </p>
               <p className="mt-6 text-lg leading-relaxed text-grafite-300">

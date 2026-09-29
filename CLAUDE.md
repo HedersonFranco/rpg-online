@@ -51,6 +51,7 @@ Isso significa: estados de erro, estados de carregamento e confirmação em aç�
 - Cada sala tem um único sistema de regras, **escolhido na criação** entre `ORDEM_PARANORMAL_1` e
   `ORDEM_PARANORMAL_2` (campo `Sala.sistema`, obrigatório, sem default — o dono decide) — a ficha herda da sala.
 - Convite via link com expiração de 7 dias, nunca permanente.
+- **Só o dono vê o convite (decisão de 29/09/2026):** `conviteToken`/`conviteExpiraEm` só saem na API para o dono (`ocultarConvite()` em `engine/convite.ts`, aplicado em `GET /salas`, `GET /salas/:id` e `POST /salas/entrar`); para os demais membros vêm `null`. Antes, qualquer jogador lia o link na aba Rede e convidava sem o dono saber.
 
 ### Fichas
 - Um usuário pode ter mais de uma ficha, inclusive na mesma sala.
@@ -275,6 +276,7 @@ Escolhida via `/impeccable shape` para tirar o frontend do visual genérico (zin
 - Cada mesa é um caso num arquivo escuro: pastas kraft com aba (sistema), etiqueta com o nome, data datilografada, **carimbo** com o papel. Folhas de papel para formulários.
 - Vermelho de carimbo **só para estado** (papel, erro, acesso negado) — nunca ação. Courier Prime só para valor digitado e data; Archivo condensado para títulos, rótulos e botões.
 - **Nada da identidade oficial de Ordem Paranormal** (sigilos, símbolos, arte) — é ferramenta de fã.
+- **A landing não cita outros produtos pelo nome** (decisão de 29/09/2026): descrever por função — "chamada de voz", "site de rolar dados", "mapa interativo".
 - **Licença da Comunidade de Ordem Paranormal (v1.0, 28/06/2026)** rege o produto — resumo e exigências em `PRODUCT.md` → Brand Commitments. Em código: nunca usar arte/texto oficial nem nomes próprios do cânone (inclusive em seeds, testes e screenshots); o aviso literal + selo aparecem na landing (selo oficial do kit em `frontend/public/licenca/`, versão branca a 10% da largura da capa e 100% de opacidade; o original de 1942px fica guardado ao lado da cópia de 480px usada no site).
 - **Migração completa (29/09/2026):** o produto inteiro usa o mundo — entrada, apresentação (`/` para visitantes, `/sobre`) e a mesa (moldura, ficha, mapa, chat, NPCs). Peças em `components/ui/arquivo.tsx` + `estilosArquivo.ts`; o legado zinc/violeta (`ui/estilos.ts`) foi apagado.
 - `GET /salas` passou a devolver `papel` (o do próprio usuário em cada sala) para o carimbo.

@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express'
 import * as salaService from './sala.service.js'
+import { ocultarConvite } from '../../engine/convite.js'
 
 export async function criarController(req: Request, res: Response) {
   const { nome, sistema } = req.body ?? {}
@@ -9,12 +10,12 @@ export async function criarController(req: Request, res: Response) {
 
 export async function listarController(req: Request, res: Response) {
   const salas = await salaService.listarSalasDoUsuario(req.usuarioId!)
-  res.json(salas)
+  res.json(salas.map((sala) => ocultarConvite(sala, req.usuarioId!)))
 }
 
 export async function buscarController(req: Request, res: Response) {
   const sala = await salaService.buscarSalaOuFalhar(req.params.id!, req.usuarioId!)
-  res.json(sala)
+  res.json(ocultarConvite(sala, req.usuarioId!))
 }
 
 export async function deletarController(req: Request, res: Response) {
@@ -30,7 +31,7 @@ export async function regenerarConviteController(req: Request, res: Response) {
 export async function entrarController(req: Request, res: Response) {
   const { token } = req.body ?? {}
   const resultado = await salaService.entrarComConvite(req.usuarioId!, token)
-  res.status(201).json(resultado)
+  res.status(201).json({ ...resultado, sala: ocultarConvite(resultado.sala, req.usuarioId!) })
 }
 
 export async function promoverMembroController(req: Request, res: Response) {
