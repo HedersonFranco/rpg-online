@@ -9,6 +9,7 @@ import { AdicionarToken } from './AdicionarToken'
 import { TokenNoMapa } from './TokenNoMapa'
 import { nomeDoToken, tipoDoToken } from './token'
 import { useViewport } from './useViewport'
+import { useConfirmar } from '../ui/confirmacaoContext'
 
 type Ferramenta = 'selecionar' | 'mover'
 type Arraste = {
@@ -36,6 +37,7 @@ function BotaoBarra({ icone, rotulo, onClick, ativo = false, desabilitado = fals
 export function AreaMapa({ salaId, usuarioId, souMestre }: { salaId: string; usuarioId: string; souMestre: boolean }) {
   const { estado, recarregar, revalidar, atualizar } = useRecurso<EstadoMapa>(`/salas/${salaId}/mapa-ativo`)
   const { socket, emitir } = useSalaSocket()
+  const confirmar = useConfirmar()
   const container = useRef<HTMLDivElement>(null)
   const { visao, zoomNoCentro, ajustar, telaParaMapa, relativo, manipuladores } = useViewport(container)
   const [ferramenta, setFerramenta] = useState<Ferramenta>('selecionar')
@@ -125,7 +127,12 @@ export function AreaMapa({ salaId, usuarioId, souMestre }: { salaId: string; usu
   }
 
   async function removerToken(token: Token) {
-    if (!window.confirm(`Remover o token "${nomeDoToken(token)}" do mapa?`)) return
+    const ok = await confirmar({
+      titulo: 'Remover token?',
+      mensagem: `"${nomeDoToken(token)}" sai do mapa para todos na mesa.`,
+      confirmar: 'Remover token',
+    })
+    if (!ok) return
     try {
       await api(`/tokens/${token.id}`, { method: 'DELETE' })
       setSelecionado(null)
@@ -212,7 +219,7 @@ export function AreaMapa({ salaId, usuarioId, souMestre }: { salaId: string; usu
           <Icone nome="mapa" className="h-10 w-10 text-zinc-700" />
           <p className="mt-3 font-medium text-zinc-300">Nenhum mapa na mesa</p>
           <p className="mt-1 text-sm text-zinc-500">
-            {souMestre ? 'Envie um mapa na seção "Mapa" da barra lateral e mostre na mesa.' : 'Quando o mestre mostrar um mapa, ele aparece aqui.'}
+            {souMestre ? 'Envie um mapa na folha "Mapas", na pasta à esquerda, e mostre na mesa.' : 'Quando o mestre mostrar um mapa, ele aparece aqui.'}
           </p>
         </div>
       )}

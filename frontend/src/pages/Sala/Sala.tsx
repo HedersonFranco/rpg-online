@@ -2,13 +2,23 @@ import { useState, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router'
 import { useAuth, useUsuarioLogado } from '../../hooks/useAuth'
 import { useRecurso } from '../../hooks/useRecurso'
+import { useVideoChamada } from '../../hooks/useVideoChamada'
 import { NOME_SISTEMA, type SalaDetalhe, type Usuario } from '../../services/tipos'
 import { Alerta, Carregando } from '../../components/ui/Feedback'
+import { Abas, type Aba } from '../../components/ui/Abas'
+import { ConfirmacaoProvider } from '../../components/ui/ConfirmacaoProvider'
+import { PastaDeFolhas, type Folha } from '../../components/ui/PastaDeFolhas'
 import { Icone, type NomeIcone } from '../../components/ui/Icone'
-import { classeBotaoSecundario } from '../../components/ui/estilos'
+import {
+  classeAbaPasta,
+  classeBotaoArquivo,
+  classeBotaoIconeArquivo,
+  classeLinkArquivo,
+  condensado,
+} from '../../components/ui/estilosArquivo'
 import { AreaMapa } from '../../components/MapaToken/AreaMapa'
 import { GerenciarMapas } from '../../components/MapaToken/GerenciarMapas'
-import { FaixaVideo } from '../../components/Video/FaixaVideo'
+import { AvisoCamera, FaixaVideo } from '../../components/Video/FaixaVideo'
 import { BarraTurno } from '../../components/TurnoTracker/BarraTurno'
 import { PainelFicha, type VisaoPainelFicha } from '../../components/FichaOrdemParanormal/PainelFicha'
 import { PainelChat } from '../../components/Chat/PainelChat'
@@ -17,16 +27,16 @@ import { useSalaSocket } from '../../hooks/useSocket'
 import { BotaoConvite } from './BotaoConvite'
 
 const ROTULO_CONEXAO = {
-  conectando: { texto: 'Conectando...', cor: 'bg-zinc-500' },
-  conectado: { texto: 'Ao vivo', cor: 'bg-emerald-500' },
-  reconectando: { texto: 'Reconectando...', cor: 'bg-amber-400 animate-pulse' },
+  conectando: { texto: 'Conectando...', cor: 'bg-grafite-400' },
+  conectado: { texto: 'Ao vivo', cor: 'bg-sinal-vivo' },
+  reconectando: { texto: 'Reconectando...', cor: 'bg-kraft-400 animate-pulse motion-reduce:animate-none' },
 } as const
 
 function IndicadorConexao() {
   const { status } = useSalaSocket()
   const { texto, cor } = ROTULO_CONEXAO[status]
   return (
-    <span role="status" aria-label={`Conexão: ${texto}`} className="inline-flex items-center gap-1.5 text-xs text-zinc-400">
+    <span role="status" aria-label={`Conexão: ${texto}`} className="inline-flex items-center gap-1.5 text-xs text-grafite-300">
       <span className={`h-2 w-2 rounded-full ${cor}`} aria-hidden="true" />
       {texto}
     </span>
@@ -35,9 +45,9 @@ function IndicadorConexao() {
 
 type AbaPainel = 'ficha' | 'chat'
 
-const ABAS_PAINEL: { chave: AbaPainel; rotulo: string; icone: NomeIcone }[] = [
-  { chave: 'ficha', rotulo: 'Ficha', icone: 'fichas' },
-  { chave: 'chat', rotulo: 'Chat', icone: 'chat' },
+const ABAS_PAINEL: (Aba<AbaPainel> & { icone: NomeIcone; texto: string })[] = [
+  { chave: 'ficha', rotulo: 'Ficha', texto: 'Ficha', icone: 'fichas' },
+  { chave: 'chat', rotulo: 'Chat', texto: 'Chat', icone: 'chat' },
 ]
 
 const CHAVE_PAINEL_ABERTO = 'mesa:painelAberto'
@@ -59,7 +69,7 @@ function gravarPainelAberto(aberto: boolean) {
   }
 }
 
-// Painel lateral que abre e fecha (a "gaveta" da ficha). Recolhido, sobra uma faixa com os atalhos.
+// Coluna direita: uma pasta aberta com abas. Recolhida, sobra uma faixa com os atalhos.
 function PainelDireito({ sala, usuario, aberto, aba, onAbrir, onRecolher, visaoFicha, onVisaoFicha }: {
   sala: SalaDetalhe
   usuario: Usuario
@@ -72,35 +82,21 @@ function PainelDireito({ sala, usuario, aberto, aba, onAbrir, onRecolher, visaoF
 }) {
   if (!aberto) {
     return (
-      <aside aria-label="Painel lateral (recolhido)" className="flex w-12 shrink-0 flex-col items-center gap-1 border-l border-zinc-800 py-2">
-        {ABAS_PAINEL.map(({ chave, rotulo, icone }) => (
-          <button key={chave} type="button" onClick={() => onAbrir(chave)} title={`Abrir ${rotulo.toLowerCase()}`}
-            aria-label={`Abrir ${rotulo.toLowerCase()}`}
-            className="flex w-10 flex-col items-center gap-1 rounded-lg py-2 text-[10px] text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200">
-            <Icone nome={icone} />
-            {rotulo}
-          </button>
-        ))}
-      </aside>
+      <PastaDeFolhas lado="direita" rotulo="Painel lateral (recolhido)" onEscolher={onAbrir}
+        folhas={ABAS_PAINEL.map(({ chave, texto, icone }) => ({ chave, rotulo: texto, icone }))} />
     )
   }
+  const abaAtiva = ABAS_PAINEL.find((a) => a.chave === aba)!
   return (
-    <aside aria-label="Painel lateral" className="flex w-[380px] shrink-0 flex-col border-l border-zinc-800">
-      <div className="flex shrink-0 border-b border-zinc-800">
-        <button type="button" onClick={onRecolher} title="Recolher painel" aria-label="Recolher painel"
-          className="px-3 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200">
+    <aside aria-label="Painel lateral" className="flex w-[380px] shrink-0 flex-col border-l border-arquivo-700 bg-arquivo-850">
+      <div className="flex shrink-0 items-end gap-1 border-b-2 border-kraft-500 px-2 pt-2">
+        <button type="button" onClick={onRecolher} aria-label="Recolher painel" title="Recolher painel"
+          className="mb-1 flex h-8 w-8 items-center justify-center rounded-[3px] text-grafite-300 hover:bg-arquivo-800 hover:text-kraft-300 focus-visible:outline-2 focus-visible:outline-kraft-400">
           <Icone nome="recolher" className="h-4 w-4" />
         </button>
-        <div role="tablist" aria-label="Painel lateral" className="flex flex-1">
-          {ABAS_PAINEL.map(({ chave, rotulo }) => (
-            <button key={chave} type="button" role="tab" aria-selected={aba === chave} onClick={() => onAbrir(chave)}
-              className={`flex-1 border-b-2 py-2.5 text-sm font-medium ${aba === chave ? 'border-violet-500 text-violet-300' : 'border-transparent text-zinc-400 hover:text-zinc-200'}`}>
-              {rotulo}
-            </button>
-          ))}
-        </div>
+        <Abas abas={ABAS_PAINEL} ativa={aba} onTrocar={onAbrir} rotulo="Painel lateral" idBase="painel" classeAba={classeAbaPasta} />
       </div>
-      <div role="tabpanel" aria-label={aba === 'ficha' ? 'Ficha de personagem' : 'Chat'} className="min-h-0 flex-1 overflow-y-auto p-4">
+      <div role="tabpanel" id="painel-painel" aria-labelledby={`painel-aba-${abaAtiva.chave}`} className="min-h-0 flex-1 overflow-y-auto p-4">
         {aba === 'ficha'
           ? <PainelFicha sala={sala} usuario={usuario} visao={visaoFicha} onVisao={onVisaoFicha} />
           : <PainelChat salaId={sala.id} />}
@@ -109,19 +105,8 @@ function PainelDireito({ sala, usuario, aberto, aba, onAbrir, onRecolher, visaoF
   )
 }
 
-// Fichas não é seção: ficam só no painel direito (decisão de 23/09/2026).
-type Secao = 'mesa' | 'mapa' | 'biblioteca' | 'notas' | 'npcs'
-
-const SECOES: { chave: Secao; rotulo: string; icone: NomeIcone }[] = [
-  { chave: 'mesa', rotulo: 'Mesa', icone: 'mesa' },
-  { chave: 'mapa', rotulo: 'Mapa', icone: 'mapa' },
-  { chave: 'biblioteca', rotulo: 'Biblioteca', icone: 'biblioteca' },
-  { chave: 'notas', rotulo: 'Notas', icone: 'notas' },
-  { chave: 'npcs', rotulo: 'NPCs', icone: 'npcs' },
-]
-
 function TelaCentral({ children }: { children: ReactNode }) {
-  return <main className="flex min-h-full items-center justify-center px-4"><div className="w-full max-w-md">{children}</div></main>
+  return <main className="mundo-arquivo flex items-center justify-center px-4"><div className="w-full max-w-md">{children}</div></main>
 }
 
 export default function Sala() {
@@ -133,25 +118,35 @@ export default function Sala() {
     return (
       <TelaCentral>
         {estado.status === 404 ? (
-          <Alerta mensagem="Mesa não encontrada — ou você não faz parte dela." />
+          <Alerta tom="arquivo" mensagem="Mesa não encontrada — ou você não faz parte dela." />
         ) : (
-          <Alerta mensagem={estado.mensagem} onTentarNovamente={recarregar} />
+          <Alerta tom="arquivo" mensagem={estado.mensagem} onTentarNovamente={recarregar} />
         )}
-        <Link to="/salas" className="mt-4 inline-block text-sm text-violet-400 hover:text-violet-300">Voltar para suas mesas</Link>
+        <Link to="/salas" className={`mt-4 inline-block text-sm ${classeLinkArquivo}`}>Voltar para suas mesas</Link>
       </TelaCentral>
     )
   }
   return (
     <SalaSocketProvider salaId={estado.dados.id}>
-      <Mesa sala={estado.dados} />
+      <ConfirmacaoProvider>
+        <Mesa sala={estado.dados} />
+      </ConfirmacaoProvider>
     </SalaSocketProvider>
   )
 }
 
+type Vista = 'mesa' | 'mapas'
+const VISTAS: Folha<Vista>[] = [
+  { chave: 'mesa', rotulo: 'Mesa', icone: 'mesa' },
+  { chave: 'mapas', rotulo: 'Mapas', icone: 'mapa' },
+]
+
 function Mesa({ sala }: { sala: SalaDetalhe }) {
   const usuario = useUsuarioLogado()
   const { sair } = useAuth()
-  const [secao, setSecao] = useState<Secao>('mesa')
+  const { aviso, limparAviso } = useSalaSocket()
+  const video = useVideoChamada()
+  const [vista, setVista] = useState<Vista>('mesa')
   const [painelAberto, setPainelAberto] = useState(lerPainelAberto)
   const [abaPainel, setAbaPainel] = useState<AbaPainel>('ficha')
   const [visaoFicha, setVisaoFicha] = useState<VisaoPainelFicha>(null)
@@ -166,57 +161,61 @@ function Mesa({ sala }: { sala: SalaDetalhe }) {
     gravarPainelAberto(false)
   }
   const souMestre = sala.membros.some((m) => m.usuarioId === usuario.id && m.papel === 'MESTRE')
+  // Só o mestre alterna para os mapas (material de preparo); o jogador sempre vê a mesa.
+  const vistaEfetiva = souMestre ? vista : 'mesa'
 
   return (
-    <div className="flex h-full flex-col">
-      <p className="bg-amber-950/60 px-4 py-1.5 text-center text-xs text-amber-200 xl:hidden">
+    <div className="mundo-arquivo flex h-full flex-col">
+      <p className="bg-kraft-700 px-4 py-1.5 text-center text-xs text-papel-50 xl:hidden">
         A mesa foi feita para telas a partir de 1280px de largura. Em telas menores, role para os lados.
       </p>
       <div className="min-h-0 flex-1 overflow-x-auto">
         <div className="flex h-full min-w-[1280px] flex-col">
-          <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-zinc-800 px-4">
+          <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-arquivo-700 bg-arquivo-950 px-4">
             <div className="flex min-w-0 items-center gap-3">
-              <Link to="/salas" className="inline-flex items-center gap-1 text-sm text-zinc-400 hover:text-zinc-200">
+              <Link to="/salas" className={`inline-flex shrink-0 items-center gap-1 text-sm ${classeLinkArquivo} no-underline`}>
                 <Icone nome="voltar" className="h-4 w-4" /> Mesas
               </Link>
-              <span className="text-zinc-700">|</span>
-              <h1 className="truncate font-semibold">{sala.nome}</h1>
-              <span className="text-sm text-zinc-500">· Sem sessão ativa</span>
-              <span className="rounded bg-zinc-800 px-2 py-0.5 text-xs text-zinc-400">{NOME_SISTEMA[sala.sistema]}</span>
+              <h1 className={`textura-fibra min-w-0 truncate rounded-[2px] bg-papel-50 px-3 py-1 text-lg leading-tight font-extrabold text-tinta-900 ${condensado}`}>
+                {sala.nome}
+              </h1>
+              <span className={`shrink-0 text-xs font-bold tracking-[0.12em] text-grafite-300 uppercase ${condensado}`}>{NOME_SISTEMA[sala.sistema]}</span>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex shrink-0 items-center gap-3">
               <IndicadorConexao />
               {sala.donoId === usuario.id && <BotaoConvite sala={sala} />}
-              <span className="text-sm text-zinc-400">{usuario.nome}</span>
-              <button type="button" onClick={sair} className={`${classeBotaoSecundario} py-1.5 text-sm`}>
+              <span className="max-w-40 truncate text-sm text-grafite-300">{usuario.nome}</span>
+              <button type="button" onClick={sair} className={classeBotaoArquivo}>
                 <Icone nome="sair" className="h-4 w-4" /> Sair
               </button>
             </div>
           </header>
 
           <div className="flex min-h-0 flex-1">
-            <nav aria-label="Seções da mesa" className="flex w-24 shrink-0 flex-col gap-1 border-r border-zinc-800 p-2">
-              {SECOES.map(({ chave, rotulo, icone }) => (
-                <button key={chave} type="button" onClick={() => setSecao(chave)} aria-current={secao === chave ? 'page' : undefined}
-                  className={`flex flex-col items-center gap-1 rounded-lg py-2 text-xs ${secao === chave ? 'bg-violet-600/20 text-violet-300' : 'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'}`}>
-                  <Icone nome={icone} />
-                  {rotulo}
-                </button>
-              ))}
-            </nav>
-
+            {/* Só o mestre tem mais de uma vista; pro jogador a pasta teria uma folha só. */}
+            {souMestre && (
+              <PastaDeFolhas lado="esquerda" rotulo="Vistas da mesa" comoNavegacao folhas={VISTAS} ativa={vista} onEscolher={setVista} />
+            )}
             <div className="flex min-w-0 flex-1 flex-col">
-              <FaixaVideo sala={sala} usuario={usuario} />
-              {secao === 'mesa' ? (
-                <AreaMapa salaId={sala.id} usuarioId={usuario.id} souMestre={souMestre} />
-              ) : secao === 'mapa' ? (
-                <GerenciarMapas salaId={sala.id} souMestre={souMestre} onMostrado={() => setSecao('mesa')} />
-              ) : (
-                <section className="flex flex-1 items-center justify-center text-sm text-zinc-500">
-                  Esta seção ainda não está disponível nesta versão.
-                </section>
+              <main className="flex min-h-0 flex-1 flex-col" aria-label={vistaEfetiva === 'mesa' ? 'Mapa da mesa' : 'Mapas'}>
+                {vistaEfetiva === 'mesa' ? (
+                  <AreaMapa salaId={sala.id} usuarioId={usuario.id} souMestre={souMestre} />
+                ) : (
+                  <GerenciarMapas salaId={sala.id} souMestre={souMestre} onMostrado={() => setVista('mesa')} />
+                )}
+              </main>
+
+              {aviso && (
+                <div role="alert" className="flex items-center justify-between gap-3 border-t border-carimbo-300/50 bg-carimbo-800/25 px-4 py-2 text-sm text-carimbo-100">
+                  <span>{aviso}</span>
+                  <button type="button" onClick={limparAviso} className={`${classeBotaoIconeArquivo} h-8 w-auto px-3 text-xs`}>Dispensar</button>
+                </div>
               )}
-              <BarraTurno salaId={sala.id} usuarioId={usuario.id} souMestre={souMestre} />
+              <AvisoCamera video={video} />
+              <div className="flex h-24 shrink-0 items-center gap-4 border-t border-arquivo-700 bg-arquivo-950 px-3">
+                <FaixaVideo sala={sala} usuario={usuario} video={video} />
+                <BarraTurno salaId={sala.id} usuarioId={usuario.id} souMestre={souMestre} />
+              </div>
             </div>
 
             <PainelDireito sala={sala} usuario={usuario} aberto={painelAberto} aba={abaPainel}

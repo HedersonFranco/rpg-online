@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import type { Papel } from '../../services/tipos'
 import { condensado } from './estilosArquivo'
 
-// Peças do mundo "Dossiê de caso" (telas de entrada). A mesa ainda usa ui/estilos.ts.
+// Peças do mundo "Dossiê de caso". Ficha, mapa e chat da mesa ainda usam ui/estilos.ts (legado).
 
 // Placa de metal da gaveta com a etiqueta do produto.
 export function PlacaGaveta() {
@@ -27,9 +27,11 @@ export function Folha({ children, className = '' }: { children: ReactNode; class
 const ROTULO_PAPEL: Record<Papel, string> = { MESTRE: 'Mestre', JOGADOR: 'Jogador' }
 
 // Carimbo de estado. Tinta vermelha escura (≥4.5:1 sobre kraft e papel), com falhas de entintamento.
-export function Carimbo({ children }: { children: ReactNode }) {
+// tom 'escuro': sobre o arquivo quase preto a tinta escura some — usa o carimbo claro (≥4.5:1 sobre arquivo-900).
+export function Carimbo({ children, tom = 'papel' }: { children: ReactNode; tom?: 'papel' | 'escuro' }) {
+  const cor = tom === 'escuro' ? 'border-carimbo-300 text-carimbo-300' : 'border-carimbo-900 text-carimbo-900'
   return (
-    <span className={`tinta-carimbo inline-block shrink-0 -rotate-[4deg] whitespace-nowrap rounded-[3px] border-[3px] border-double border-carimbo-900 px-2 py-0.5 text-base leading-tight font-extrabold tracking-[0.12em] text-carimbo-900 uppercase ${condensado}`}>
+    <span className={`tinta-carimbo inline-block shrink-0 -rotate-[4deg] whitespace-nowrap rounded-[3px] border-[3px] border-double px-2 py-0.5 text-base leading-tight font-extrabold tracking-[0.12em] uppercase ${cor} ${condensado}`}>
       {children}
     </span>
   )

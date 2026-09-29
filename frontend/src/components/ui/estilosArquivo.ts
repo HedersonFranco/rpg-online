@@ -1,4 +1,4 @@
-// Classes do mundo "Dossiê de caso" (telas de entrada). A mesa ainda usa estilos.ts.
+// Classes do mundo "Dossiê de caso". Ficha, mapa e chat da mesa ainda usam estilos.ts (legado).
 
 export const condensado = '[font-stretch:72%]'
 
@@ -41,3 +41,20 @@ export const classeLinkPapel =
   'focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tinta-900'
 
 export const classeTituloArquivo = `font-extrabold tracking-[-0.01em] uppercase ${condensado}`
+
+// Ação principal sobre o arquivo escuro (ex.: Encerrar turno): kraft chapado, texto em tinta.
+export const classeBotaoKraft =
+  `${baseBotao} min-h-10 bg-kraft-400 px-4 text-tinta-900 hover:bg-kraft-300 focus-visible:outline-kraft-300`
+
+// Botão só de ícone sobre o arquivo escuro. Sempre com aria-label.
+export const classeBotaoIconeArquivo =
+  'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-sm border border-arquivo-600 text-grafite-100 ' +
+  'hover:border-kraft-500 hover:text-kraft-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-kraft-400 ' +
+  'disabled:cursor-not-allowed disabled:opacity-50 aria-pressed:border-kraft-500 aria-pressed:text-kraft-300'
+
+// Aba de pasta suspensa numa lista de abas sobre o arquivo (painel lateral, alternador Mesa/Mapas).
+export function classeAbaPasta(ativa: boolean) {
+  return `h-9 rounded-t-[5px] px-4 text-xs font-bold tracking-[0.12em] uppercase ${condensado} ` +
+    'focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-kraft-300 ' +
+    (ativa ? 'textura-fibra bg-kraft-500 text-tinta-900' : 'text-grafite-300 hover:bg-arquivo-800 hover:text-grafite-100')
+}

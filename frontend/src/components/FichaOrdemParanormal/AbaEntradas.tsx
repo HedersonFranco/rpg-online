@@ -12,6 +12,7 @@ import {
 import { Alerta, Spinner } from '../ui/Feedback'
 import { Icone } from '../ui/Icone'
 import { classeBotaoPrimario, classeBotaoSecundario, classeInput, classeLabel } from '../ui/estilos'
+import { useConfirmar } from '../ui/confirmacaoContext'
 
 const TEXTOS: Record<TipoEntrada, { singular: string; vazio: string; placeholderDescricao: string }> = {
   RITUAL: {
@@ -200,6 +201,7 @@ export function AbaEntradas({
   const mostrarSpinner = useAtrasado(removendo !== null)
   const entradas = ficha.entradas.filter((e) => e.tipo === tipo)
   const { singular, vazio } = TEXTOS[tipo]
+  const confirmar = useConfirmar()
 
   function salva(atualizada: Ficha) {
     setEditando(null)
@@ -207,7 +209,12 @@ export function AbaEntradas({
   }
 
   async function remover(entrada: EntradaFicha) {
-    if (!window.confirm(`Apagar ${singular} "${entrada.nome}"? Isso não pode ser desfeito.`)) return
+    const ok = await confirmar({
+      titulo: `Apagar ${singular}?`,
+      mensagem: `"${entrada.nome}" sai da ficha. Isso não pode ser desfeito.`,
+      confirmar: `Apagar ${singular}`,
+    })
+    if (!ok) return
     setErro(null)
     setRemovendo(entrada.id)
     try {

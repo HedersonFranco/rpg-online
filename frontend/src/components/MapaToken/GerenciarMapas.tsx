@@ -6,6 +6,7 @@ import { api, BASE_URL, mensagemDeErro } from '../../services/api'
 import type { EstadoMapa, Mapa } from '../../services/tipos'
 import { Alerta, Carregando, Spinner } from '../ui/Feedback'
 import { classeBotaoPrimario, classeBotaoSecundario, classeInput, classeLabel } from '../ui/estilos'
+import { useConfirmar } from '../ui/confirmacaoContext'
 
 const LIMITE_MB = 10
 
@@ -25,6 +26,7 @@ function GerenciarMapasMestre({ salaId, onMostrado }: { salaId: string; onMostra
   const [erro, setErro] = useState<string | null>(null)
   const entradaArquivo = useRef<HTMLInputElement>(null)
   const mostrarSpinner = useAtrasado(enviando)
+  const confirmar = useConfirmar()
 
   useEventoSocket<EstadoMapa>('mapa:ativo', (novo) => ativo.atualizar(() => novo))
   const idAtivo = ativo.estado.tipo === 'ok' ? ativo.estado.dados.mapa?.id : undefined
@@ -74,7 +76,12 @@ function GerenciarMapasMestre({ salaId, onMostrado }: { salaId: string; onMostra
   }
 
   async function remover(mapa: Mapa) {
-    if (!window.confirm(`Remover o mapa "${mapa.nome}"? Os tokens dele também serão apagados.`)) return
+    const ok = await confirmar({
+      titulo: 'Remover mapa?',
+      mensagem: `"${mapa.nome}" e todos os tokens dele serão apagados. Isso não pode ser desfeito.`,
+      confirmar: 'Remover mapa',
+    })
+    if (!ok) return
     setErro(null)
     try {
       await api(`/mapas/${mapa.id}`, { method: 'DELETE' })
