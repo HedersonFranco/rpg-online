@@ -13,6 +13,7 @@ import {
   classeBotaoContorno,
   classeBotaoTinta,
   classeCampo,
+  classeLinkArquivo,
   classeRotulo,
   classeSelect,
   classeTituloArquivo,
@@ -213,6 +214,9 @@ export default function ListaSalas() {
           </section>
         </div>
       </main>
+      <footer className="mx-auto max-w-5xl px-4 pb-10">
+        <Link to="/sobre" className={`text-sm ${classeLinkArquivo}`}>Sobre o RPG Online</Link>
+      </footer>
     </div>
   )
 }

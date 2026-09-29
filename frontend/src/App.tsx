@@ -7,6 +7,9 @@ import Cadastro from './pages/Cadastro/Cadastro'
 import ListaSalas from './pages/ListaSalas/ListaSalas'
 import Sala from './pages/Sala/Sala'
 import Convite from './pages/Convite/Convite'
+import { Apresentacao } from './pages/Apresentacao/Apresentacao'
+import { useAuth } from './hooks/useAuth'
+import { Carregando } from './components/ui/Feedback'
 
 // key por id: trocar de mesa remonta a tela em vez de mostrar a anterior enquanto carrega.
 function SalaPorId() {
@@ -35,10 +38,21 @@ function NaoEncontrada() {
   )
 }
 
+// "/" é a apresentação para quem não entrou; quem já tem sessão vai direto para as mesas.
+function Inicio() {
+  const { estado } = useAuth()
+  if (estado.status === 'autenticado') return <Navigate to="/salas" replace />
+  if (estado.status === 'carregando') {
+    return <main className="mundo-arquivo flex items-center justify-center"><Carregando texto="Verificando sua sessão..." /></main>
+  }
+  return <Apresentacao />
+}
+
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/salas" replace />} />
+      <Route path="/" element={<Inicio />} />
+      <Route path="/sobre" element={<Apresentacao />} />
       <Route path="/login" element={<RotaPublica><Login /></RotaPublica>} />
       <Route path="/cadastro" element={<RotaPublica><Cadastro /></RotaPublica>} />
       <Route path="/salas" element={<RotaProtegida><ListaSalas /></RotaProtegida>} />
