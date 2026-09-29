@@ -92,13 +92,13 @@ function Recorte({ src, alt, largura, altura, carimbo }: { src: string; alt: str
   )
 }
 
-// Espaço do selo oficial da licença (arquivo do kit oficial ainda não baixado).
+// Selo oficial da Licença da Comunidade (kit oficial, versão branca para fundo escuro).
+// A licença exige 100% de opacidade e largura mínima de 10% da "capa": nada de filtro, transparência ou sobreposição.
 function SeloLicenca({ className = '' }: { className?: string }) {
   return (
-    <div role="img" aria-label="Selo da Licença da Comunidade de Ordem Paranormal"
-      className={`flex aspect-square items-center justify-center rounded-[3px] border-2 border-dashed border-kraft-600 p-2 text-center text-xs leading-tight text-kraft-300 ${className}`}>
-      Selo da Licença da Comunidade
-    </div>
+    <img src="/licenca/selo-branco-480.png" width={480} height={474} loading="lazy" decoding="async"
+      alt="Selo da Licença da Comunidade de Ordem Paranormal: não oficial, não canônico"
+      className={`block h-auto ${className}`} />
   )
 }
 
@@ -165,7 +165,7 @@ export function Apresentacao() {
               </div>
             </div>
             <div className="mt-16 sm:absolute sm:right-6 sm:bottom-8 sm:mt-0">
-              <SeloLicenca className="w-[max(10vw,112px)] bg-arquivo-950/85" />
+              <SeloLicenca className="w-[max(10vw,112px)]" />
             </div>
           </div>
         </section>
