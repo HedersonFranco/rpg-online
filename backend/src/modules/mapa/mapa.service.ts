@@ -126,7 +126,8 @@ export async function podeMoverToken(usuarioId: string, salaId: string, tokenId:
   })
   if (!token || token.mapa.salaId !== salaId) return false
   const membro = await prisma.membroSala.findUnique({ where: { usuarioId_salaId: { usuarioId, salaId } } })
-  if (membro?.papel === 'MESTRE') return true
+  if (!membro) return false // quem saiu (ou foi removido) da mesa não move nada, nem o token da própria ficha
+  if (membro.papel === 'MESTRE') return true
   return token.ficha?.usuario_id === usuarioId
 }
 

@@ -18,7 +18,7 @@ export function classeSelect(vazio: boolean) {
 export const classeRotulo = `mb-1 block text-xs font-bold tracking-[0.12em] text-tinta-700 uppercase ${condensado}`
 
 const baseBotao =
-  `inline-flex min-h-11 items-center justify-center gap-2 rounded-sm px-5 text-sm font-bold tracking-[0.1em] uppercase ${condensado} ` +
+  `inline-flex min-h-11 items-center justify-center gap-2 rounded-sm px-5 text-sm font-bold tracking-[0.1em] whitespace-nowrap uppercase ${condensado} ` +
   'focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-60'
 
 // Ação principal numa folha: tinta chapada.

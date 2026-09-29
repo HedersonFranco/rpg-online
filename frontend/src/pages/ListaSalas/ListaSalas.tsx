@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router'
+import { Link, useLocation, useNavigate } from 'react-router'
 import { useAuth, useUsuarioLogado } from '../../hooks/useAuth'
 import { useAtrasado } from '../../hooks/useAtrasado'
 import { useRecurso } from '../../hooks/useRecurso'
@@ -151,6 +151,9 @@ export default function ListaSalas() {
   const usuario = useUsuarioLogado()
   const { sair } = useAuth()
   const { estado, recarregar } = useRecurso<SalaNaLista[]>('/salas')
+  // Aviso vindo de outra tela (ex.: removido de uma mesa pelo dono). Some ao dispensar.
+  const location = useLocation()
+  const [aviso, setAviso] = useState<string | null>((location.state as { aviso?: string } | null)?.aviso ?? null)
   const mesasComoDono = estado.tipo === 'ok' ? estado.dados.filter((s) => s.donoId === usuario.id).length : null
 
   return (
@@ -169,6 +172,12 @@ export default function ListaSalas() {
       </header>
 
       <main className="mx-auto max-w-5xl space-y-12 px-4 pt-8 pb-16 sm:pt-12">
+        {aviso && (
+          <div role="status" className="flex items-start justify-between gap-4 rounded-sm border border-carimbo-300/50 bg-carimbo-800/25 px-4 py-3 text-sm text-carimbo-100">
+            <span>{aviso}</span>
+            <button type="button" onClick={() => setAviso(null)} className="shrink-0 text-xs font-bold underline underline-offset-2">Dispensar</button>
+          </div>
+        )}
         <section aria-labelledby="titulo-mesas">
           <div className="mb-8 flex flex-wrap items-baseline gap-x-4 gap-y-1">
             <h1 id="titulo-mesas" className={`text-5xl leading-none sm:text-6xl ${classeTituloArquivo}`}>Suas mesas</h1>

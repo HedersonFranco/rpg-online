@@ -47,6 +47,7 @@ Isso significa: estados de erro, estados de carregamento e confirmação em aç�
 
 ### Salas
 - Dono: até 3 salas. Participante: ilimitado.
+- **Só o dono expulsa ou bane (decisão de 29/09/2026).** Expulsar tira a pessoa da mesa na hora (pode voltar com um convite válido); banir também impede a volta por qualquer convite até o dono desbanir (tabela `Banimento`). O dono não pode ser removido. As fichas de quem sai **ficam na mesa** (o mestre segue usando ou apaga); a pessoa perde o acesso a elas. A remoção é em tempo real: as abas abertas dela recebem `sala:removido`, saem da sala de socket e do vídeo, e voltam pra lista de mesas com aviso. Rotas: `DELETE /salas/:id/membros/:membroId` (`?banir=1` para banir), `GET /salas/:id/banidos`, `DELETE /salas/:id/banidos/:usuarioId`. A mesa recebe `sala:membros` a cada entrada, troca de papel ou remoção. UI: aba/folha **Membros** do painel, só do dono (inclui trocar papel mestre/jogador).
 - Papel (mestre/jogador) é por usuário+sala, não fixo no perfil.
 - Cada sala tem um único sistema de regras, **escolhido na criação** entre `ORDEM_PARANORMAL_1` e
   `ORDEM_PARANORMAL_2` (campo `Sala.sistema`, obrigatório, sem default — o dono decide) — a ficha herda da sala.
@@ -248,10 +249,10 @@ Cada módulo em `modules/` tem: `<modulo>.controller.ts`, `<modulo>.service.ts`,
 - **Convite não é entidade própria** (não está nas 16) — vive como `conviteToken`/`conviteExpiraEm` direto em `Sala` (um convite ativo por vez, sobrescrito ao gerar outro). Se precisar de histórico de convites no futuro, aí sim vira tabela.
 - **Nomenclatura de campos:** `Ficha` usa os nomes citados literalmente neste arquivo (`usuario_id`, `pv_atual`/`pv_maximo_cache`, etc. em snake_case); `Token` usa `fichaId`/`npcId` em camelCase (citado assim no checklist da Etapa 2). Os demais campos seguem camelCase padrão do Prisma.
 
-### Entidades (17)
-`Usuario`, `Sala`, `MembroSala`, `Sessao`, `Ficha`, `FichaOP2`, `ClasseFormula`, `ProgressaoClasse`, `Pericia`, `FichaPericia`, `FichaEntrada`, `Npc`, `Pasta`, `Documento`, `Mapa`, `Token`, `Mensagem`
+### Entidades (18)
+`Usuario`, `Sala`, `MembroSala`, `Banimento`, `Sessao`, `Ficha`, `FichaOP2`, `ClasseFormula`, `ProgressaoClasse`, `Pericia`, `FichaPericia`, `FichaEntrada`, `Npc`, `Pasta`, `Documento`, `Mapa`, `Token`, `Mensagem`
 
-> Eram 16 na Etapa 2 (só OP1). `FichaOP2` e `ClasseFormula` entraram em 22/09/2026 com o suporte a dois sistemas. Em 23/09/2026 `Ritual` + `FichaRitual` (catálogo) saíram e `FichaEntrada` entrou.
+> Eram 16 na Etapa 2 (só OP1). `FichaOP2` e `ClasseFormula` entraram em 22/09/2026 com o suporte a dois sistemas. Em 23/09/2026 `Ritual` + `FichaRitual` (catálogo) saíram e `FichaEntrada` entrou. Em 29/09/2026 entrou `Banimento` (expulsar/banir).
 
 ---
 

@@ -1,6 +1,7 @@
 import { prisma } from '../../lib/prisma.js'
 import { AppError } from '../../errors/AppError.js'
 import { gerarConvite, validarConvite } from '../../engine/convite.js'
+import { emitirParaSala, expulsarDaSala } from '../../sockets/emissor.js'
 
 const LIMITE_SALAS_POR_DONO = 3
 const SISTEMAS_VALIDOS = ['ORDEM_PARANORMAL_1', 'ORDEM_PARANORMAL_2'] as const
@@ -126,6 +127,11 @@ export async function entrarComConvite(usuarioId: string, token: string) {
     throw new AppError(mensagemMotivoConvite(resultado.motivo), 400)
   }
 
+  const banido = await prisma.banimento.findUnique({ where: { usuarioId_salaId: { usuarioId, salaId: sala!.id } } })
+  if (banido) {
+    throw new AppError('Você foi banido desta mesa pelo dono.', 403)
+  }
+
   const membroExistente = await prisma.membroSala.findUnique({
     where: { usuarioId_salaId: { usuarioId, salaId: sala!.id } },
   })
@@ -136,6 +142,7 @@ export async function entrarComConvite(usuarioId: string, token: string) {
       data: { usuarioId, salaId: sala!.id, papel: 'JOGADOR' },
     }))
 
+  if (!membroExistente) emitirParaSala(sala!.id, 'sala:membros', { membros: await membrosDaSala(sala!.id) })
   return { sala: sala!, membro }
 }
 
@@ -160,5 +167,70 @@ export async function promoverMembro(
     throw new AppError('Membro não encontrado', 404)
   }
 
-  return prisma.membroSala.update({ where: { id: membro.id }, data: { papel: novoPapel } })
+  const atualizado = await prisma.membroSala.update({ where: { id: membro.id }, data: { papel: novoPapel } })
+  emitirParaSala(salaId, 'sala:membros', { membros: await membrosDaSala(salaId) })
+  return atualizado
+}
+
+// Lista de membros no mesmo formato de GET /salas/:id — é o que a mesa recebe a cada mudança.
+export function membrosDaSala(salaId: string) {
+  return prisma.membroSala.findMany({
+    where: { salaId },
+    include: { usuario: { select: { id: true, nome: true } } },
+    orderBy: { createdAt: 'asc' },
+  })
+}
+
+async function garantirDono(salaId: string, usuarioId: string) {
+  const sala = await buscarSalaOuFalhar(salaId, usuarioId)
+  if (sala.donoId !== usuarioId) {
+    throw new AppError('Apenas o dono pode remover ou banir membros', 403)
+  }
+  return sala
+}
+
+// Só o dono remove. As fichas da pessoa ficam na mesa (decisão de 29/09/2026): o mestre segue
+// usando ou apaga. Banir também impede a volta por qualquer convite, até o dono desbanir.
+export async function removerMembro(salaId: string, membroId: string, usuarioId: string, banir: boolean) {
+  const sala = await garantirDono(salaId, usuarioId)
+  const membro = sala.membros.find((m) => m.id === membroId)
+  if (!membro) {
+    throw new AppError('Membro não encontrado', 404)
+  }
+  if (membro.usuarioId === sala.donoId) {
+    throw new AppError('O dono não pode ser removido da própria mesa', 400)
+  }
+
+  await prisma.$transaction([
+    prisma.membroSala.delete({ where: { id: membro.id } }),
+    ...(banir
+      ? [prisma.banimento.upsert({
+          where: { usuarioId_salaId: { usuarioId: membro.usuarioId, salaId } },
+          create: { usuarioId: membro.usuarioId, salaId },
+          update: {},
+        })]
+      : []),
+  ])
+
+  await expulsarDaSala(salaId, membro.usuarioId, banir ? 'banido' : 'expulso')
+  emitirParaSala(salaId, 'sala:membros', { membros: await membrosDaSala(salaId) })
+}
+
+export async function listarBanidos(salaId: string, usuarioId: string) {
+  await garantirDono(salaId, usuarioId)
+  return prisma.banimento.findMany({
+    where: { salaId },
+    include: { usuario: { select: { id: true, nome: true } } },
+    orderBy: { createdAt: 'desc' },
+  })
+}
+
+// Desbanir não devolve a pessoa à mesa: ela volta a poder entrar por um convite válido.
+export async function desbanir(salaId: string, usuarioAlvoId: string, usuarioId: string) {
+  await garantirDono(salaId, usuarioId)
+  const banimento = await prisma.banimento.findUnique({ where: { usuarioId_salaId: { usuarioId: usuarioAlvoId, salaId } } })
+  if (!banimento) {
+    throw new AppError('Banimento não encontrado', 404)
+  }
+  await prisma.banimento.delete({ where: { id: banimento.id } })
 }

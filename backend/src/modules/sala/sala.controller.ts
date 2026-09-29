@@ -44,3 +44,19 @@ export async function promoverMembroController(req: Request, res: Response) {
   )
   res.json(membro)
 }
+
+// DELETE /salas/:id/membros/:membroId?banir=1 — expulsar (ou banir, com ?banir=1).
+export async function removerMembroController(req: Request, res: Response) {
+  const banir = req.query.banir === '1' || req.query.banir === 'true'
+  await salaService.removerMembro(req.params.id!, req.params.membroId!, req.usuarioId!, banir)
+  res.status(204).send()
+}
+
+export async function listarBanidosController(req: Request, res: Response) {
+  res.json(await salaService.listarBanidos(req.params.id!, req.usuarioId!))
+}
+
+export async function desbanirController(req: Request, res: Response) {
+  await salaService.desbanir(req.params.id!, req.params.usuarioId!, req.usuarioId!)
+  res.status(204).send()
+}

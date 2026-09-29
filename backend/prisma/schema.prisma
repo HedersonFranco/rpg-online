@@ -98,6 +98,7 @@ model Usuario {
 
   salasCriadas Sala[]       @relation("SalasCriadas")
   membros      MembroSala[]
+  banimentos   Banimento[]
   fichas       Ficha[]
   fichasOP2    FichaOP2[]
   mensagens    Mensagem[]
@@ -119,6 +120,7 @@ model Sala {
   dono       Usuario      @relation("SalasCriadas", fields: [donoId], references: [id])
   mapaAtivo  Mapa?        @relation("MapaAtivo", fields: [mapaAtivoId], references: [id], onDelete: SetNull)
   membros    MembroSala[]
+  banimentos Banimento[]
   sessoes    Sessao[]
   fichas     Ficha[]
   fichasOP2  FichaOP2[]
@@ -137,6 +139,19 @@ model MembroSala {
   createdAt DateTime  @default(now())
 
   usuario Usuario @relation(fields: [usuarioId], references: [id])
+  sala    Sala    @relation(fields: [salaId], references: [id], onDelete: Cascade)
+
+  @@unique([usuarioId, salaId])
+}
+
+// Quem o dono baniu não entra mais pela mesa por nenhum convite, até ser desbanido.
+model Banimento {
+  id        String   @id @default(uuid())
+  usuarioId String
+  salaId    String
+  createdAt DateTime @default(now())
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   sala    Sala    @relation(fields: [salaId], references: [id], onDelete: Cascade)
 
   @@unique([usuarioId, salaId])

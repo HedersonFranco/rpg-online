@@ -12,6 +12,9 @@ export type Membro = {
   usuario: { id: string; nome: string }
 }
 
+// Quem o dono baniu da mesa (GET /salas/:id/banidos, só o dono).
+export type Banimento = { id: string; usuarioId: string; createdAt: string; usuario: { id: string; nome: string } }
+
 export type SalaResumo = {
   id: string
   nome: string
