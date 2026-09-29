@@ -275,6 +275,7 @@ Escolhida via `/impeccable shape` para tirar o frontend do visual genérico (zin
 - Cada mesa é um caso num arquivo escuro: pastas kraft com aba (sistema), etiqueta com o nome, data datilografada, **carimbo** com o papel. Folhas de papel para formulários.
 - Vermelho de carimbo **só para estado** (papel, erro, acesso negado) — nunca ação. Courier Prime só para valor digitado e data; Archivo condensado para títulos, rótulos e botões.
 - **Nada da identidade oficial de Ordem Paranormal** (sigilos, símbolos, arte) — é ferramenta de fã.
+- **Licença da Comunidade de Ordem Paranormal (v1.0, 28/06/2026)** rege o produto — resumo e exigências em `PRODUCT.md` → Brand Commitments. Em código: nunca usar arte/texto oficial nem nomes próprios do cânone (inclusive em seeds, testes e screenshots); o aviso literal + selo precisam aparecer no site (pendente — a landing é o lugar).
 - **Migração parcial:** hoje só login, cadastro, lista de mesas, convite, 404 e checagem de sessão usam o novo mundo (`components/ui/arquivo.tsx` + `estilosArquivo.ts`, raiz `.mundo-arquivo`). **A mesa ainda usa zinc/violeta** (`ui/estilos.ts`) e migra numa próxima etapa.
 - `GET /salas` passou a devolver `papel` (o do próprio usuário em cada sala) para o carimbo.
 

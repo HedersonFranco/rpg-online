@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-28T23:24:46.819Z",
+  "generatedAt": "2026-09-29T15:05:18.919Z",
   "title": "Design System: RPG Online",
   "extensions": {
     "colorMeta": {
@@ -305,12 +305,31 @@
           "#ec8a80",
           "#f6dcd6"
         ]
+      },
+      "sinal-vivo": {
+        "role": "tertiary",
+        "displayName": "Luz de Sinal",
+        "canonical": "#6fae7c",
+        "tonalRamp": [
+          "#1f3524",
+          "#2f5036",
+          "#40694a",
+          "#57895f",
+          "#6fae7c",
+          "#8fc39a",
+          "#b3d7ba",
+          "#d9ecdd"
+        ]
       }
     },
     "typographyMeta": {
+      "display-capa": {
+        "displayName": "Display Capa",
+        "purpose": "Só o título da capa da apresentação; 3.75rem no celular. Caixa alta, condensado."
+      },
       "display": {
         "displayName": "Display",
-        "purpose": "Título da tela (ex.: \"Suas mesas\"); 3.75rem a partir de 640px. Caixa alta, condensado."
+        "purpose": "Título de tela (\"Suas mesas\") e títulos de seção da apresentação. Caixa alta, condensado."
       },
       "headline": {
         "displayName": "Headline",
@@ -330,7 +349,7 @@
       },
       "datilo": {
         "displayName": "Datilografado",
-        "purpose": "Só valores digitados e datas de registro."
+        "purpose": "Só valores digitados e números de registro (datas, iniciativa)."
       }
     },
     "shadows": [
@@ -342,12 +361,32 @@
       {
         "name": "folha-pousada",
         "value": "0 10px 24px -12px rgb(0 0 0 / 0.8)",
-        "purpose": "Folhas de formulário."
+        "purpose": "Folhas, diálogos e popovers."
+      },
+      {
+        "name": "foto-impressa",
+        "value": "0 6px 12px -8px rgb(0 0 0 / 0.9)",
+        "purpose": "Fotos dos participantes na régua da mesa."
+      },
+      {
+        "name": "folha-saindo",
+        "value": "0 4px 10px -6px rgb(0 0 0 / 0.9)",
+        "purpose": "Folhas da pasta em pé e remendo de papel do carimbo de etapa."
+      },
+      {
+        "name": "pasta-em-pe",
+        "value": "0 0 14px -2px rgb(0 0 0 / 0.8)",
+        "purpose": "Corpo kraft-600 das laterais da mesa, na frente das folhas."
       },
       {
         "name": "etiqueta-colada",
         "value": "0 1px 2px rgb(0 0 0 / 0.25)",
-        "purpose": "Etiqueta de papel na pasta."
+        "purpose": "Etiquetas de papel (pasta, turno)."
+      },
+      {
+        "name": "veu-dialogo",
+        "value": "rgb(14 15 16 / 0.75)",
+        "purpose": "Véu arquivo-950 a 75% (::backdrop) sob diálogos."
       }
     ],
     "motion": [
@@ -355,6 +394,16 @@
         "name": "gaveta",
         "value": "translate 0 -4px, 180ms cubic-bezier(0.16, 1, 0.3, 1)",
         "purpose": "Pasta subindo da gaveta no hover/foco; sem deslocamento com prefers-reduced-motion."
+      },
+      {
+        "name": "folha-deslizando",
+        "value": "translateX 136px, 200ms cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Folha saindo da pasta em pé no hover/foco (a ativa fica 8px fora); sem transição com prefers-reduced-motion."
+      },
+      {
+        "name": "pulso-reconectando",
+        "value": "animate-pulse",
+        "purpose": "Ponto de conexão enquanto reconecta; desligado com prefers-reduced-motion."
       },
       {
         "name": "atraso-carregando",
@@ -374,6 +423,10 @@
       {
         "name": "lg",
         "value": "1024px"
+      },
+      {
+        "name": "mesa-minima",
+        "value": "1280px"
       }
     ]
   },
@@ -401,6 +454,14 @@
       "description": "Ação sobre o fundo escuro do arquivo (ex.: Sair).",
       "html": "<div class=\"ds-fundo\"><button class=\"ds-btn-arquivo\">Sair</button></div>",
       "css": ".ds-fundo { background: #16181a; padding: 16px; } .ds-btn-arquivo { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 20px; border-radius: 4px; font-size: 14px; font-weight: 700; letter-spacing: 0.1em; font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif; font-stretch: 72%; text-transform: uppercase; cursor: pointer; min-height: 40px; padding: 0 12px; background: transparent; color: #ece7dc; border: 1px solid #4a5057; transition: color .15s, border-color .15s; } .ds-btn-arquivo:hover { border-color: #c9a36b; color: #e0c697; } .ds-btn-arquivo:focus-visible { outline: 2px solid #d4b27d; outline-offset: 2px; }"
+    },
+    {
+      "name": "Botão kraft",
+      "kind": "button",
+      "refersTo": "button-kraft",
+      "description": "Ação principal sobre o arquivo escuro (ex.: Encerrar turno, Criar conta na capa).",
+      "html": "<div class=\"ds-fk\"><button class=\"ds-btn-kraft\">Encerrar turno</button></div>",
+      "css": ".ds-fk { background: #0e0f10; padding: 16px; } .ds-btn-kraft { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border-radius: 4px; font-size: 14px; font-weight: 700; letter-spacing: 0.1em; font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif; font-stretch: 72%; text-transform: uppercase; cursor: pointer; min-height: 40px; padding: 0 16px; border: none; background: #d4b27d; color: #1b1915; } .ds-btn-kraft:hover { background: #e0c697; } .ds-btn-kraft:focus-visible { outline: 2px solid #e0c697; outline-offset: 2px; } .ds-btn-kraft:disabled { opacity: .6; cursor: not-allowed; }"
     },
     {
       "name": "Campo na folha",
@@ -441,37 +502,83 @@
       "description": "Erro dentro de uma folha, em tinta de carimbo, com Tentar novamente.",
       "html": "<div class=\"ds-folha3\"><div role=\"alert\" class=\"ds-alerta\"><p>Convite expirado ou inválido.</p><button class=\"ds-btn-contorno3\">Tentar novamente</button></div></div>",
       "css": ".ds-folha3 { background: #e8e2d4 url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .1 0 0 0 0 .08 0 0 0 0 .05 0 0 0 .09 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23f)'/%3E%3C/svg%3E\"); padding: 20px; border-radius: 4px; box-shadow: 0 10px 24px -12px rgb(0 0 0 / .8); } .ds-alerta { border: 2px solid #86201a; background: #f6dcd6; color: #86201a; border-radius: 4px; padding: 12px 16px; font-family: 'Archivo', sans-serif; font-size: 14px; } .ds-alerta p { margin: 0; } .ds-btn-contorno3 { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 20px; border-radius: 4px; font-size: 14px; font-weight: 700; letter-spacing: 0.1em; font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif; font-stretch: 72%; text-transform: uppercase; cursor: pointer; margin-top: 12px; font-size: 12px; background: transparent; color: #1b1915; border: 2px solid #1b1915; } .ds-btn-contorno3:hover { background: rgb(27 25 21 / .1); } .ds-btn-contorno3:focus-visible { outline: 2px solid #1b1915; outline-offset: 2px; }"
+    },
+    {
+      "name": "Abas de pasta",
+      "kind": "nav",
+      "refersTo": "aba-pasta-ativa",
+      "description": "Abas do painel direito da mesa: ativa em kraft, sobre uma linha kraft de 2px.",
+      "html": "<div class=\"ds-abas\" role=\"tablist\"><button role=\"tab\" aria-selected=\"true\" class=\"ds-aba-p ds-aba-on\">Ficha</button><button role=\"tab\" aria-selected=\"false\" class=\"ds-aba-p\">Chat</button></div>",
+      "css": ".ds-abas { display: flex; gap: 4px; align-items: flex-end; background: #1c1f22; padding: 8px 8px 0; border-bottom: 2px solid #c9a36b; } .ds-aba-p { height: 36px; padding: 0 16px; border: none; border-radius: 5px 5px 0 0; background: transparent; color: #bdb6a7; font-size: 12px; font-weight: 700; letter-spacing: .12em; font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif; font-stretch: 72%; text-transform: uppercase; cursor: pointer; } .ds-aba-p:hover { background: #24282c; color: #ece7dc; } .ds-aba-on, .ds-aba-on:hover { background: #c9a36b url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .1 0 0 0 0 .08 0 0 0 0 .05 0 0 0 .09 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23f)'/%3E%3C/svg%3E\"); color: #1b1915; } .ds-aba-p:focus-visible { outline: 2px solid #e0c697; outline-offset: -2px; }"
+    },
+    {
+      "name": "Pasta de folhas",
+      "kind": "nav",
+      "refersTo": "folha-de-pasta",
+      "description": "Lateral da mesa como pasta em pé; a folha desliza no hover/foco e mostra o nome.",
+      "html": "<nav class=\"ds-trilho\" aria-label=\"Vistas da mesa\"><div class=\"ds-corpo-pe\"></div><button class=\"ds-folha-pe ds-folha-on\" aria-current=\"page\"><span>Mesa</span><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\"/><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\"/><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\"/><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\"/></svg></button><button class=\"ds-folha-pe ds-folha-2\"><span>Mapas</span><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M9 3 3 6v15l6-3 6 3 6-3V3l-6 3z\"/><path d=\"M9 3v15M15 6v15\"/></svg></button></nav>",
+      "css": ".ds-trilho { position: relative; width: 72px; height: 150px; overflow: visible; background: #16181a; border-right: 1px solid #33383d; } .ds-corpo-pe { position: absolute; left: 0; top: 8px; bottom: 8px; width: 32px; z-index: 2; background: #a98650 url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .1 0 0 0 0 .08 0 0 0 0 .05 0 0 0 .09 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23f)'/%3E%3C/svg%3E\"); border-radius: 0 5px 5px 0; box-shadow: 0 0 14px -2px rgb(0 0 0 / .8); pointer-events: none; } .ds-folha-pe { position: absolute; top: 24px; left: -136px; width: 208px; height: 48px; display: flex; align-items: center; justify-content: flex-end; gap: 24px; padding: 0 12px; border: none; border-radius: 3px; background: #d8cfbb url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .1 0 0 0 0 .08 0 0 0 0 .05 0 0 0 .09 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23f)'/%3E%3C/svg%3E\"); color: #1b1915; box-shadow: 0 4px 10px -6px rgb(0 0 0 / .9); font-size: 14px; font-weight: 700; letter-spacing: .12em; font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif; font-stretch: 72%; text-transform: uppercase; cursor: pointer; transition: transform 200ms cubic-bezier(0.16,1,0.3,1); } .ds-folha-2 { top: 80px; } .ds-folha-on { background-color: #f5f1e8; transform: translateX(8px); } .ds-folha-pe:hover, .ds-folha-pe:focus-visible { transform: translateX(136px); } .ds-folha-pe:not(.ds-folha-on):hover { background-color: #e8e2d4; } .ds-folha-pe:focus-visible { outline: 2px solid #e0c697; outline-offset: 2px; } @media (prefers-reduced-motion: reduce) { .ds-folha-pe { transition: none; } }"
+    },
+    {
+      "name": "Etiqueta do turno",
+      "kind": "custom",
+      "refersTo": "etiqueta-turno",
+      "description": "De quem é a vez: etiqueta de papel com rodada, nome, iniciativa datilografada e o carimbo Sua vez.",
+      "html": "<div class=\"ds-regua\"><div class=\"ds-turno\"><p><span class=\"ds-t-rot\">Rodada 1 · vez de</span><span class=\"ds-t-nome\">Bianca Moraes</span><span class=\"ds-t-ini\">iniciativa 18</span></p><span class=\"ds-carimbo3\">Sua vez</span></div></div>",
+      "css": ".ds-regua { background: #0e0f10; padding: 16px; } .ds-turno { display: inline-flex; align-items: center; gap: 12px; padding: 6px 12px; border-radius: 2px; background: #f5f1e8 url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .1 0 0 0 0 .08 0 0 0 0 .05 0 0 0 .09 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23f)'/%3E%3C/svg%3E\"); color: #1b1915; box-shadow: 0 1px 2px rgb(0 0 0 / .25); } .ds-turno p { margin: 0; } .ds-t-rot { display: block; font-size: 12px; font-weight: 700; letter-spacing: .12em; color: #3a362f; font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif; font-stretch: 72%; text-transform: uppercase; } .ds-t-nome { display: block; font-size: 18px; line-height: 1.25; font-weight: 800; font-family: 'Archivo', sans-serif; font-stretch: 72%; } .ds-t-ini { display: block; font-family: 'Courier Prime', monospace; font-size: 12px; color: #3a362f; } .ds-carimbo3 { display: inline-block; transform: rotate(-4deg); white-space: nowrap; border: 3px double #6e1a15; border-radius: 3px; padding: 2px 8px; color: #6e1a15; font-size: 16px; line-height: 1.25; font-weight: 800; letter-spacing: .12em; font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif; font-stretch: 72%; text-transform: uppercase; mask-image: url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.55' numOctaves='3' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -5 0 0 0 3.9'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23f)'/%3E%3C/svg%3E\"); mask-size: 140px 140px; }"
+    },
+    {
+      "name": "Foto do participante",
+      "kind": "custom",
+      "refersTo": "foto-participante",
+      "description": "Tile de vídeo como foto impressa: borda de papel, faixa do nome e tag kraft Mestre.",
+      "html": "<div class=\"ds-regua2\"><div class=\"ds-foto\"><span class=\"ds-inicial\">H</span><span class=\"ds-legenda\">Câmera desligada</span><span class=\"ds-nome\">Hederson (você)</span><span class=\"ds-mestre\">Mestre</span></div></div>",
+      "css": ".ds-regua2 { background: #0e0f10; padding: 16px; } .ds-foto { position: relative; width: 128px; height: 72px; overflow: hidden; border: 3px solid #e8e2d4; border-radius: 2px; background: #24282c; box-shadow: 0 6px 12px -8px rgb(0 0 0 / .9); display: flex; flex-direction: column; align-items: center; justify-content: center; padding-bottom: 16px; box-sizing: border-box; } .ds-inicial { font-size: 24px; line-height: 1; font-weight: 800; color: #bdb6a7; font-family: 'Archivo', sans-serif; font-stretch: 72%; } .ds-legenda { font-size: 12px; color: #bdb6a7; font-family: 'Archivo', sans-serif; } .ds-nome { position: absolute; left: 0; right: 0; bottom: 0; padding: 2px 6px; background: rgb(14 15 16 / .8); color: #ece7dc; font-size: 12px; font-family: 'Archivo', sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .ds-mestre { position: absolute; top: 0; left: 0; padding: 0 6px; background: #c9a36b; color: #1b1915; font-size: 12px; font-weight: 700; letter-spacing: .08em; font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif; font-stretch: 72%; text-transform: uppercase; }"
+    },
+    {
+      "name": "Diálogo de confirmação",
+      "kind": "card",
+      "refersTo": "folha",
+      "description": "Confirmação de ação destrutiva numa folha; foco inicial em Cancelar.",
+      "html": "<div class=\"ds-veu\"><div class=\"ds-folha4\" role=\"dialog\" aria-label=\"Encerrar o combate?\"><h2>Encerrar o combate?</h2><p>A ordem de iniciativa é descartada para toda a mesa.</p><div class=\"ds-acoes\"><button class=\"ds-b4 ds-b4-c\">Cancelar</button><button class=\"ds-b4 ds-b4-t\">Encerrar combate</button></div></div></div>",
+      "css": ".ds-veu { background: rgb(14 15 16 / .75); padding: 24px 16px; } .ds-folha4 { max-width: 448px; margin: 0 auto; background: #e8e2d4 url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .1 0 0 0 0 .08 0 0 0 0 .05 0 0 0 .09 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23f)'/%3E%3C/svg%3E\"); color: #1b1915; padding: 20px; border-radius: 4px; box-shadow: 0 10px 24px -12px rgb(0 0 0 / .8); } .ds-folha4 h2 { margin: 0; font-size: 24px; line-height: 1; font-weight: 800; letter-spacing: -.01em; font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif; font-stretch: 72%; text-transform: uppercase; } .ds-folha4 p { margin: 12px 0 0; font-size: 14px; color: #3a362f; font-family: 'Archivo', sans-serif; } .ds-acoes { margin-top: 24px; display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; } .ds-b4 { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border-radius: 4px; font-size: 14px; font-weight: 700; letter-spacing: 0.1em; font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif; font-stretch: 72%; text-transform: uppercase; cursor: pointer; min-height: 44px; padding: 0 20px; } .ds-b4-c { background: transparent; color: #1b1915; border: 2px solid #1b1915; } .ds-b4-c:hover { background: rgb(27 25 21 / .1); } .ds-b4-t { background: #1b1915; color: #f5f1e8; border: none; } .ds-b4-t:hover { background: #3a362f; } .ds-b4:focus-visible { outline: 2px solid #1b1915; outline-offset: 2px; }"
     }
   ],
   "narrative": {
     "northStar": "Dossiê de caso",
-    "overview": "Cada mesa é um caso aberto num arquivo de investigação. A interface é um móvel de arquivo escuro, quase preto, onde as mesas são pastas kraft suspensas, com aba de classificação e etiqueta de papel; o que se preenche fica numa folha de papel por cima. A ação é tinta; o estado é carimbo. O mundo recusa o painel de SaaS (grade de cards cinza com botão colorido): nada aqui é \"tile\", tudo é um objeto de papelaria com material, fibra e peso.\n\nA densidade é baixa e a hierarquia é tipográfica: títulos grandes em Archivo condensado e caixa alta, etiquetas espaçadas, e o que é registro (valores digitados, datas) sai datilografado em Courier Prime. O material aparece por uma fibra de ruído muito fraca no papel e no kraft e por sombras difusas sob as pastas e folhas, nunca por brilho, gradiente ou vidro.\n\nÉ uma ferramenta de fã sem vínculo oficial: o mundo evoca o arquivo de investigação sem usar nenhum sigilo, símbolo, logo ou arte da Ordem Paranormal oficial.",
+    "overview": "Cada mesa é um caso aberto num arquivo de investigação. A interface é um móvel de arquivo escuro, quase preto, onde as mesas são pastas kraft suspensas, com aba de classificação e etiqueta de papel; o que se preenche fica numa folha de papel por cima. A ação é tinta; o estado é carimbo. O mundo recusa o painel de SaaS (grade de cards cinza com botão colorido): nada aqui é \"tile\", tudo é um objeto de papelaria com material, fibra e peso.\n\nNa mesa, o móvel continua: o header é a borda da gaveta com o nome da mesa numa etiqueta de papel; a régua inferior junta as fotos impressas dos participantes e a etiqueta de quem tem a vez; as laterais são pastas em pé das quais as folhas deslizam; modais e popovers são folhas de papel postas sobre o arquivo. Na apresentação, a prova é a própria mesa: capturas reais montadas em folhas como recortes de dossiê, cada uma com o carimbo da etapa.\n\nA densidade é baixa e a hierarquia é tipográfica: títulos grandes em Archivo condensado e caixa alta, etiquetas espaçadas, e o que é registro (valores digitados, datas, iniciativa) sai datilografado em Courier Prime. O material aparece por uma fibra de ruído muito fraca no papel e no kraft e por sombras difusas sob as peças, nunca por brilho ou vidro. É uma ferramenta de fã sem vínculo oficial: o mundo evoca o arquivo de investigação sem nenhum sigilo, símbolo, logo ou arte da Ordem Paranormal oficial.",
     "keyCharacteristics": [
       "Fundo de arquivo escuro, pastas kraft, folhas de papel, tinta quase preta e vermelho de carimbo.",
       "Archivo com eixo de largura: condensado (72%) em títulos, rótulos, botões e abas.",
-      "Courier Prime só no que é datilografado: valores digitados e datas.",
-      "Vermelho de carimbo só para estado, nunca para ação.",
-      "Movimento único: a pasta sobe um pouco da gaveta no hover/foco."
+      "Courier Prime só no que é datilografado: valores digitados, datas e números de registro.",
+      "Vermelho de carimbo só para estado e classificação, nunca para ação.",
+      "Ação principal: tinta chapada numa folha, kraft chapado sobre o arquivo escuro.",
+      "Movimento de papelaria: a pasta sobe da gaveta e a folha desliza da pasta, os dois desligados com `prefers-reduced-motion`."
     ],
     "rules": [
       {
         "name": "The Carimbo é Estado Rule",
-        "body": "O vermelho de carimbo marca só estado: o papel da pessoa numa mesa, erro, acesso negado. Nunca pinta botão, link, cursor, foco ou qualquer ação.",
+        "body": "O vermelho de carimbo marca só estado ou classificação de arquivo: o papel da pessoa, a vez no turno, erro, acesso negado, a etapa de um recorte. Nunca pinta botão, link, cursor, foco ou qualquer ação.",
         "section": "colors"
       },
       {
         "name": "The Tinta Age Rule",
-        "body": "Numa folha, quem age é a tinta: ação principal em tinta chapada (tinta-900), secundária em contorno de tinta. Sobre o arquivo escuro, a ação é borda grafite que esquenta para kraft no hover.",
+        "body": "Numa folha, quem age é a tinta: ação principal em tinta chapada, secundária em contorno de tinta. Sobre o arquivo escuro, a ação principal é kraft chapado com texto em tinta (uma por área) e as demais são borda grafite que esquenta para kraft no hover.",
         "section": "colors"
       },
       {
         "name": "The Carimbo Legível Rule",
-        "body": "Carimbo usa sempre carimbo-900 (≥ 4,5:1 sobre kraft e papel). Os tons mais claros da escala não servem de texto de carimbo.",
+        "body": "Sobre papel e kraft o carimbo usa carimbo-900 (≥ 4,5:1); sobre o arquivo escuro, carimbo-300 (≈ 7:1 sobre arquivo-900). Nenhum outro tom da escala serve de texto de carimbo.",
+        "section": "colors"
+      },
+      {
+        "name": "The Luz de Equipamento Rule",
+        "body": "sinal-vivo é o único verde e só acende no indicador de conexão. Não vira cor de sucesso, botão ou destaque.",
         "section": "colors"
       },
       {
         "name": "The Datilografado Rule",
-        "body": "Courier Prime só no que é datilografado: valores que a pessoa digitou e datas de registro. Instrução, rótulo, placeholder, select sem escolha e mensagem vão em Archivo.",
+        "body": "Courier Prime só no que é datilografado: valores que a pessoa digitou e números de registro (datas, iniciativa). Instrução, rótulo, placeholder, select sem escolha e mensagem vão em Archivo.",
         "section": "typography"
       },
       {
@@ -481,26 +588,32 @@
       },
       {
         "name": "The Gaveta Rule",
-        "body": "O único movimento do mundo é a pasta subir 4px da gaveta no hover e no foco (180ms, `cubic-bezier(0.16, 1, 0.3, 1)`). Com `prefers-reduced-motion`, a pasta não se desloca.",
+        "body": "O movimento do mundo é de papelaria e curto: a pasta sobe 4px da gaveta no hover e no foco (180ms), e a folha da pasta em pé desliza 136px para fora no hover e no foco (200ms), as duas com `cubic-bezier(0.16, 1, 0.3, 1)`. A folha ativa fica 8px para fora em repouso. Com `prefers-reduced-motion`, nada se desloca com transição. Fora disso, só o ponto de conexão pulsa enquanto reconecta (sinal de estado, também desligado com menos movimento).",
         "section": "elevation"
       }
     ],
     "dos": [
       "**Do** envolver toda tela do mundo em `.mundo-arquivo` (fundo arquivo-900, texto grafite-100, Archivo, números tabulares).",
-      "**Do** usar tinta chapada (tinta-900) para a ação principal de uma folha e contorno de tinta para a secundária.",
-      "**Do** usar carimbo-900 para o carimbo de estado (≈ 4,9:1 sobre kraft-500).",
+      "**Do** usar tinta chapada para a ação principal de uma folha e kraft chapado (kraft-400, texto tinta-900) para a ação principal sobre o arquivo escuro.",
+      "**Do** usar carimbo-900 para carimbo sobre papel e kraft e carimbo-300 para carimbo sobre o arquivo escuro.",
       "**Do** escrever títulos, rótulos, botões e abas em Archivo condensado (72%) e caixa alta.",
-      "**Do** reservar Courier Prime para valores digitados e datas de registro.",
-      "**Do** manter o único movimento na pasta que sobe 4px, respeitando `prefers-reduced-motion`.",
-      "**Do** manter botões e alvos com pelo menos 44px de altura nas folhas."
+      "**Do** reservar Courier Prime para valores digitados e números de registro (datas, iniciativa).",
+      "**Do** limitar o movimento à pasta que sobe 4px e à folha que desliza da pasta, ambos com `cubic-bezier(0.16, 1, 0.3, 1)` e desligados com `prefers-reduced-motion`.",
+      "**Do** passar toda ação destrutiva pelo diálogo de confirmação, com foco inicial em \"Cancelar\".",
+      "**Do** usar o `<dialog>` nativo para modais e as abas com teclado WAI-ARIA para listas de abas.",
+      "**Do** mostrar o produto com capturas reais e dados inventados, montadas em folhas; nada de nomes do cânone.",
+      "**Do** manter o aviso literal e o selo da Licença da Comunidade em toda página pública.",
+      "**Do** manter botões e alvos com pelo menos 44px nas folhas e 40px na mesa."
     ],
     "donts": [
       "**Don't** usar vermelho de carimbo em botão, link, cursor, foco ou qualquer ação.",
+      "**Don't** usar sinal-vivo fora do indicador de conexão.",
       "**Don't** usar Courier Prime para instruções, rótulos, placeholders ou mensagens.",
       "**Don't** usar sigilos, símbolos, logos, ilustrações ou qualquer arte da Ordem Paranormal oficial; o mundo é arquivo de investigação genérico.",
-      "**Don't** montar a lista como grade de cards cinza com botão colorido; mesas são pastas.",
-      "**Don't** copiar o visual zinc/violeta da mesa (`ui/estilos.ts`) para telas novas; ele é legado até a migração.",
-      "**Don't** adicionar gradientes, brilho, vidro ou bisel; profundidade é sombra difusa e fibra."
+      "**Don't** montar listas como grade de cards cinza com botão colorido; mesas são pastas.",
+      "**Don't** copiar o visual zinc/violeta (`ui/estilos.ts`) da ficha, do mapa e do chat para telas novas; ele é legado até a migração.",
+      "**Don't** usar `window.confirm` nem modal próprio sem `<dialog>`.",
+      "**Don't** adicionar gradiente decorativo, brilho, vidro ou bisel; gradiente só como véu de legibilidade sobre foto ou máscara de transbordo."
     ]
   }
 }
