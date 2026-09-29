@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-29T19:50:55.000Z",
+  "generatedAt": "2026-09-29T22:00:00.000Z",
   "title": "Design System: RPG Online",
   "extensions": {
     "colorMeta": {
@@ -532,6 +532,31 @@
         "name": "foto-colada",
         "value": "0 2px 4px rgb(0 0 0 / 0.3)",
         "purpose": "Avatar do agente na folha."
+      },
+      {
+        "name": "mapa-na-mesa",
+        "value": "0 18px 40px -18px rgb(0 0 0 / 0.95)",
+        "purpose": "Imagem do mapa pousada no tampo arquivo-950."
+      },
+      {
+        "name": "foto-de-mapa",
+        "value": "0 14px 28px -16px rgb(0 0 0 / 0.95)",
+        "purpose": "Cada mapa impresso no gerenciador de mapas."
+      },
+      {
+        "name": "barra-flutuante",
+        "value": "0 8px 20px -10px rgb(0 0 0 / 0.9)",
+        "purpose": "Barras de ferramentas e de zoom sobre o mapa."
+      },
+      {
+        "name": "peca",
+        "value": "0 6px 12px -4px rgb(0 0 0 / 0.9)",
+        "purpose": "Disco do token no mapa."
+      },
+      {
+        "name": "bilhete-rolagem",
+        "value": "0 6px 14px -8px rgb(0 0 0 / 0.9)",
+        "purpose": "Resultado de dados no chat, bilhete papel-100."
       }
     ],
     "motion": [
@@ -711,11 +736,35 @@
       "description": "Linha pautada na folha da ficha; o elemento é um quadradinho de cor mais o nome escrito.",
       "html": "<div class=\"ds-folha-f\"><ul class=\"ds-ents\"><li class=\"ds-ent\"><p class=\"ds-ent-nome\">Cicatrização</p><p class=\"ds-ent-det\"><span class=\"ds-elem\" style=\"background:#3a3731\"></span>I círculo · Morte</p><p class=\"ds-ent-desc\">Execução: padrão. Alcance: toque.</p></li><li class=\"ds-ent\"><p class=\"ds-ent-nome\">Eletrocussão</p><p class=\"ds-ent-det\"><span class=\"ds-elem\" style=\"background:#6f3b93\"></span>II círculo · Energia</p></li></ul></div>",
       "css": ".ds-folha-f { background: #e8e2d4; padding: 16px; border-radius: 4px; color: #1b1915; } .ds-ents { list-style: none; margin: 0; padding: 0; } .ds-ent { padding: 12px 0; } .ds-ent + .ds-ent { border-top: 1px solid #bfb398; } .ds-ent-nome { margin: 0; font-size: 16px; font-weight: 800; font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif; font-stretch: 72%; } .ds-ent-det { margin: 4px 0 0; display: flex; align-items: center; gap: 6px; font-size: 12px; color: #3a362f; font-family: 'Archivo', sans-serif; } .ds-elem { width: 12px; height: 12px; border-radius: 2px; box-shadow: 0 0 0 1px rgb(27 25 21 / .4); } .ds-ent-desc { margin: 8px 0 0; font-size: 14px; font-family: 'Archivo', sans-serif; }"
+    },
+    {
+      "name": "Ferramentas do mapa",
+      "kind": "nav",
+      "refersTo": "button-ferramenta",
+      "description": "Barra vertical flutuante sobre o tampo do mapa; a ferramenta ligada em kraft-400 chapado.",
+      "html": "<div class=\"ds-tampo\"><div class=\"ds-barra\" role=\"toolbar\" aria-label=\"Ferramentas do mapa\" aria-orientation=\"vertical\"><button class=\"ds-ferr\" aria-pressed=\"true\" aria-label=\"Selecionar\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M4 3l7 17 2-7 7-2z\"/></svg></button><button class=\"ds-ferr\" aria-pressed=\"false\" aria-label=\"Mover mapa\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M12 3v18M3 12h18M9 6l3-3 3 3M9 18l3 3 3-3M6 9l-3 3 3 3M18 9l3 3-3 3\"/></svg></button><button class=\"ds-ferr\" aria-pressed=\"false\" aria-label=\"Adicionar token\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M12 5v14M5 12h14\"/></svg></button></div></div>",
+      "css": ".ds-tampo { background-color: #0e0f10; background-image: radial-gradient(rgb(124 96 53 / 0.35) 1px, transparent 1px); background-size: 24px 24px; padding: 12px; min-height: 180px; } .ds-barra { display: inline-flex; flex-direction: column; gap: 4px; padding: 4px; border: 1px solid #33383d; border-radius: 4px; background: rgb(22 24 26 / 0.95); box-shadow: 0 8px 20px -10px rgb(0 0 0 / 0.9); } .ds-ferr { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border: none; border-radius: 3px; background: transparent; color: #ece7dc; cursor: pointer; } .ds-ferr:hover { background: #24282c; color: #e0c697; } .ds-ferr[aria-pressed=true] { background: #d4b27d; color: #1b1915; } .ds-ferr:focus-visible { outline: 2px solid #e0c697; outline-offset: 2px; }"
+    },
+    {
+      "name": "Token",
+      "kind": "custom",
+      "refersTo": "token-mapa",
+      "description": "Peça redonda de jogo; borda pelo tipo (agente papel-50, NPC carimbo-300, objeto grafite-400), nome em etiqueta escura e PV em recurso-vida.",
+      "html": "<div class=\"ds-tampo2\"><div class=\"ds-tok\"><button class=\"ds-disco ds-ag\" aria-label=\"Token Bianca (Ficha)\">B</button><span class=\"ds-nome\">Bianca</span><span class=\"ds-pv\" role=\"meter\" aria-label=\"PV 18/26\"><span style=\"width:69%\"></span></span></div><div class=\"ds-tok\"><button class=\"ds-disco ds-npc\" aria-pressed=\"true\" aria-label=\"Token Zumbi (NPC)\">Z</button><span class=\"ds-nome\">Zumbi</span></div><div class=\"ds-tok\"><button class=\"ds-disco ds-obj\" aria-label=\"Token Baú (Objeto)\">B</button><span class=\"ds-nome\">Baú</span></div></div>",
+      "css": ".ds-tampo2 { display: flex; gap: 32px; padding: 24px; background-color: #0e0f10; background-image: radial-gradient(rgb(124 96 53 / 0.35) 1px, transparent 1px); background-size: 24px 24px; } .ds-tok { display: flex; flex-direction: column; align-items: center; } .ds-disco { width: 56px; height: 56px; border-radius: 9999px; border: 3px solid; background: #24282c; color: #ece7dc; font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif; font-weight: 800; font-stretch: 72%; font-size: 20px; box-shadow: 0 6px 12px -4px rgb(0 0 0 / 0.9); cursor: grab; } .ds-disco:focus-visible, .ds-disco[aria-pressed=true] { outline: 2px solid #e0c697; outline-offset: 2px; } .ds-ag { border-color: #f5f1e8; } .ds-npc { border-color: #ec8a80; } .ds-obj { border-color: #9a9385; } .ds-nome { margin-top: 4px; padding: 0 6px; border-radius: 2px; background: rgb(14 15 16 / 0.85); color: #ece7dc; font-size: 12px; font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif; } .ds-pv { margin-top: 2px; display: block; width: 48px; height: 6px; background: #24282c; border-radius: 1px; box-shadow: 0 0 0 1px #0e0f10; overflow: hidden; } .ds-pv span { display: block; height: 6px; background: #a0283f; }"
+    },
+    {
+      "name": "Chat e bilhete de rolagem",
+      "kind": "custom",
+      "refersTo": "bilhete-rolagem",
+      "description": "Mensagem direto no escuro (autor kraft-300, hora datilografada) e rolagem como bilhete de papel com o total grande.",
+      "html": "<div class=\"ds-chat\"><div class=\"ds-msg\"><p><span class=\"ds-autor\">Bianca</span> <span class=\"ds-hora\">21:04</span></p><p class=\"ds-txt\">Abro a porta devagar.</p></div><div class=\"ds-rol\"><p class=\"ds-rl1\"><b>Bianca</b>&nbsp;rolou&nbsp;<span class=\"ds-dat ds-ink\">3d20+5</span><span class=\"ds-dat ds-dir\">21:05</span></p><p class=\"ds-rl2\"><span class=\"ds-dat\">[4, 17, 9]</span><strong>22</strong></p></div></div>",
+      "css": ".ds-chat { background: #1c1f22; padding: 16px; display: flex; flex-direction: column; gap: 16px; width: 320px; font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif; font-size: 14px; } .ds-msg p { margin: 0; } .ds-autor { color: #e0c697; font-weight: 800; font-stretch: 72%; text-transform: uppercase; letter-spacing: 0.04em; } .ds-hora, .ds-dat { font-family: 'Courier Prime', ui-monospace, monospace; } .ds-hora { font-size: 12px; color: #9a9385; } .ds-msg .ds-txt { margin-top: 2px; color: #ece7dc; } .ds-rol { background: #e8e2d4; color: #1b1915; border-radius: 2px; padding: 8px 12px; box-shadow: 0 6px 14px -8px rgb(0 0 0 / 0.9); } .ds-rl1 { margin: 0; display: flex; gap: 2px; font-size: 12px; color: #3a362f; } .ds-ink { color: #1b1915; } .ds-dir { margin-left: auto; } .ds-rl2 { margin: 4px 0 0; display: flex; align-items: baseline; justify-content: space-between; } .ds-rl2 .ds-dat { font-size: 14px; color: #3a362f; } .ds-rl2 strong { font-size: 30px; line-height: 1; font-weight: 800; font-stretch: 72%; }"
     }
   ],
   "narrative": {
     "northStar": "Dossiê de caso",
-    "overview": "Cada mesa é um caso aberto num arquivo de investigação. A interface é um móvel de arquivo escuro, quase preto, onde as mesas são pastas kraft suspensas, com aba de classificação e etiqueta de papel; o que se preenche fica numa folha de papel por cima. A ação é tinta; o estado é carimbo. O mundo recusa o painel de SaaS (grade de cards cinza com botão colorido): nada aqui é \"tile\", tudo é um objeto de papelaria com material, fibra e peso.\n\nNa mesa, o móvel continua: o header é a borda da gaveta com o nome da mesa numa etiqueta de papel; a régua inferior junta as fotos impressas dos participantes e a etiqueta de quem tem a vez; as laterais são pastas em pé das quais as folhas deslizam; modais e popovers são folhas de papel postas sobre o arquivo. Na apresentação, a prova é a própria mesa: capturas reais montadas em folhas como recortes de dossiê, cada uma com o carimbo da etapa.\n\nA densidade é baixa e a hierarquia é tipográfica: títulos grandes em Archivo condensado e caixa alta, etiquetas espaçadas, e o que é registro (valores digitados, datas, iniciativa) sai datilografado em Courier Prime. O material aparece por uma fibra de ruído muito fraca no papel e no kraft e por sombras difusas sob as peças, nunca por brilho ou vidro. É uma ferramenta de fã sem vínculo oficial: o mundo evoca o arquivo de investigação sem nenhum sigilo, símbolo, logo ou arte da Ordem Paranormal oficial.",
+    "overview": "Cada mesa é um caso aberto num arquivo de investigação. A interface é um móvel de arquivo escuro, quase preto, onde as mesas são pastas kraft suspensas, com aba de classificação e etiqueta de papel; o que se preenche fica numa folha de papel por cima. A ação é tinta; o estado é carimbo. O mundo recusa o painel de SaaS (grade de cards cinza com botão colorido): nada aqui é \"tile\", tudo é um objeto de papelaria com material, fibra e peso.\n\nNa mesa, o móvel continua: o header é a borda da gaveta com o nome da mesa numa etiqueta de papel; a régua inferior junta as fotos impressas dos participantes e a etiqueta de quem tem a vez; as laterais são pastas em pé das quais as folhas deslizam; modais e popovers são folhas de papel postas sobre o arquivo. O mapa é uma foto grande pousada no tampo escuro da mesa, sobre uma grade pontilhada muito fraca, e os tokens são peças redondas de jogo em cima dela. O chat é o que se fala à mesa (nome em kraft, hora datilografada) e cada rolagem é um bilhete de papel com o total. Na apresentação, a prova é a própria mesa: capturas reais montadas em folhas como recortes de dossiê, cada uma com o carimbo da etapa.\n\nA densidade é baixa e a hierarquia é tipográfica: títulos grandes em Archivo condensado e caixa alta, etiquetas espaçadas, e o que é registro (valores digitados, datas, iniciativa) sai datilografado em Courier Prime. O material aparece por uma fibra de ruído muito fraca no papel e no kraft e por sombras difusas sob as peças, nunca por brilho ou vidro. É uma ferramenta de fã sem vínculo oficial: o mundo evoca o arquivo de investigação sem nenhum sigilo, símbolo, logo ou arte da Ordem Paranormal oficial.",
     "keyCharacteristics": [
       "Fundo de arquivo escuro, pastas kraft, folhas de papel, tinta quase preta e vermelho de carimbo.",
       "Archivo com eixo de largura: condensado (72%) em títulos, rótulos, botões e abas.",
@@ -772,7 +821,7 @@
       }
     ],
     "dos": [
-      "**Do** envolver toda tela do mundo em `.mundo-arquivo` (fundo arquivo-900, texto grafite-100, Archivo, números tabulares).",
+      "**Do** envolver toda tela em `.mundo-arquivo` (fundo arquivo-900, texto grafite-100, Archivo, números tabulares) e montar as classes a partir de `ui/estilosArquivo.ts`.",
       "**Do** usar tinta chapada para a ação principal de uma folha e kraft chapado (kraft-400, texto tinta-900) para a ação principal sobre o arquivo escuro.",
       "**Do** usar carimbo-900 para carimbo sobre papel e kraft e carimbo-300 para carimbo sobre o arquivo escuro.",
       "**Do** escrever títulos, rótulos, botões e abas em Archivo condensado (72%) e caixa alta.",
@@ -785,7 +834,10 @@
       "**Do** manter botões e alvos com pelo menos 44px nas folhas e 40px na mesa.",
       "**Do** montar a ficha como uma Folha só, com seções em linhas pautadas e divisórias de fichário (tinta-900 ativa, papel-200 inativa).",
       "**Do** usar as tintas de recurso só no preenchimento das barras de Vida, Sanidade e Esforço, e as marcas de elemento só no quadradinho ao lado do nome escrito do elemento.",
-      "**Do** deixar a perícia destreinada quieta e a treinada em negrito, com o teste datilografado vindo do backend."
+      "**Do** deixar a perícia destreinada quieta e a treinada em negrito, com o teste datilografado vindo do backend.",
+      "**Do** distinguir tokens pela borda (papel-50 agente, carimbo-300 NPC, grafite-400 objeto) e manter o disco com pelo menos 28px e a letra com pelo menos 12px em qualquer zoom.",
+      "**Do** manter as ferramentas do mapa em barras flutuantes arquivo-900 com botões de 40px, a ligada em kraft-400 chapado.",
+      "**Do** mostrar rolagens como bilhete de papel com o total grande e as mensagens direto no escuro, sem balão."
     ],
     "donts": [
       "**Don't** usar vermelho de carimbo em botão, link, cursor, foco ou qualquer ação.",
@@ -793,13 +845,15 @@
       "**Don't** usar Courier Prime para instruções, rótulos, placeholders ou mensagens.",
       "**Don't** usar sigilos, símbolos, logos, ilustrações ou qualquer arte da Ordem Paranormal oficial; o mundo é arquivo de investigação genérico.",
       "**Don't** montar listas como grade de cards cinza com botão colorido; mesas são pastas.",
-      "**Don't** copiar o visual zinc/violeta (`ui/estilos.ts`) do mapa e do chat para telas novas; ele é legado até a migração.",
+      "**Don't** reintroduzir zinc ou violeta; o visual antigo (`ui/estilos.ts`) foi apagado quando o mapa e o chat migraram, e violeta não é mais a cor primária.",
+      "**Don't** desenhar peças de papel redondas; círculo é só para token, ponto de conexão e spinner.",
+      "**Don't** mostrar a aba de NPCs, as estatísticas de NPC ou a lista de mapas ao jogador; ele vê só o nome do token e o mapa ativo.",
       "**Don't** usar tinta de recurso ou marca de elemento como cor de ação, de foco, de aba ou como carimbo; nem aproximar a Vida do vermelho de carimbo.",
       "**Don't** marcar elemento com faixa colorida na lateral do card; o elemento é um quadradinho mais o nome escrito.",
       "**Don't** aninhar cards dentro da ficha.",
       "**Don't** desenhar os sigilos dos elementos nem a arte da ficha oficial no círculo de atributos; dela vem só a disposição.",
       "**Don't** usar `window.confirm` nem modal próprio sem `<dialog>`.",
-      "**Don't** adicionar gradiente decorativo, brilho, vidro ou bisel; gradiente só como véu de legibilidade sobre foto ou máscara de transbordo."
+      "**Don't** adicionar gradiente decorativo, brilho, vidro ou bisel; gradiente só como véu de legibilidade sobre foto, máscara de transbordo ou a grade pontilhada do tampo do mapa."
     ]
   }
 }

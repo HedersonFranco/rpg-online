@@ -1,5 +1,4 @@
 import { useAtrasado } from '../../hooks/useAtrasado'
-import { classeBotaoSecundario } from './estilos'
 import { classeBotaoArquivo, classeBotaoContorno } from './estilosArquivo'
 
 // Herda a cor do texto em volta: serve no botão, na mesa e nas folhas do arquivo.
@@ -16,25 +15,24 @@ export function Spinner({ tamanho = 'md' }: { tamanho?: 'sm' | 'md' }) {
 
 // Estado de carregamento de uma tela/seção: não mostra nada nos primeiros
 // 300ms (evita piscar), depois spinner com texto.
-export function Carregando({ texto = 'Carregando...' }: { texto?: string }) {
+export function Carregando({ texto = 'Carregando...', tom = 'arquivo' }: { texto?: string; tom?: 'arquivo' | 'papel' }) {
   const visivel = useAtrasado(true)
   if (!visivel) return null
   return (
-    <div className="flex flex-col items-center justify-center gap-3 py-10 text-zinc-400 [.mundo-arquivo_&]:text-grafite-300">
+    <div className={`flex flex-col items-center justify-center gap-3 py-10 ${tom === 'papel' ? 'text-tinta-700' : 'text-grafite-300'}`}>
       <Spinner />
       <span className="text-sm">{texto}</span>
     </div>
   )
 }
 
-// tom: 'mesa' (zinc, padrão), 'papel' (dentro de uma folha) ou 'arquivo' (sobre o fundo escuro do arquivo).
+// tom: 'arquivo' (sobre o fundo escuro, padrão) ou 'papel' (dentro de uma folha).
 const TOM_ALERTA = {
-  mesa: { caixa: 'rounded-md border border-red-900/60 bg-red-950/40 text-red-200', botao: classeBotaoSecundario },
   papel: { caixa: 'rounded-sm border-2 border-carimbo-800 bg-carimbo-100 text-carimbo-800', botao: classeBotaoContorno },
   arquivo: { caixa: 'rounded-sm border border-carimbo-300/50 bg-carimbo-800/25 text-carimbo-100', botao: classeBotaoArquivo },
 } as const
 
-export function Alerta({ mensagem, onTentarNovamente, tom = 'mesa' }: {
+export function Alerta({ mensagem, onTentarNovamente, tom = 'arquivo' }: {
   mensagem: string
   onTentarNovamente?: () => void
   tom?: keyof typeof TOM_ALERTA

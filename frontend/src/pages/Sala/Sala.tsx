@@ -22,6 +22,7 @@ import { AvisoCamera, FaixaVideo } from '../../components/Video/FaixaVideo'
 import { BarraTurno } from '../../components/TurnoTracker/BarraTurno'
 import { PainelFicha, type VisaoPainelFicha } from '../../components/FichaOrdemParanormal/PainelFicha'
 import { PainelChat } from '../../components/Chat/PainelChat'
+import { PainelNpcs } from '../../components/Npc/PainelNpcs'
 import { SalaSocketProvider } from '../../hooks/SalaSocketProvider'
 import { useSalaSocket } from '../../hooks/useSocket'
 import { BotaoConvite } from './BotaoConvite'
@@ -43,12 +44,16 @@ function IndicadorConexao() {
   )
 }
 
-type AbaPainel = 'ficha' | 'chat'
+type AbaPainel = 'ficha' | 'chat' | 'npcs'
 
 const ABAS_PAINEL: (Aba<AbaPainel> & { icone: NomeIcone; texto: string })[] = [
   { chave: 'ficha', rotulo: 'Ficha', texto: 'Ficha', icone: 'fichas' },
   { chave: 'chat', rotulo: 'Chat', texto: 'Chat', icone: 'chat' },
+  { chave: 'npcs', rotulo: 'NPCs', texto: 'NPCs', icone: 'npcs' },
 ]
+
+// NPCs são ferramenta do mestre: o jogador não vê a aba.
+const abasDoPainel = (souMestre: boolean) => ABAS_PAINEL.filter((a) => souMestre || a.chave !== 'npcs')
 
 const CHAVE_PAINEL_ABERTO = 'mesa:painelAberto'
 
@@ -70,8 +75,9 @@ function gravarPainelAberto(aberto: boolean) {
 }
 
 // Coluna direita: uma pasta aberta com abas. Recolhida, sobra uma faixa com os atalhos.
-function PainelDireito({ sala, usuario, aberto, aba, onAbrir, onRecolher, visaoFicha, onVisaoFicha }: {
+function PainelDireito({ sala, usuario, souMestre, aberto, aba, onAbrir, onRecolher, visaoFicha, onVisaoFicha }: {
   sala: SalaDetalhe
+  souMestre: boolean
   usuario: Usuario
   aberto: boolean
   aba: AbaPainel
@@ -83,10 +89,11 @@ function PainelDireito({ sala, usuario, aberto, aba, onAbrir, onRecolher, visaoF
   if (!aberto) {
     return (
       <PastaDeFolhas lado="direita" rotulo="Painel lateral (recolhido)" onEscolher={onAbrir}
-        folhas={ABAS_PAINEL.map(({ chave, texto, icone }) => ({ chave, rotulo: texto, icone }))} />
+        folhas={abasDoPainel(souMestre).map(({ chave, texto, icone }) => ({ chave, rotulo: texto, icone }))} />
     )
   }
-  const abaAtiva = ABAS_PAINEL.find((a) => a.chave === aba)!
+  const abas = abasDoPainel(souMestre)
+  const abaAtiva = abas.find((a) => a.chave === aba) ?? abas[0]
   return (
     <aside aria-label="Painel lateral" className="flex w-[380px] shrink-0 flex-col border-l border-arquivo-700 bg-arquivo-850">
       <div className="flex shrink-0 items-end gap-1 border-b-2 border-kraft-500 px-2 pt-2">
@@ -94,12 +101,12 @@ function PainelDireito({ sala, usuario, aberto, aba, onAbrir, onRecolher, visaoF
           className="mb-1 flex h-8 w-8 items-center justify-center rounded-[3px] text-grafite-300 hover:bg-arquivo-800 hover:text-kraft-300 focus-visible:outline-2 focus-visible:outline-kraft-400">
           <Icone nome="recolher" className="h-4 w-4" />
         </button>
-        <Abas abas={ABAS_PAINEL} ativa={aba} onTrocar={onAbrir} rotulo="Painel lateral" idBase="painel" classeAba={classeAbaPasta} />
+        <Abas abas={abas} ativa={abaAtiva.chave} onTrocar={onAbrir} rotulo="Painel lateral" idBase="painel" classeAba={classeAbaPasta} />
       </div>
       <div role="tabpanel" id="painel-painel" aria-labelledby={`painel-aba-${abaAtiva.chave}`} className="min-h-0 flex-1 overflow-y-auto p-4">
-        {aba === 'ficha'
-          ? <PainelFicha sala={sala} usuario={usuario} visao={visaoFicha} onVisao={onVisaoFicha} />
-          : <PainelChat salaId={sala.id} />}
+        {abaAtiva.chave === 'ficha' && <PainelFicha sala={sala} usuario={usuario} visao={visaoFicha} onVisao={onVisaoFicha} />}
+        {abaAtiva.chave === 'chat' && <PainelChat salaId={sala.id} />}
+        {abaAtiva.chave === 'npcs' && <PainelNpcs salaId={sala.id} sistema={sala.sistema} />}
       </div>
     </aside>
   )
@@ -218,7 +225,7 @@ function Mesa({ sala }: { sala: SalaDetalhe }) {
               </div>
             </div>
 
-            <PainelDireito sala={sala} usuario={usuario} aberto={painelAberto} aba={abaPainel}
+            <PainelDireito sala={sala} usuario={usuario} souMestre={souMestre} aberto={painelAberto} aba={abaPainel}
               onAbrir={abrirPainel} onRecolher={recolherPainel} visaoFicha={visaoFicha} onVisaoFicha={setVisaoFicha} />
           </div>
         </div>

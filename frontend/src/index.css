@@ -7,7 +7,7 @@
 
 /*
  * Mundo "Dossiê de caso": arquivo escuro, pastas kraft, folhas de papel, tinta e carimbo.
- * Vale nas telas de entrada, na apresentação, na moldura da mesa e na ficha; mapa e chat ainda usam zinc/violeta.
+ * Vale no produto inteiro: entrada, apresentação e mesa.
  * Vermelho de carimbo é só para estado (papel na mesa, erro), nunca para ação.
  */
 @theme {
@@ -71,8 +71,8 @@ body,
 }
 
 body {
-  background-color: var(--color-zinc-950);
-  color: var(--color-zinc-100);
+  background-color: var(--color-arquivo-900);
+  color: var(--color-grafite-100);
   -webkit-font-smoothing: antialiased;
 }
 

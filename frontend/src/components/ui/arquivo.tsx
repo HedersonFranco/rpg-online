@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import type { Papel } from '../../services/tipos'
 import { condensado } from './estilosArquivo'
 
-// Peças do mundo "Dossiê de caso". Mapa e chat da mesa ainda usam ui/estilos.ts (legado).
+// Peças do mundo "Dossiê de caso" (o produto inteiro).
 
 // Placa de metal da gaveta com a etiqueta do produto.
 export function PlacaGaveta() {

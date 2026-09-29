@@ -1,10 +1,10 @@
-// Classes do mundo "Dossiê de caso". Mapa e chat da mesa ainda usam estilos.ts (legado).
+// Classes do mundo "Dossiê de caso" (o produto inteiro).
 
 export const condensado = '[font-stretch:72%]'
 
 // Campo de formulário numa folha de papel: a linha de preenchimento. O valor digitado sai datilografado.
 const baseCampo =
-  'w-full rounded-none border-0 border-b-2 border-tinta-600 bg-papel-50/70 px-2 py-2 text-tinta-900 caret-tinta-900 ' +
+  'w-full resize-none rounded-none border-0 border-b-2 border-tinta-600 bg-papel-50/70 px-2 py-2 text-tinta-900 caret-tinta-900 ' +
   'focus:border-tinta-900 focus:bg-papel-50 focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tinta-900 ' +
   'disabled:opacity-60'
 

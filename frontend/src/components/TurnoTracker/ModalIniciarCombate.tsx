@@ -58,7 +58,7 @@ function FormIniciarCombate({ salaId, onFechar }: { salaId: string; onFechar: ()
         <h2 id="titulo-combate" className={`text-3xl leading-none ${classeTituloArquivo}`}>Iniciar combate</h2>
         <p className="mt-2 mb-5 text-sm text-tinta-700">Marque quem participa e informe a iniciativa rolada. Maior age primeiro.</p>
 
-        {carregando && <div className="text-tinta-700"><Carregando texto="Carregando participantes..." /></div>}
+        {carregando && <Carregando tom="papel" texto="Carregando participantes..." />}
         {erroCarga && <Alerta tom="papel" mensagem={erroCarga} />}
         {!carregando && !erroCarga && linhas.length === 0 && (
           <p className="text-sm text-tinta-700">Nenhuma ficha ou NPC nesta mesa ainda.</p>

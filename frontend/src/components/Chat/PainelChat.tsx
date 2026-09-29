@@ -5,7 +5,8 @@ import { mensagemDeErro } from '../../services/api'
 import type { Mensagem, Rolagem } from '../../services/tipos'
 import { Alerta, Carregando } from '../ui/Feedback'
 import { Icone } from '../ui/Icone'
-import { classeBotaoPrimario, classeInput } from '../ui/estilos'
+import { Folha } from '../ui/arquivo'
+import { classeBotaoTinta, classeCampo, condensado } from '../ui/estilosArquivo'
 
 type Item = { tipo: 'mensagem'; dado: Mensagem; quando: string } | { tipo: 'rolagem'; dado: Rolagem; quando: string }
 
@@ -54,28 +55,32 @@ export function PainelChat({ salaId }: { salaId: string }) {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1" aria-live="polite" aria-label="Mensagens">
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1" aria-live="polite" aria-label="Mensagens">
         {estado.tipo === 'carregando' && <Carregando texto="Carregando mensagens..." />}
-        {estado.tipo === 'erro' && <Alerta mensagem={estado.mensagem} onTentarNovamente={recarregar} />}
+        {estado.tipo === 'erro' && <Alerta tom="arquivo" mensagem={estado.mensagem} onTentarNovamente={recarregar} />}
         {estado.tipo === 'ok' && itens.length === 0 && (
-          <p className="py-6 text-center text-sm text-zinc-500">Nenhuma mensagem ainda.</p>
+          <p className="py-6 text-center text-sm text-grafite-300">Nenhuma mensagem ainda.</p>
         )}
         {itens.map((item) =>
           item.tipo === 'mensagem' ? (
             <div key={item.dado.id} className="text-sm">
-              <span className="font-semibold text-zinc-200">{item.dado.usuario.nome}</span>{' '}
-              <span className="text-xs text-zinc-500">{hora(item.dado.createdAt)}</span>
-              <p className="break-words whitespace-pre-wrap text-zinc-300">{item.dado.conteudo}</p>
+              <p className="flex items-baseline gap-2">
+                <span className={`font-extrabold tracking-[0.04em] text-kraft-300 uppercase ${condensado}`}>{item.dado.usuario.nome}</span>
+                <span className="font-datilo text-xs text-grafite-400">{hora(item.dado.createdAt)}</span>
+              </p>
+              <p className="mt-0.5 break-words whitespace-pre-wrap text-grafite-100">{item.dado.conteudo}</p>
             </div>
           ) : (
-            <div key={item.dado.id} className="rounded-md border border-violet-900/60 bg-violet-950/30 px-2 py-1.5 text-sm">
-              <p className="flex items-center gap-1.5 text-xs text-violet-300">
+            // Rolagem: um bilhete de papel com o resultado (quem rolou é o servidor).
+            <div key={item.dado.id} className="textura-fibra rounded-[2px] bg-papel-100 px-3 py-2 text-tinta-900 shadow-[0_6px_14px_-8px_rgb(0_0_0/0.9)]">
+              <p className="flex items-center gap-1.5 text-xs text-tinta-700">
                 <Icone nome="dados" className="h-3.5 w-3.5" />
-                {item.dado.autor.nome} rolou {item.dado.expressao}
-                <span className="text-zinc-500">· {hora(item.dado.criadoEm)}</span>
+                <span className="font-bold">{item.dado.autor.nome}</span> rolou <span className="font-datilo text-tinta-900">{item.dado.expressao}</span>
+                <span className="ml-auto font-datilo">{hora(item.dado.criadoEm)}</span>
               </p>
-              <p className="text-zinc-300">
-                [{item.dado.dados.join(', ')}] = <strong className="text-lg text-zinc-100">{item.dado.total}</strong>
+              <p className="mt-1 flex items-baseline justify-between gap-3">
+                <span className="font-datilo text-sm text-tinta-700">[{item.dado.dados.join(', ')}]</span>
+                <strong className={`text-3xl leading-none font-extrabold ${condensado}`}>{item.dado.total}</strong>
               </p>
             </div>
           ),
@@ -83,15 +88,17 @@ export function PainelChat({ salaId }: { salaId: string }) {
         <div ref={fimDaLista} />
       </div>
 
-      <form onSubmit={enviar} className="mt-3 flex gap-2">
-        <label htmlFor="chat-texto" className="sr-only">Mensagem</label>
-        <input id="chat-texto" value={texto} onChange={(e) => setTexto(e.target.value)} maxLength={1000}
-          placeholder="Escreva uma mensagem" disabled={enviando} className={`${classeInput} py-1.5 text-sm`} />
-        <button type="submit" disabled={enviando || !texto.trim()} className={`${classeBotaoPrimario} px-3 py-1.5 text-sm`}>
-          Enviar
-        </button>
-      </form>
-      {erro && <div className="mt-2"><Alerta mensagem={erro} /></div>}
+      <Folha className="mt-3 p-2 sm:p-2">
+        <form onSubmit={enviar} className="flex gap-2">
+          <label htmlFor="chat-texto" className="sr-only">Mensagem</label>
+          <input id="chat-texto" value={texto} onChange={(e) => setTexto(e.target.value)} maxLength={1000}
+            placeholder="Escreva uma mensagem" disabled={enviando} className={`${classeCampo} min-w-0 text-sm`} />
+          <button type="submit" disabled={enviando || !texto.trim()} className={`${classeBotaoTinta} px-4`}>
+            Enviar
+          </button>
+        </form>
+        {erro && <div className="mt-2"><Alerta tom="papel" mensagem={erro} /></div>}
+      </Folha>
     </div>
   )
 }

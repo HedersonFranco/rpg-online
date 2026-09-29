@@ -5,14 +5,15 @@ import { useEventoSocket } from '../../hooks/useSocket'
 import { api, BASE_URL, mensagemDeErro } from '../../services/api'
 import type { EstadoMapa, Mapa } from '../../services/tipos'
 import { Alerta, Carregando, Spinner } from '../ui/Feedback'
-import { classeBotaoPrimario, classeBotaoSecundario, classeInput, classeLabel } from '../ui/estilos'
+import { Carimbo, Folha } from '../ui/arquivo'
+import { classeBotaoArquivo, classeBotaoKraft, classeBotaoTinta, classeCampo, classeRotulo, classeTituloArquivo, condensado } from '../ui/estilosArquivo'
 import { useConfirmar } from '../ui/confirmacaoContext'
 
 const LIMITE_MB = 10
 
 export function GerenciarMapas({ salaId, souMestre, onMostrado }: { salaId: string; souMestre: boolean; onMostrado: () => void }) {
   if (!souMestre) {
-    return <p className="p-6 text-sm text-zinc-400">Só o mestre gerencia os mapas da mesa. O mapa ativo aparece na seção "Mesa".</p>
+    return <p className="p-6 text-sm text-grafite-300">Só o mestre gerencia os mapas da mesa. O mapa ativo aparece na folha "Mesa".</p>
   }
   return <GerenciarMapasMestre salaId={salaId} onMostrado={onMostrado} />
 }
@@ -92,50 +93,62 @@ function GerenciarMapasMestre({ salaId, onMostrado }: { salaId: string; onMostra
   }
 
   return (
-    <div className="flex-1 overflow-y-auto p-6">
-      <h2 className="text-lg font-semibold">Mapas da mesa</h2>
-      <form onSubmit={enviar} className="mt-4 flex flex-wrap items-end gap-3 rounded-lg border border-zinc-800 p-4">
-        <div className="min-w-56 flex-1">
-          <label htmlFor="mapa-arquivo" className={classeLabel}>Imagem (PNG, JPG ou WebP, até {LIMITE_MB}MB)</label>
-          <input id="mapa-arquivo" ref={entradaArquivo} type="file" accept="image/png,image/jpeg,image/webp" required
-            onChange={(e) => escolherArquivo(e.target.files?.[0] ?? null)} disabled={enviando}
-            className="block w-full text-sm text-zinc-300 file:mr-3 file:rounded-md file:border-0 file:bg-zinc-800 file:px-3 file:py-2 file:text-zinc-200 hover:file:bg-zinc-700" />
-        </div>
-        <div className="min-w-48 flex-1">
-          <label htmlFor="mapa-nome" className={classeLabel}>Nome</label>
-          <input id="mapa-nome" required value={nome} onChange={(e) => setNome(e.target.value)} disabled={enviando} className={classeInput} />
-        </div>
-        <button type="submit" disabled={enviando || !arquivo} className={classeBotaoPrimario}>
-          {mostrarSpinner && <Spinner tamanho="sm" />}
-          {enviando ? 'Enviando...' : 'Enviar mapa'}
-        </button>
-      </form>
-      {erro && <div className="mt-3"><Alerta mensagem={erro} /></div>}
+    <div className="flex-1 overflow-y-auto px-8 py-8">
+      <h2 className={`text-5xl leading-none ${classeTituloArquivo}`}>Mapas da mesa</h2>
+      <p className="mt-2 text-sm text-grafite-300">Material de preparo: só você vê esta lista. Os jogadores veem o mapa que estiver na mesa.</p>
 
-      <div className="mt-6">
+      <Folha className="mt-8 max-w-3xl">
+        <form onSubmit={enviar} className="flex flex-wrap items-end gap-4">
+          <div className="min-w-80 flex-[2]">
+            <label htmlFor="mapa-arquivo" className={classeRotulo}>Imagem (PNG, JPG ou WebP, até {LIMITE_MB}MB)</label>
+            <input id="mapa-arquivo" ref={entradaArquivo} type="file" accept="image/png,image/jpeg,image/webp" required
+              onChange={(e) => escolherArquivo(e.target.files?.[0] ?? null)} disabled={enviando}
+              className={`block w-full text-sm text-tinta-900 file:mr-3 file:min-h-10 file:rounded-sm file:border-2 file:border-tinta-900 file:bg-transparent file:px-3 file:text-xs file:font-bold file:tracking-[0.1em] file:text-tinta-900 file:uppercase hover:file:bg-tinta-900/10 file:[font-stretch:72%]`} />
+          </div>
+          <div className="min-w-48 flex-1">
+            <label htmlFor="mapa-nome" className={classeRotulo}>Nome</label>
+            <input id="mapa-nome" required value={nome} onChange={(e) => setNome(e.target.value)} disabled={enviando} className={classeCampo} />
+          </div>
+          <button type="submit" disabled={enviando || !arquivo} className={classeBotaoTinta}>
+            {mostrarSpinner && <Spinner tamanho="sm" />}
+            {enviando ? 'Enviando...' : 'Enviar mapa'}
+          </button>
+        </form>
+        {erro && <div className="mt-4"><Alerta tom="papel" mensagem={erro} /></div>}
+      </Folha>
+
+      <div className="mt-10">
         {mapas.estado.tipo === 'carregando' && <Carregando texto="Carregando mapas..." />}
-        {mapas.estado.tipo === 'erro' && <Alerta mensagem={mapas.estado.mensagem} onTentarNovamente={mapas.recarregar} />}
+        {mapas.estado.tipo === 'erro' && <Alerta tom="arquivo" mensagem={mapas.estado.mensagem} onTentarNovamente={mapas.recarregar} />}
         {mapas.estado.tipo === 'ok' && mapas.estado.dados.length === 0 && (
-          <p className="text-sm text-zinc-500">Nenhum mapa enviado ainda.</p>
+          <p className="text-sm text-grafite-300">Nenhum mapa enviado ainda.</p>
         )}
         {mapas.estado.tipo === 'ok' && mapas.estado.dados.length > 0 && (
-          <ul className="grid grid-cols-2 gap-3 lg:grid-cols-3" aria-label="Mapas enviados">
-            {mapas.estado.dados.map((mapa) => (
-              <li key={mapa.id} className={`overflow-hidden rounded-lg border ${mapa.id === idAtivo ? 'border-violet-500' : 'border-zinc-800'}`}>
-                <img src={BASE_URL + mapa.imagemUrl} alt="" className="h-28 w-full bg-zinc-900 object-cover" />
-                <div className="space-y-2 p-3">
-                  <p className="truncate text-sm font-medium">{mapa.nome}</p>
-                  <div className="flex flex-wrap gap-2">
-                    {mapa.id === idAtivo ? (
-                      <button type="button" onClick={() => definirAtivo(null)} className={`${classeBotaoSecundario} px-2 py-1 text-xs`}>Tirar da mesa</button>
-                    ) : (
-                      <button type="button" onClick={() => definirAtivo(mapa.id)} className={`${classeBotaoPrimario} px-2 py-1 text-xs`}>Mostrar na mesa</button>
-                    )}
-                    <button type="button" onClick={() => remover(mapa)} className={`${classeBotaoSecundario} px-2 py-1 text-xs`}>Remover</button>
+          <ul className="grid grid-cols-2 gap-x-6 gap-y-8 xl:grid-cols-3" aria-label="Mapas enviados">
+            {mapas.estado.dados.map((mapa) => {
+              const ativo = mapa.id === idAtivo
+              return (
+                <li key={mapa.id} className="relative">
+                  <div className="rounded-[2px] border-[5px] border-papel-100 bg-arquivo-800 shadow-[0_14px_28px_-16px_rgb(0_0_0/0.95)]">
+                    <img src={BASE_URL + mapa.imagemUrl} alt="" className="h-36 w-full object-cover" />
                   </div>
-                </div>
-              </li>
-            ))}
+                  {ativo && (
+                    <span className="absolute -top-3 -right-2">
+                      <span className="inline-block rounded-[3px] bg-papel-100 p-1 shadow-[0_4px_10px_-6px_rgb(0_0_0/0.9)]"><Carimbo>Na mesa</Carimbo></span>
+                    </span>
+                  )}
+                  <p className={`mt-3 truncate text-lg leading-tight font-extrabold text-grafite-100 ${condensado}`}>{mapa.nome}</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {ativo ? (
+                      <button type="button" onClick={() => definirAtivo(null)} className={classeBotaoArquivo}>Tirar da mesa</button>
+                    ) : (
+                      <button type="button" onClick={() => definirAtivo(mapa.id)} className={classeBotaoKraft}>Mostrar na mesa</button>
+                    )}
+                    <button type="button" onClick={() => remover(mapa)} className={classeBotaoArquivo}>Remover</button>
+                  </div>
+                </li>
+              )
+            })}
           </ul>
         )}
       </div>

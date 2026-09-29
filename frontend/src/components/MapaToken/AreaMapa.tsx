@@ -10,6 +10,8 @@ import { TokenNoMapa } from './TokenNoMapa'
 import { nomeDoToken, tipoDoToken } from './token'
 import { useViewport } from './useViewport'
 import { useConfirmar } from '../ui/confirmacaoContext'
+import { Folha } from '../ui/arquivo'
+import { condensado } from '../ui/estilosArquivo'
 
 type Ferramenta = 'selecionar' | 'mover'
 type Arraste = {
@@ -28,7 +30,7 @@ function BotaoBarra({ icone, rotulo, onClick, ativo = false, desabilitado = fals
 }) {
   return (
     <button type="button" aria-label={rotulo} title={rotulo} aria-pressed={ativo} onClick={onClick} disabled={desabilitado}
-      className={`rounded-md p-2 disabled:cursor-not-allowed disabled:text-zinc-600 ${ativo ? 'bg-violet-600 text-white' : 'text-zinc-300 hover:bg-zinc-800'}`}>
+      className={`flex h-10 w-10 items-center justify-center rounded-[3px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-kraft-300 disabled:cursor-not-allowed disabled:opacity-40 ${ativo ? 'bg-kraft-400 text-tinta-900' : 'text-grafite-100 hover:bg-arquivo-800 hover:text-kraft-300'}`}>
       <Icone nome={icone} />
     </button>
   )
@@ -170,8 +172,9 @@ export function AreaMapa({ salaId, usuarioId, souMestre }: { salaId: string; usu
     <section
       ref={container}
       aria-label="Mapa"
-      className={`relative flex-1 touch-none overflow-hidden bg-zinc-950 select-none ${ferramenta === 'mover' ? 'cursor-move' : ''}`}
-      style={{ backgroundImage: 'radial-gradient(rgb(63 63 70 / 0.6) 1px, transparent 1px)', backgroundSize: '24px 24px' }}
+      className={`relative flex-1 touch-none overflow-hidden bg-arquivo-950 select-none ${ferramenta === 'mover' ? 'cursor-move' : ''}`}
+      // Tampo da mesa: pontos de grade discretos, como papel quadriculado no escuro.
+      style={{ backgroundImage: 'radial-gradient(rgb(124 96 53 / 0.35) 1px, transparent 1px)', backgroundSize: '24px 24px' }}
       {...manipuladores}
       onPointerDown={(e) => {
         setSelecionado(null)
@@ -189,7 +192,7 @@ export function AreaMapa({ salaId, usuarioId, souMestre }: { salaId: string; usu
               setTamanho({ largura, altura })
               ajustar(largura, altura)
             }}
-            className="pointer-events-none block max-w-none"
+            className="pointer-events-none block max-w-none shadow-[0_18px_40px_-18px_rgb(0_0_0/0.95)]"
             style={{ width: tamanho ? tamanho.largura * visao.escala : undefined }}
           />
           {tokens.map((token) => (
@@ -211,20 +214,20 @@ export function AreaMapa({ salaId, usuarioId, souMestre }: { salaId: string; usu
       {estado.tipo === 'carregando' && <div className="absolute inset-0 flex items-center justify-center"><Carregando texto="Carregando mapa..." /></div>}
       {estado.tipo === 'erro' && (
         <div className="absolute inset-0 flex items-center justify-center p-6" {...pararPropagacao}>
-          <div className="w-full max-w-sm"><Alerta mensagem={estado.mensagem} onTentarNovamente={recarregar} /></div>
+          <div className="w-full max-w-sm"><Alerta tom="arquivo" mensagem={estado.mensagem} onTentarNovamente={recarregar} /></div>
         </div>
       )}
       {estado.tipo === 'ok' && !mapa && (
         <div className="pointer-events-none flex h-full flex-col items-center justify-center px-6 text-center">
-          <Icone nome="mapa" className="h-10 w-10 text-zinc-700" />
-          <p className="mt-3 font-medium text-zinc-300">Nenhum mapa na mesa</p>
-          <p className="mt-1 text-sm text-zinc-500">
+          <Icone nome="mapa" className="h-10 w-10 text-kraft-700" />
+          <p className={`mt-3 text-2xl leading-none font-extrabold text-grafite-100 uppercase ${condensado}`}>Nenhum mapa na mesa</p>
+          <p className="mt-2 text-sm text-grafite-300">
             {souMestre ? 'Envie um mapa na folha "Mapas", na pasta à esquerda, e mostre na mesa.' : 'Quando o mestre mostrar um mapa, ele aparece aqui.'}
           </p>
         </div>
       )}
 
-      <div className="absolute top-3 left-3 flex flex-col gap-1 rounded-lg border border-zinc-800 bg-zinc-900/90 p-1" {...pararPropagacao}>
+      <div role="toolbar" aria-label="Ferramentas do mapa" aria-orientation="vertical" className="absolute top-3 left-3 flex flex-col gap-1 rounded-[4px] border border-arquivo-700 bg-arquivo-900/95 p-1 shadow-[0_8px_20px_-10px_rgb(0_0_0/0.9)]" {...pararPropagacao}>
         <BotaoBarra icone="cursor" rotulo="Selecionar e arrastar tokens" ativo={ferramenta === 'selecionar'} onClick={() => setFerramenta('selecionar')} />
         <BotaoBarra icone="mover" rotulo="Mover mapa" ativo={ferramenta === 'mover'} onClick={() => setFerramenta('mover')} />
         {souMestre && <BotaoBarra icone="mais" rotulo="Adicionar token" onClick={alternarAdicionar} desabilitado={!mapa} ativo={novoTokenEm !== null} />}
@@ -234,43 +237,40 @@ export function AreaMapa({ salaId, usuarioId, souMestre }: { salaId: string; usu
         <AdicionarToken salaId={salaId} mapaId={mapa.id} posicao={novoTokenEm} onFechar={() => setNovoTokenEm(null)} />
       )}
 
-      <div className="absolute top-3 right-3" {...pararPropagacao}>
-        <select disabled aria-label="Piso" title="Mapas com vários pisos chegam numa versão futura"
-          className="rounded-md border border-zinc-800 bg-zinc-900 px-3 py-1.5 text-sm text-zinc-400">
-          <option>Piso 1</option>
-        </select>
-      </div>
-
       {tokenSelecionado && (
         <div role="dialog" aria-label={`Detalhes de ${nomeDoToken(tokenSelecionado)}`} {...pararPropagacao}
-          className="absolute top-3 left-1/2 flex -translate-x-1/2 items-center gap-3 rounded-lg border border-zinc-700 bg-zinc-900/95 px-3 py-2 text-sm shadow-xl">
-          <span className="font-semibold">{nomeDoToken(tokenSelecionado)}</span>
-          <span className="text-xs text-zinc-400">{tipoDoToken(tokenSelecionado)}</span>
-          {tokenSelecionado.ficha && (
-            <span className="text-xs text-zinc-300">PV {tokenSelecionado.ficha.pv_atual}/{tokenSelecionado.ficha.pv_maximo_cache}</span>
-          )}
-          {souMestre && (
-            <button type="button" onClick={() => removerToken(tokenSelecionado)} aria-label="Remover token"
-              className="rounded p-1 text-zinc-400 hover:bg-red-950 hover:text-red-300">
-              <Icone nome="lixeira" className="h-4 w-4" />
-            </button>
-          )}
+          className="absolute top-3 left-1/2 w-max max-w-[90%] -translate-x-1/2">
+          <Folha className="flex items-center gap-4 px-4 py-2.5 sm:px-4 sm:py-2.5">
+            <p className="min-w-0">
+              <span className={`block truncate text-lg leading-tight font-extrabold ${condensado}`}>{nomeDoToken(tokenSelecionado)}</span>
+              <span className="text-xs text-tinta-700">{tipoDoToken(tokenSelecionado)}</span>
+            </p>
+            {tokenSelecionado.ficha && (
+              <p className="font-datilo text-sm">PV {tokenSelecionado.ficha.pv_atual}/{tokenSelecionado.ficha.pv_maximo_cache}</p>
+            )}
+            {souMestre && (
+              <button type="button" onClick={() => removerToken(tokenSelecionado)} aria-label="Remover token" title="Remover token"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-sm text-tinta-700 hover:bg-tinta-900/10 hover:text-tinta-900 focus-visible:outline-2 focus-visible:outline-tinta-900">
+                <Icone nome="lixeira" className="h-4 w-4" />
+              </button>
+            )}
+          </Folha>
         </div>
       )}
 
       {erro && (
-        <div role="alert" className="absolute right-3 bottom-3 max-w-xs rounded-md border border-red-900/60 bg-red-950/90 px-3 py-2 text-xs text-red-200" {...pararPropagacao}>
-          {erro}
-          <button type="button" onClick={() => setErro(null)} className="ml-2 text-red-300 underline">ok</button>
+        <div role="alert" className="absolute right-3 bottom-3 flex max-w-xs items-start gap-3 rounded-sm border border-carimbo-300/50 bg-carimbo-800/90 px-3 py-2 text-sm text-carimbo-100" {...pararPropagacao}>
+          <span className="min-w-0 flex-1">{erro}</span>
+          <button type="button" onClick={() => setErro(null)} className="shrink-0 text-xs font-bold text-carimbo-100 underline underline-offset-2">Dispensar</button>
         </div>
       )}
 
-      <div className="absolute bottom-3 left-3 flex gap-1 rounded-lg border border-zinc-800 bg-zinc-900/90 p-1" {...pararPropagacao}>
+      <div role="toolbar" aria-label="Zoom" className="absolute bottom-3 left-3 flex items-center gap-1 rounded-[4px] border border-arquivo-700 bg-arquivo-900/95 p-1 shadow-[0_8px_20px_-10px_rgb(0_0_0/0.9)]" {...pararPropagacao}>
         <BotaoBarra icone="zoomMenos" rotulo="Diminuir zoom" onClick={() => zoomNoCentro(1 / 1.25)} desabilitado={!mapa} />
         <BotaoBarra icone="zoomMais" rotulo="Aumentar zoom" onClick={() => zoomNoCentro(1.25)} desabilitado={!mapa} />
         <BotaoBarra icone="ajustar" rotulo="Ajustar mapa à tela" onClick={() => tamanho && ajustar(tamanho.largura, tamanho.altura)} desabilitado={!tamanho} />
         <BotaoBarra icone="telaCheia" rotulo="Tela cheia" onClick={alternarTelaCheia} />
-        <span className="self-center px-1 text-xs text-zinc-500 tabular-nums" aria-label="Nível de zoom">{Math.round(visao.escala * 100)}%</span>
+        <span className="px-2 font-datilo text-sm text-grafite-300" aria-label="Nível de zoom">{Math.round(visao.escala * 100)}%</span>
       </div>
     </section>
   )
