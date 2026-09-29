@@ -40,3 +40,14 @@ export function validarConvite(
   }
   return { valido: true }
 }
+
+// Só o dono gera convites, então só ele recebe o token (e a validade) nas respostas da API.
+// Para os demais membros os dois campos saem como null — sem isso, qualquer jogador leria o
+// link na aba Rede do navegador e convidaria gente sem o dono saber.
+export function ocultarConvite<T extends { donoId: string; conviteToken: string | null; conviteExpiraEm: Date | null }>(
+  sala: T,
+  usuarioId: string,
+): T {
+  if (sala.donoId === usuarioId) return sala
+  return { ...sala, conviteToken: null, conviteExpiraEm: null }
+}
