@@ -3,6 +3,7 @@ import { AppError } from '../../errors/AppError.js'
 import { buscarSalaOuFalhar } from '../sala/sala.service.js'
 import { calcularFicha, montarTestesPericias, type AtributosOP1, type NivelTreinoPericia } from '../../engine/calculoFicha.js'
 import { PERICIAS_OP1 } from '../../engine/pericias.js'
+import { habilidadesAcumuladas, type ProgressaoClasseEntry } from '../../engine/progressaoClasse.js'
 import { emitirParaSala } from '../../sockets/emissor.js'
 
 type DadosFicha = {
@@ -33,20 +34,25 @@ function carregarFicha(fichaId: string) {
   return prisma.ficha.findUnique({ where: { id: fichaId }, include: INCLUIR_PERICIAS })
 }
 
-// O que sai pra API/socket: a ficha + o teste de cada uma das 28 perícias
-// (dados e bônus calculados aqui — o frontend só exibe). Perícia sem linha em
-// FichaPericia conta como Destreinado.
-function apresentar(ficha: FichaComRelacoes) {
+// Tabela de habilidades por NEX (seed, 60 linhas) — passada ao motor, nunca lida dentro dele.
+function tabelaProgressao() {
+  return prisma.progressaoClasse.findMany()
+}
+
+// O que sai pra API/socket: a ficha + o teste de cada uma das 28 perícias e as habilidades de
+// classe desbloqueadas até o NEX atual (tudo calculado aqui — o frontend só exibe). Perícia sem
+// linha em FichaPericia conta como Destreinado.
+function apresentar(ficha: FichaComRelacoes, progressao: ProgressaoClasseEntry[]) {
   const nivelPorNome = new Map(ficha.pericias.map((fp) => [fp.pericia.nome, fp.nivel as NivelTreinoPericia]))
   const testesPericias = montarTestesPericias(
     { for: ficha.for, agi: ficha.agi, int: ficha.int, vig: ficha.vig, pre: ficha.pre },
     PERICIAS_OP1.map((p) => ({ ...p, nivel: nivelPorNome.get(p.nome) ?? 'DESTREINADO' })),
   )
-  return { ...ficha, testesPericias }
+  return { ...ficha, testesPericias, habilidadesDesbloqueadas: habilidadesAcumuladas(progressao, ficha.classe, ficha.nex) }
 }
 
-function emitirFicha(ficha: FichaComRelacoes) {
-  const apresentada = apresentar(ficha)
+async function emitirFicha(ficha: FichaComRelacoes) {
+  const apresentada = apresentar(ficha, await tabelaProgressao())
   emitirParaSala(ficha.salaId, 'ficha:atualizada', { ficha: apresentada })
   return apresentada
 }
@@ -150,7 +156,7 @@ export async function criarFicha(usuarioId: string, salaId: string, dados: Dados
     include: INCLUIR_PERICIAS,
   })
 
-  return { ficha: emitirFicha(ficha), habilidadesDesbloqueadas: resultado.habilidadesDesbloqueadas }
+  return { ficha: await emitirFicha(ficha), habilidadesDesbloqueadas: resultado.habilidadesDesbloqueadas }
 }
 
 export async function listarFichasDaSala(salaId: string, usuarioId: string) {
@@ -160,7 +166,8 @@ export async function listarFichasDaSala(salaId: string, usuarioId: string) {
     orderBy: { createdAt: 'asc' },
     include: INCLUIR_PERICIAS,
   })
-  return fichas.map(apresentar)
+  const progressao = await tabelaProgressao()
+  return fichas.map((ficha) => apresentar(ficha, progressao))
 }
 
 // Qualquer membro da sala pode ver a ficha (não só o dono dela) — a mesa
@@ -176,7 +183,7 @@ async function buscarFichaInterna(fichaId: string, usuarioId: string) {
 }
 
 export async function buscarFichaOuFalhar(fichaId: string, usuarioId: string) {
-  return apresentar(await buscarFichaInterna(fichaId, usuarioId))
+  return apresentar(await buscarFichaInterna(fichaId, usuarioId), await tabelaProgressao())
 }
 
 export async function atualizarFicha(
@@ -264,7 +271,7 @@ export async function atualizarFicha(
     include: INCLUIR_PERICIAS,
   })
 
-  return { ficha: emitirFicha(atualizado), habilidadesDesbloqueadas }
+  return { ficha: await emitirFicha(atualizado), habilidadesDesbloqueadas }
 }
 
 export async function treinarPericia(
@@ -293,7 +300,7 @@ export async function treinarPericia(
     include: { pericia: true },
   })
 
-  return { fichaPericia, ficha: emitirFicha((await carregarFicha(fichaId))!) }
+  return { fichaPericia, ficha: await emitirFicha((await carregarFicha(fichaId))!) }
 }
 
 // ── Entradas da ficha: rituais, habilidades, poderes, equipamentos ──────────
@@ -392,7 +399,7 @@ export async function criarEntrada(fichaId: string, usuarioId: string, dados: Da
   const completos = { ...dados, descricao: dados.descricao ?? '' }
   validarEntrada(tipo, completos)
   await prisma.fichaEntrada.create({ data: { fichaId, tipo: tipo as never, ...camposGravaveis(tipo, completos) } })
-  return { ficha: emitirFicha((await carregarFicha(fichaId))!) }
+  return { ficha: await emitirFicha((await carregarFicha(fichaId))!) }
 }
 
 export async function atualizarEntrada(fichaId: string, entradaId: string, usuarioId: string, dados: DadosEntrada) {
@@ -406,12 +413,12 @@ export async function atualizarEntrada(fichaId: string, entradaId: string, usuar
   const mesclados: DadosEntrada = { ...atual, ...dados }
   validarEntrada(atual.tipo, mesclados)
   await prisma.fichaEntrada.update({ where: { id: entradaId }, data: camposGravaveis(atual.tipo, mesclados) })
-  return { ficha: emitirFicha((await carregarFicha(fichaId))!) }
+  return { ficha: await emitirFicha((await carregarFicha(fichaId))!) }
 }
 
 export async function removerEntrada(fichaId: string, entradaId: string, usuarioId: string) {
   await fichaEditavel(fichaId, usuarioId)
   await entradaDaFicha(fichaId, entradaId)
   await prisma.fichaEntrada.delete({ where: { id: entradaId } })
-  return { ficha: emitirFicha((await carregarFicha(fichaId))!) }
+  return { ficha: await emitirFicha((await carregarFicha(fichaId))!) }
 }

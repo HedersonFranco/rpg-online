@@ -63,6 +63,8 @@ export type Ficha = {
   pericias: FichaPericia[]
   // Os 28 testes de perícia, já montados pelo backend (o front só exibe).
   testesPericias: TestePericia[]
+  // Habilidades de classe acumuladas até o NEX atual (calculadas no backend, na ordem do livro).
+  habilidadesDesbloqueadas: string[]
   entradas: EntradaFicha[]
   createdAt: string
 }

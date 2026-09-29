@@ -10,6 +10,7 @@ import { classeAbaFolha, classeBotaoIconeFolha, classeRotulo, classeSelect, cond
 import { AbaEntradas } from './AbaEntradas'
 import { AbaInventario } from './AbaInventario'
 import { AbaPericias } from './AbaPericias'
+import { HabilidadesDeClasse } from './HabilidadesDeClasse'
 import { PentagonoAtributos } from './PentagonoAtributos'
 
 type Recurso = 'pv' | 'pe' | 'san'
@@ -157,6 +158,7 @@ export function VisaoFicha({
           classeAba={classeAbaFolha} classeLista="grid grid-cols-3 gap-1.5" />
         <div role="tabpanel" id={`ficha-${ficha.id}-painel`} aria-labelledby={`ficha-${ficha.id}-aba-${aba}`} className="pt-4 text-sm">
           {aba === 'pericias' && <AbaPericias ficha={ficha} podeEditar={podeEditar} onAtualizada={onAtualizada} />}
+          {aba === 'HABILIDADE' && <HabilidadesDeClasse ficha={ficha} />}
           {TIPOS_ENTRADA.includes(aba) && (
             <AbaEntradas key={aba} ficha={ficha} tipo={aba as TipoEntrada} podeEditar={podeEditar} onAtualizada={onAtualizada} />
           )}
