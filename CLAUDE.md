@@ -350,7 +350,7 @@ Ao fechar uma etapa: `chore: etapa N concluída — critérios verificados`.
 | # | Etapa | Status |
 |---|---|---|
 | 1 | Setup e configuração | ✅ Concluída |
-| 2 | Modelagem no Prisma + migration + seeds | 🔄 Schema + migration prontos (17 entidades, multissistema); seed de `ClasseFormula` + 28 `Pericia` pronto — falta `ProgressaoClasse` |
+| 2 | Modelagem no Prisma + migration + seeds | ✅ Concluída (18 entidades, multissistema; seed de `ClasseFormula`, 28 `Pericia` e 60 `ProgressaoClasse`) |
 | 3 | Autenticação (JWT, convite com expiração) | ✅ Concluída |
 | 4 | CRUD de Sala e Membros | ✅ Concluída |
 | 5 | Motor de cálculo isolado + testes | ✅ Concluída (só OP1 — OP2 não tem fórmula publicada, ver "Os dois sistemas") |
@@ -378,11 +378,11 @@ Ao fechar uma etapa: `chore: etapa N concluída — critérios verificados`.
 - [x] Seed configurado (`migrations.seed` em `prisma7.config.ts` — Prisma 7 não lê `package.json`) e `npx prisma db seed` roda sem erro
 - [x] Seed é **idempotente** — rodado duas vezes, contagens iguais (upsert por `classe`/`nome`)
 - [x] `SELECT COUNT(*) FROM "Pericia"` retorna **28** (AGI 7, FOR 2, INT 9, PRE 9, VIG 1 — conferido por `GROUP BY` contra a Tabela 2.1 do livro; o critério antigo dizia 26, contagem errada)
-- [ ] `SELECT COUNT(*) FROM "ProgressaoClasse"` retorna ≥ 1 linha por classe × tier de NEX
+- [x] `SELECT COUNT(*) FROM "ProgressaoClasse"` retorna ≥ 1 linha por classe × tier de NEX — **60** (20 por classe, NEX 5–99), conferido por `GROUP BY` e rodando o seed duas vezes (idempotente). Dados das Tabelas 1.3/1.4/1.5 do livro em `engine/progressaoOP1.ts` (fonte única do seed), com teste
 - [x] FKs opcionais (`pastaId` em Npc/Mapa/Documento, `fichaId`/`npcId` em `Token`) aceitam NULL — testado com insert real via Prisma Client
 - [x] **Novo:** `Token` tem CHECK constraint (`token_ficha_xor_npc`) impedindo `fichaId` e `npcId` preenchidos ao mesmo tempo — testado, insert violando a regra é rejeitado pelo Postgres
 
-> **Bloqueio parcialmente resolvido (22/09/2026):** a fórmula de PV/PE/San, os 20 tiers de NEX e a lista completa de 26 perícias com atributo-base **já foram confirmados** direto no livro (v1.3) — ver `ClasseFormula`/`engine/calculoFicha.ts`. O que falta pro seed: ~~lista de `Ritual`~~ (não é mais necessária — ritual virou entrada da ficha) e transformar as tabelas 1.3/1.4/1.5 (habilidades por tier, já lidas) em linhas de `ProgressaoClasse`. Ninguém pediu o seed ainda nesta sessão — fica pra quando for pedido explicitamente.
+> **Bloqueio resolvido (29/09/2026):** fórmula de PV/PE/San, os 20 tiers de NEX, as 28 perícias e as habilidades por NEX das três classes (Tabelas 1.3/1.4/1.5) confirmados direto no livro (v1.3) e em seed. As habilidades desbloqueadas saem em `habilidadesDesbloqueadas` na resposta de criar/editar ficha; a interface ainda não as mostra.
 
 ### Etapa 3 — Autenticação
 - [x] `POST /auth/cadastro` cria usuário e retorna token válido
@@ -471,6 +471,7 @@ Ao fechar uma etapa: `chore: etapa N concluída — critérios verificados`.
 - [ ] 6 conexões WebSocket simultâneas numa sala sem degradação
 - [ ] Fluxo principal (login → sala → ficha → combate → mapa) **sem erro no console**
 - [ ] Tabela de requisitos não funcionais percorrida item a item
+- [ ] **Hederson reescreve os textos da landing** (`frontend/src/pages/Apresentacao/Apresentacao.tsx`: título, etapas, "Por que existe", "Para quem", fechamento) com as próprias palavras — a primeira versão foi escrita por IA e a Licença da Comunidade proíbe material gerado por IA em conteúdo comercial. Adiado a pedido dele em 29/09/2026; **lembrar antes de qualquer lançamento.**
 
 ---
 
