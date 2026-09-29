@@ -3,7 +3,7 @@ import { AppError } from '../../errors/AppError.js'
 import { buscarSalaOuFalhar } from '../sala/sala.service.js'
 import { calcularFicha, montarTestesPericias, type AtributosOP1, type NivelTreinoPericia } from '../../engine/calculoFicha.js'
 import { PERICIAS_OP1 } from '../../engine/pericias.js'
-import { habilidadesAcumuladas, type ProgressaoClasseEntry } from '../../engine/progressaoClasse.js'
+import { habilidadesAcumuladas, motivoClasseNexInvalidos, type ProgressaoClasseEntry } from '../../engine/progressaoClasse.js'
 import { emitirParaSala } from '../../sockets/emissor.js'
 
 type DadosFicha = {
@@ -111,7 +111,7 @@ export async function criarFicha(usuarioId: string, salaId: string, dados: Dados
   const sala = await buscarSalaOuFalhar(salaId, usuarioId)
   if (sala.sistema !== 'ORDEM_PARANORMAL_1') {
     throw new AppError(
-      'Esta sala usa Ordem Paranormal RPG II — crie a ficha pelo endpoint de FichaOP2',
+      'Esta sala usa Ordem Paranormal RPG II — a ficha desse sistema ainda não está disponível (o playtest não publicou a criação de personagem)',
       400,
     )
   }
@@ -127,6 +127,8 @@ export async function criarFicha(usuarioId: string, salaId: string, dados: Dados
     pre: dados.pre,
   }
 
+  const invalido = motivoClasseNexInvalidos(dados.classe, nex)
+  if (invalido) throw new AppError(invalido, 400)
   const { formulas, habilidades } = await carregarTabelasDeCalculo(dados.classe)
   const resultado = calcularFicha({ classe: dados.classe, nex, atributos }, habilidades, formulas)
 
@@ -223,6 +225,8 @@ export async function atualizarFicha(
   let habilidadesDesbloqueadas: string[] = []
 
   if (precisaRecalcular) {
+    const invalido = motivoClasseNexInvalidos(classe, nex)
+    if (invalido) throw new AppError(invalido, 400)
     const { formulas, habilidades } = await carregarTabelasDeCalculo(classe)
     const resultado = calcularFicha({ classe, nex, atributos }, habilidades, formulas)
     pv_maximo_cache = resultado.pv_maximo

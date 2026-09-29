@@ -49,3 +49,15 @@ export type ClasseFormulaEntry = {
   sanBase: number
   sanPorTier: number
 }
+
+// Por que (classe, nex) não serve para o motor — ou null se serve. Os services convertem em 400:
+// o motor lança Error puro para entrada inválida, que viraria 500 se chegasse até lá.
+export function motivoClasseNexInvalidos(classe: unknown, nex: unknown): string | null {
+  if (typeof classe !== 'string' || !(CLASSES_VALIDAS as readonly string[]).includes(classe)) {
+    return `Classe inválida — use uma de: ${CLASSES_VALIDAS.join(', ')}`
+  }
+  if (typeof nex !== 'number' || indiceTier(nex) === -1) {
+    return `NEX inválido — use um dos degraus: ${NEX_TIERS.join(', ')}`
+  }
+  return null
+}
