@@ -1,11 +1,12 @@
-// Seed PARCIAL — ClasseFormula (base+incremento de PV/PE/San por classe) e o
-// catálogo das 28 perícias, ambos confirmados no livro (Ordem Paranormal RPG v1.3).
-// Falta ProgressaoClasse (habilidades por tier). Ritual não é mais catálogo:
-// cada ficha cadastra os seus (FichaEntrada) — ver CLAUDE.md.
+// Seed completo de OP1, tudo confirmado no livro (Ordem Paranormal RPG v1.3): ClasseFormula
+// (base+incremento de PV/PE/San por classe), o catálogo das 28 perícias e ProgressaoClasse
+// (habilidades de classe por NEX, 20 degraus × 3 classes). Idempotente (upsert).
+// Ritual não é catálogo: cada ficha cadastra os seus (FichaEntrada) — ver CLAUDE.md.
 import 'dotenv/config'
 import { PrismaPg } from '@prisma/adapter-pg'
 import { PrismaClient } from '../src/generated/prisma/client.js'
 import { PERICIAS_OP1 } from '../src/engine/pericias.js'
+import { PROGRESSAO_OP1 } from '../src/engine/progressaoOP1.js'
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL })
 const prisma = new PrismaClient({ adapter })
@@ -31,6 +32,15 @@ async function main() {
     await prisma.pericia.upsert({ where: { nome }, create: dados, update: dados })
   }
   console.log(`Pericia: ${PERICIAS_OP1.length} linhas (upsert, idempotente)`)
+
+  for (const { classe, nex, habilidades } of PROGRESSAO_OP1) {
+    await prisma.progressaoClasse.upsert({
+      where: { classe_nex: { classe, nex } },
+      create: { classe, nex, habilidades },
+      update: { habilidades },
+    })
+  }
+  console.log(`ProgressaoClasse: ${PROGRESSAO_OP1.length} linhas (upsert, idempotente)`)
 }
 
 main()
