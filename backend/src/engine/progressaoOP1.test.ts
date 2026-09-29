@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { PROGRESSAO_OP1 } from './progressaoOP1.js'
-import { CLASSES_VALIDAS, NEX_TIERS, habilidadesAcumuladas } from './progressaoClasse.js'
+import { CLASSES_VALIDAS, NEX_TIERS, habilidadesAcumuladas, motivoClasseNexInvalidos } from './progressaoClasse.js'
 
 // Conferido contra as Tabelas 1.3, 1.4 e 1.5 do livro (Ordem Paranormal RPG v1.3).
 describe('progressão de classe (OP1)', () => {
@@ -43,5 +43,13 @@ describe('progressão de classe (OP1)', () => {
       'Escolhido pelo Outro Lado (3º círculo)',
       'Escolhido pelo Outro Lado (4º círculo)',
     ])
+  })
+
+  it('recusa classe ou NEX fora das tabelas com um motivo legível (vira 400 na API)', () => {
+    expect(motivoClasseNexInvalidos('COMBATENTE', 50)).toBeNull()
+    expect(motivoClasseNexInvalidos('MAGO', 50)).toMatch(/Classe inválida/)
+    expect(motivoClasseNexInvalidos(undefined, 50)).toMatch(/Classe inválida/)
+    expect(motivoClasseNexInvalidos('OCULTISTA', 33)).toMatch(/NEX inválido/)
+    expect(motivoClasseNexInvalidos('OCULTISTA', '50')).toMatch(/NEX inválido/)
   })
 })

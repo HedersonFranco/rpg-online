@@ -161,12 +161,18 @@ function Mesa({ sala: salaInicial }: { sala: SalaDetalhe }) {
   const [membros, setMembros] = useState<Membro[]>(salaInicial.membros)
   const sala = { ...salaInicial, membros }
   useEventoSocket<{ membros: Membro[] }>('sala:membros', ({ membros: novos }) => setMembros(novos))
-  // Expulso ou banido pelo dono: volta pra lista de mesas com o aviso.
-  useEventoSocket<{ salaId: string; motivo: 'expulso' | 'banido' }>('sala:removido', ({ salaId, motivo }) => {
+  // Expulso, banido ou mesa apagada: volta pra lista de mesas com o aviso.
+  useEventoSocket<{ salaId: string; motivo: 'expulso' | 'banido' | 'apagada' }>('sala:removido', ({ salaId, motivo }) => {
     if (salaId !== salaInicial.id) return
     navigate('/salas', {
       replace: true,
-      state: { aviso: motivo === 'banido' ? `Você foi banido de "${salaInicial.nome}" pelo dono da mesa.` : `Você foi removido de "${salaInicial.nome}" pelo dono da mesa.` },
+      state: {
+        aviso: motivo === 'apagada'
+          ? `A mesa "${salaInicial.nome}" foi apagada${salaInicial.donoId === usuario.id ? '' : ' pelo dono'}.`
+          : motivo === 'banido'
+            ? `Você foi banido de "${salaInicial.nome}" pelo dono da mesa.`
+            : `Você foi removido de "${salaInicial.nome}" pelo dono da mesa.`,
+      },
     })
   })
   const video = useVideoChamada()
