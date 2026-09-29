@@ -4,13 +4,14 @@ export type Aba<T extends string> = { chave: T; rotulo: ReactNode }
 
 // Lista de abas com o padrão de teclado do WAI-ARIA: setas trocam de aba, Home/End vão às pontas,
 // só a aba ativa entra no Tab. `idBase` liga cada aba ao seu painel (aria-controls).
-export function Abas<T extends string>({ abas, ativa, onTrocar, rotulo, idBase, classeAba }: {
+export function Abas<T extends string>({ abas, ativa, onTrocar, rotulo, idBase, classeAba, classeLista = 'flex' }: {
   abas: Aba<T>[]
   ativa: T
   onTrocar: (chave: T) => void
   rotulo: string
   idBase: string
   classeAba: (ativa: boolean) => string
+  classeLista?: string
 }) {
   const refs = useRef<(HTMLButtonElement | null)[]>([])
 
@@ -24,7 +25,7 @@ export function Abas<T extends string>({ abas, ativa, onTrocar, rotulo, idBase, 
   }
 
   return (
-    <div role="tablist" aria-label={rotulo} className="flex">
+    <div role="tablist" aria-label={rotulo} className={classeLista}>
       {abas.map(({ chave, rotulo: texto }, i) => (
         <button key={chave} ref={(el) => { refs.current[i] = el }} type="button" role="tab"
           id={`${idBase}-aba-${chave}`} aria-controls={`${idBase}-painel`} aria-selected={ativa === chave}

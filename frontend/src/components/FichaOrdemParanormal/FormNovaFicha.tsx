@@ -3,7 +3,8 @@ import { useAtrasado } from '../../hooks/useAtrasado'
 import { api, mensagemDeErro } from '../../services/api'
 import { NEX_TIERS, NOME_CLASSE, type Classe, type Ficha } from '../../services/tipos'
 import { Alerta, Spinner } from '../ui/Feedback'
-import { classeBotaoPrimario, classeBotaoSecundario, classeInput, classeLabel } from '../ui/estilos'
+import { Folha } from '../ui/arquivo'
+import { classeBotaoContorno, classeBotaoTinta, classeCampo, classeRotulo, classeSelect, classeTituloArquivo } from '../ui/estilosArquivo'
 
 const ATRIBUTOS = [
   ['for', 'FOR'],
@@ -59,59 +60,61 @@ export function FormNovaFicha({
   }
 
   return (
-    <form onSubmit={enviar} className="space-y-3">
-      <h3 className="font-semibold">Nova ficha</h3>
+    <Folha className="p-4 sm:p-4">
+    <form onSubmit={enviar} className="space-y-4">
+      <h3 className={`text-3xl leading-none ${classeTituloArquivo}`}>Nova ficha</h3>
       <div>
-        <label htmlFor="ficha-nome" className={classeLabel}>Nome do personagem</label>
-        <input id="ficha-nome" required value={nome} onChange={(e) => setNome(e.target.value)} disabled={enviando} className={classeInput} />
+        <label htmlFor="ficha-nome" className={classeRotulo}>Nome do personagem</label>
+        <input id="ficha-nome" required value={nome} onChange={(e) => setNome(e.target.value)} disabled={enviando} className={classeCampo} />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label htmlFor="ficha-classe" className={classeLabel}>Classe</label>
-          <select id="ficha-classe" value={classe} onChange={(e) => setClasse(e.target.value as Classe)} disabled={enviando} className={classeInput}>
+          <label htmlFor="ficha-classe" className={classeRotulo}>Classe</label>
+          <select id="ficha-classe" value={classe} onChange={(e) => setClasse(e.target.value as Classe)} disabled={enviando} className={classeSelect(false)}>
             {(Object.keys(NOME_CLASSE) as Classe[]).map((c) => <option key={c} value={c}>{NOME_CLASSE[c]}</option>)}
           </select>
         </div>
         <div>
-          <label htmlFor="ficha-nex" className={classeLabel}>NEX</label>
-          <select id="ficha-nex" value={nex} onChange={(e) => setNex(Number(e.target.value))} disabled={enviando} className={classeInput}>
+          <label htmlFor="ficha-nex" className={classeRotulo}>NEX</label>
+          <select id="ficha-nex" value={nex} onChange={(e) => setNex(Number(e.target.value))} disabled={enviando} className={classeSelect(false)}>
             {NEX_TIERS.map((n) => <option key={n} value={n}>{n}%</option>)}
           </select>
         </div>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label htmlFor="ficha-origem" className={classeLabel}>Origem</label>
-          <input id="ficha-origem" required value={origem} onChange={(e) => setOrigem(e.target.value)} disabled={enviando} className={classeInput} />
+          <label htmlFor="ficha-origem" className={classeRotulo}>Origem</label>
+          <input id="ficha-origem" required value={origem} onChange={(e) => setOrigem(e.target.value)} disabled={enviando} className={classeCampo} />
         </div>
         <div>
-          <label htmlFor="ficha-trilha" className={classeLabel}>Trilha</label>
-          <input id="ficha-trilha" required value={trilha} onChange={(e) => setTrilha(e.target.value)} disabled={enviando} className={classeInput} />
+          <label htmlFor="ficha-trilha" className={classeRotulo}>Trilha</label>
+          <input id="ficha-trilha" required value={trilha} onChange={(e) => setTrilha(e.target.value)} disabled={enviando} className={classeCampo} />
         </div>
       </div>
       <fieldset>
-        <legend className={classeLabel}>Atributos</legend>
+        <legend className={classeRotulo}>Atributos</legend>
         <div className="grid grid-cols-5 gap-2">
           {ATRIBUTOS.map(([chave, rotulo]) => (
             <div key={chave}>
-              <label htmlFor={`ficha-${chave}`} className="block text-center text-xs font-semibold text-zinc-400">{rotulo}</label>
+              <label htmlFor={`ficha-${chave}`} className={`${classeRotulo} text-center`}>{rotulo}</label>
               <input id={`ficha-${chave}`} type="number" min={0} max={5} required value={atributos[chave]}
                 onChange={(e) => setAtributos((a) => ({ ...a, [chave]: e.target.value }))}
-                disabled={enviando} className={`${classeInput} px-1 text-center`} />
+                disabled={enviando} className={`${classeCampo} px-1 text-center`} />
             </div>
           ))}
         </div>
       </fieldset>
-      {erro && <Alerta mensagem={erro} />}
+      {erro && <Alerta tom="papel" mensagem={erro} />}
       <div className="flex gap-2">
-        <button type="submit" disabled={enviando} className={classeBotaoPrimario}>
+        <button type="submit" disabled={enviando} className={classeBotaoTinta}>
           {mostrarSpinner && <Spinner tamanho="sm" />}
           {enviando ? 'Criando...' : 'Criar ficha'}
         </button>
         {onCancelar && (
-          <button type="button" onClick={onCancelar} disabled={enviando} className={classeBotaoSecundario}>Cancelar</button>
+          <button type="button" onClick={onCancelar} disabled={enviando} className={classeBotaoContorno}>Cancelar</button>
         )}
       </div>
     </form>
+    </Folha>
   )
 }

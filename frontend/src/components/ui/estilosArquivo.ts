@@ -1,4 +1,4 @@
-// Classes do mundo "Dossiê de caso". Ficha, mapa e chat da mesa ainda usam estilos.ts (legado).
+// Classes do mundo "Dossiê de caso". Mapa e chat da mesa ainda usam estilos.ts (legado).
 
 export const condensado = '[font-stretch:72%]'
 
@@ -58,3 +58,16 @@ export function classeAbaPasta(ativa: boolean) {
     'focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-kraft-300 ' +
     (ativa ? 'textura-fibra bg-kraft-500 text-tinta-900' : 'text-grafite-300 hover:bg-arquivo-800 hover:text-grafite-100')
 }
+
+// Divisória de fichário numa folha (seções da ficha): todas à vista, a ativa em tinta chapada.
+export function classeAbaFolha(ativa: boolean) {
+  return `h-9 rounded-[2px] px-1 text-xs font-bold tracking-[0.08em] uppercase ${condensado} ` +
+    'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tinta-900 ' +
+    (ativa ? 'bg-tinta-900 text-papel-50' : 'bg-papel-200 text-tinta-700 hover:bg-papel-300 hover:text-tinta-900')
+}
+
+// Botão só de ícone numa folha de papel. Sempre com aria-label.
+export const classeBotaoIconeFolha =
+  'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-sm border-2 border-tinta-900 text-tinta-900 ' +
+  'hover:bg-tinta-900/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tinta-900 ' +
+  'disabled:cursor-not-allowed disabled:opacity-35'

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-29T15:05:18.919Z",
+  "generatedAt": "2026-09-29T19:50:55.000Z",
   "title": "Design System: RPG Online",
   "extensions": {
     "colorMeta": {
@@ -320,6 +320,141 @@
           "#b3d7ba",
           "#d9ecdd"
         ]
+      },
+      "recurso-vida": {
+        "role": "tertiary",
+        "displayName": "Carmim de Vida",
+        "canonical": "#a0283f",
+        "tonalRamp": [
+          "#3d0f18",
+          "#661928",
+          "#8f2438",
+          "#b82e48",
+          "#d4546c",
+          "#e08596",
+          "#edb6c0",
+          "#faebee"
+        ]
+      },
+      "recurso-sanidade": {
+        "role": "tertiary",
+        "displayName": "Azul de Sanidade",
+        "canonical": "#2d5a86",
+        "tonalRamp": [
+          "#132639",
+          "#20405f",
+          "#2d5a86",
+          "#3a73ac",
+          "#5f94c9",
+          "#8cb3d9",
+          "#bad1e8",
+          "#ecf2f9"
+        ]
+      },
+      "recurso-esforco": {
+        "role": "tertiary",
+        "displayName": "Ocre de Esforço",
+        "canonical": "#a56c13",
+        "tonalRamp": [
+          "#452d08",
+          "#724b0d",
+          "#a06912",
+          "#ce8718",
+          "#e9a73f",
+          "#efc076",
+          "#f6d9ad",
+          "#fcf4e8"
+        ]
+      },
+      "elemento-sangue": {
+        "role": "tertiary",
+        "displayName": "Marca de Sangue",
+        "canonical": "#7e2231",
+        "tonalRamp": [
+          "#3c1017",
+          "#641b27",
+          "#8d2637",
+          "#b53146",
+          "#d1566a",
+          "#de8795",
+          "#ebb7bf",
+          "#faebed"
+        ]
+      },
+      "elemento-morte": {
+        "role": "tertiary",
+        "displayName": "Marca de Morte",
+        "canonical": "#3a3731",
+        "tonalRamp": [
+          "#292723",
+          "#45423a",
+          "#615c52",
+          "#7c7669",
+          "#9d978b",
+          "#b9b5ac",
+          "#d5d2cd",
+          "#f3f3f1"
+        ]
+      },
+      "elemento-conhecimento": {
+        "role": "tertiary",
+        "displayName": "Marca de Conhecimento",
+        "canonical": "#b0861a",
+        "tonalRamp": [
+          "#43330a",
+          "#6f5510",
+          "#9c7617",
+          "#c8981e",
+          "#e3b744",
+          "#ebcb7a",
+          "#f3e0af",
+          "#fcf6e9"
+        ]
+      },
+      "elemento-energia": {
+        "role": "tertiary",
+        "displayName": "Marca de Energia",
+        "canonical": "#6f3b93",
+        "tonalRamp": [
+          "#291637",
+          "#45255b",
+          "#60337f",
+          "#7c42a4",
+          "#9c66c2",
+          "#b892d3",
+          "#d5bde5",
+          "#f3edf8"
+        ]
+      },
+      "elemento-medo": {
+        "role": "tertiary",
+        "displayName": "Marca de Medo",
+        "canonical": "#c9d6e0",
+        "tonalRamp": [
+          "#352c17",
+          "#594927",
+          "#7c6736",
+          "#a08446",
+          "#bea46a",
+          "#d1be94",
+          "#e3d8bf",
+          "#f7f4ed"
+        ]
+      },
+      "elemento-varia": {
+        "role": "tertiary",
+        "displayName": "Marca de Varia",
+        "canonical": "#6d6a62",
+        "tonalRamp": [
+          "#282724",
+          "#43413c",
+          "#5e5b55",
+          "#79766d",
+          "#9a968e",
+          "#b7b4ae",
+          "#d4d2cf",
+          "#f3f3f2"
+        ]
       }
     },
     "typographyMeta": {
@@ -387,6 +522,16 @@
         "name": "veu-dialogo",
         "value": "rgb(14 15 16 / 0.75)",
         "purpose": "Véu arquivo-950 a 75% (::backdrop) sob diálogos."
+      },
+      {
+        "name": "bilhete",
+        "value": "0 1px 3px rgb(0 0 0 / 0.25)",
+        "purpose": "Formulário de entrada, papel-50 solto sobre a folha da ficha."
+      },
+      {
+        "name": "foto-colada",
+        "value": "0 2px 4px rgb(0 0 0 / 0.3)",
+        "purpose": "Avatar do agente na folha."
       }
     ],
     "motion": [
@@ -542,6 +687,30 @@
       "description": "Confirmação de ação destrutiva numa folha; foco inicial em Cancelar.",
       "html": "<div class=\"ds-veu\"><div class=\"ds-folha4\" role=\"dialog\" aria-label=\"Encerrar o combate?\"><h2>Encerrar o combate?</h2><p>A ordem de iniciativa é descartada para toda a mesa.</p><div class=\"ds-acoes\"><button class=\"ds-b4 ds-b4-c\">Cancelar</button><button class=\"ds-b4 ds-b4-t\">Encerrar combate</button></div></div></div>",
       "css": ".ds-veu { background: rgb(14 15 16 / .75); padding: 24px 16px; } .ds-folha4 { max-width: 448px; margin: 0 auto; background: #e8e2d4 url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .1 0 0 0 0 .08 0 0 0 0 .05 0 0 0 .09 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23f)'/%3E%3C/svg%3E\"); color: #1b1915; padding: 20px; border-radius: 4px; box-shadow: 0 10px 24px -12px rgb(0 0 0 / .8); } .ds-folha4 h2 { margin: 0; font-size: 24px; line-height: 1; font-weight: 800; letter-spacing: -.01em; font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif; font-stretch: 72%; text-transform: uppercase; } .ds-folha4 p { margin: 12px 0 0; font-size: 14px; color: #3a362f; font-family: 'Archivo', sans-serif; } .ds-acoes { margin-top: 24px; display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; } .ds-b4 { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border-radius: 4px; font-size: 14px; font-weight: 700; letter-spacing: 0.1em; font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif; font-stretch: 72%; text-transform: uppercase; cursor: pointer; min-height: 44px; padding: 0 20px; } .ds-b4-c { background: transparent; color: #1b1915; border: 2px solid #1b1915; } .ds-b4-c:hover { background: rgb(27 25 21 / .1); } .ds-b4-t { background: #1b1915; color: #f5f1e8; border: none; } .ds-b4-t:hover { background: #3a362f; } .ds-b4:focus-visible { outline: 2px solid #1b1915; outline-offset: 2px; }"
+    },
+    {
+      "name": "Divisórias de fichário",
+      "kind": "nav",
+      "refersTo": "aba-folha-ativa",
+      "description": "Seções da ficha numa grade de 3×2 dentro da folha: ativa em tinta chapada, inativas em papel-200.",
+      "html": "<div class=\"ds-folha-f\"><div class=\"ds-divs\" role=\"tablist\"><button role=\"tab\" aria-selected=\"true\" class=\"ds-div ds-div-on\">Perícias</button><button role=\"tab\" aria-selected=\"false\" class=\"ds-div\">Rituais</button><button role=\"tab\" aria-selected=\"false\" class=\"ds-div\">Habilidades</button><button role=\"tab\" aria-selected=\"false\" class=\"ds-div\">Poderes</button><button role=\"tab\" aria-selected=\"false\" class=\"ds-div\">Equipamentos</button><button role=\"tab\" aria-selected=\"false\" class=\"ds-div\">Inventário</button></div></div>",
+      "css": ".ds-folha-f { background: #e8e2d4; padding: 16px; border-radius: 4px; color: #1b1915; } .ds-divs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; } .ds-div { height: 36px; padding: 0 4px; border: none; border-radius: 2px; background: #d8cfbb; color: #3a362f; font-size: 12px; font-weight: 700; letter-spacing: .08em; font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif; font-stretch: 72%; text-transform: uppercase; cursor: pointer; } .ds-div:hover { background: #bfb398; color: #1b1915; } .ds-div-on, .ds-div-on:hover { background: #1b1915; color: #f5f1e8; } .ds-div:focus-visible { outline: 2px solid #1b1915; outline-offset: 2px; }"
+    },
+    {
+      "name": "Linha de recurso",
+      "kind": "custom",
+      "refersTo": "button-icone-folha",
+      "description": "Vida/Sanidade/Esforço: rótulo, valor datilografado, −/+ em ícone da folha e barra fina na tinta do recurso.",
+      "html": "<div class=\"ds-folha-f\"><div class=\"ds-rec-top\"><span class=\"ds-rec-rot\">Vida</span><span class=\"ds-rec-val\">9<span class=\"ds-rec-max\">/26</span></span></div><div class=\"ds-rec-lin\"><button class=\"ds-ico\" aria-label=\"Diminuir Vida\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M5 12h14\"/></svg></button><div class=\"ds-barra\"><div class=\"ds-barra-v\" style=\"width:35%\"></div></div><button class=\"ds-ico\" aria-label=\"Aumentar Vida\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M12 5v14M5 12h14\"/></svg></button></div></div>",
+      "css": ".ds-folha-f { background: #e8e2d4; padding: 16px; border-radius: 4px; color: #1b1915; } .ds-rec-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; } .ds-rec-rot { font-size: 14px; font-weight: 800; letter-spacing: .12em; font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif; font-stretch: 72%; text-transform: uppercase; } .ds-rec-val { font-family: 'Courier Prime', ui-monospace, monospace; font-size: 16px; } .ds-rec-max { color: #4f4a41; } .ds-rec-lin { display: flex; align-items: center; gap: 8px; } .ds-ico { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border: 2px solid #1b1915; border-radius: 4px; background: transparent; color: #1b1915; cursor: pointer; } .ds-ico:hover { background: rgb(27 25 21 / .1); } .ds-ico:focus-visible { outline: 2px solid #1b1915; outline-offset: 2px; } .ds-barra { flex: 1; height: 12px; border-radius: 2px; overflow: hidden; background: rgb(191 179 152 / .7); } .ds-barra-v { height: 100%; background: var(--color-recurso-vida, #a0283f); transition: width .2s; } @media (prefers-reduced-motion: reduce) { .ds-barra-v { transition: none; } }"
+    },
+    {
+      "name": "Entrada de ritual",
+      "kind": "custom",
+      "refersTo": "bilhete-entrada",
+      "description": "Linha pautada na folha da ficha; o elemento é um quadradinho de cor mais o nome escrito.",
+      "html": "<div class=\"ds-folha-f\"><ul class=\"ds-ents\"><li class=\"ds-ent\"><p class=\"ds-ent-nome\">Cicatrização</p><p class=\"ds-ent-det\"><span class=\"ds-elem\" style=\"background:#3a3731\"></span>I círculo · Morte</p><p class=\"ds-ent-desc\">Execução: padrão. Alcance: toque.</p></li><li class=\"ds-ent\"><p class=\"ds-ent-nome\">Eletrocussão</p><p class=\"ds-ent-det\"><span class=\"ds-elem\" style=\"background:#6f3b93\"></span>II círculo · Energia</p></li></ul></div>",
+      "css": ".ds-folha-f { background: #e8e2d4; padding: 16px; border-radius: 4px; color: #1b1915; } .ds-ents { list-style: none; margin: 0; padding: 0; } .ds-ent { padding: 12px 0; } .ds-ent + .ds-ent { border-top: 1px solid #bfb398; } .ds-ent-nome { margin: 0; font-size: 16px; font-weight: 800; font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif; font-stretch: 72%; } .ds-ent-det { margin: 4px 0 0; display: flex; align-items: center; gap: 6px; font-size: 12px; color: #3a362f; font-family: 'Archivo', sans-serif; } .ds-elem { width: 12px; height: 12px; border-radius: 2px; box-shadow: 0 0 0 1px rgb(27 25 21 / .4); } .ds-ent-desc { margin: 8px 0 0; font-size: 14px; font-family: 'Archivo', sans-serif; }"
     }
   ],
   "narrative": {
@@ -577,14 +746,24 @@
         "section": "colors"
       },
       {
+        "name": "The Tinta de Registro Rule",
+        "body": "Tintas de recurso e marcas de elemento são registro, não ação nem estado: nunca pintam botão, link, foco ou aba (a ação continua em tinta-900) e nunca substituem o carimbo. Nenhuma delas é o vermelho de carimbo, e a Vida fica no carmim justamente para não ser confundida com ele.",
+        "section": "colors"
+      },
+      {
         "name": "The Datilografado Rule",
-        "body": "Courier Prime só no que é datilografado: valores que a pessoa digitou e números de registro (datas, iniciativa). Instrução, rótulo, placeholder, select sem escolha e mensagem vão em Archivo.",
+        "body": "Courier Prime só no que é datilografado: valores que a pessoa digitou e números de registro (datas, iniciativa, valores e testes da ficha). Instrução, rótulo, placeholder, select sem escolha, nomes de perícia e de entrada, descrição e mensagem vão em Archivo.",
         "section": "typography"
       },
       {
         "name": "The Condensado Rule",
         "body": "Largura 72% é para títulos, rótulos, botões, abas e etiquetas. Texto corrido fica em largura normal.",
         "section": "typography"
+      },
+      {
+        "name": "The Uma Folha Rule",
+        "body": "A ficha é uma folha só sobre o painel escuro. Nada dentro dela vira card: seções são linhas pautadas (divisores papel-300), e o único papel por cima é o bilhete do formulário, sem borda.",
+        "section": "elevation"
       },
       {
         "name": "The Gaveta Rule",
@@ -603,7 +782,10 @@
       "**Do** usar o `<dialog>` nativo para modais e as abas com teclado WAI-ARIA para listas de abas.",
       "**Do** mostrar o produto com capturas reais e dados inventados, montadas em folhas; nada de nomes do cânone.",
       "**Do** manter o aviso literal e o selo da Licença da Comunidade em toda página pública.",
-      "**Do** manter botões e alvos com pelo menos 44px nas folhas e 40px na mesa."
+      "**Do** manter botões e alvos com pelo menos 44px nas folhas e 40px na mesa.",
+      "**Do** montar a ficha como uma Folha só, com seções em linhas pautadas e divisórias de fichário (tinta-900 ativa, papel-200 inativa).",
+      "**Do** usar as tintas de recurso só no preenchimento das barras de Vida, Sanidade e Esforço, e as marcas de elemento só no quadradinho ao lado do nome escrito do elemento.",
+      "**Do** deixar a perícia destreinada quieta e a treinada em negrito, com o teste datilografado vindo do backend."
     ],
     "donts": [
       "**Don't** usar vermelho de carimbo em botão, link, cursor, foco ou qualquer ação.",
@@ -611,7 +793,11 @@
       "**Don't** usar Courier Prime para instruções, rótulos, placeholders ou mensagens.",
       "**Don't** usar sigilos, símbolos, logos, ilustrações ou qualquer arte da Ordem Paranormal oficial; o mundo é arquivo de investigação genérico.",
       "**Don't** montar listas como grade de cards cinza com botão colorido; mesas são pastas.",
-      "**Don't** copiar o visual zinc/violeta (`ui/estilos.ts`) da ficha, do mapa e do chat para telas novas; ele é legado até a migração.",
+      "**Don't** copiar o visual zinc/violeta (`ui/estilos.ts`) do mapa e do chat para telas novas; ele é legado até a migração.",
+      "**Don't** usar tinta de recurso ou marca de elemento como cor de ação, de foco, de aba ou como carimbo; nem aproximar a Vida do vermelho de carimbo.",
+      "**Don't** marcar elemento com faixa colorida na lateral do card; o elemento é um quadradinho mais o nome escrito.",
+      "**Don't** aninhar cards dentro da ficha.",
+      "**Don't** desenhar os sigilos dos elementos nem a arte da ficha oficial no círculo de atributos; dela vem só a disposição.",
       "**Don't** usar `window.confirm` nem modal próprio sem `<dialog>`.",
       "**Don't** adicionar gradiente decorativo, brilho, vidro ou bisel; gradiente só como véu de legibilidade sobre foto ou máscara de transbordo."
     ]

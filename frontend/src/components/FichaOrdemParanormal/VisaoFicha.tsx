@@ -3,6 +3,10 @@ import { useAtrasado } from '../../hooks/useAtrasado'
 import { api, mensagemDeErro } from '../../services/api'
 import { NEX_TIERS, NOME_CLASSE, type Ficha, type TipoEntrada } from '../../services/tipos'
 import { Alerta, Spinner } from '../ui/Feedback'
+import { Abas, type Aba } from '../ui/Abas'
+import { Folha } from '../ui/arquivo'
+import { Icone } from '../ui/Icone'
+import { classeAbaFolha, classeBotaoIconeFolha, classeRotulo, classeSelect, condensado } from '../ui/estilosArquivo'
 import { AbaEntradas } from './AbaEntradas'
 import { AbaInventario } from './AbaInventario'
 import { AbaPericias } from './AbaPericias'
@@ -10,23 +14,23 @@ import { PentagonoAtributos } from './PentagonoAtributos'
 
 type Recurso = 'pv' | 'pe' | 'san'
 
-// Ordem e nomes da ficha oficial: Vida, Sanidade, Esforço.
+// Ordem e nomes da ficha oficial: Vida, Sanidade, Esforço. Cada recurso tem a sua tinta.
 const RECURSOS: { chave: Recurso; rotulo: string; cor: string }[] = [
-  { chave: 'pv', rotulo: 'Vida', cor: 'bg-red-700' },
-  { chave: 'san', rotulo: 'Sanidade', cor: 'bg-violet-700' },
-  { chave: 'pe', rotulo: 'Esforço', cor: 'bg-amber-600' },
+  { chave: 'pv', rotulo: 'Vida', cor: 'bg-recurso-vida' },
+  { chave: 'san', rotulo: 'Sanidade', cor: 'bg-recurso-sanidade' },
+  { chave: 'pe', rotulo: 'Esforço', cor: 'bg-recurso-esforco' },
 ]
 
-const ABAS = [
-  ['pericias', 'Perícias'],
-  ['RITUAL', 'Rituais'],
-  ['HABILIDADE', 'Habilidades'],
-  ['PODER', 'Poderes'],
-  ['EQUIPAMENTO', 'Equipamentos'],
-  ['inventario', 'Inventário'],
-] as const
+const ABAS: Aba<AbaFicha>[] = [
+  { chave: 'pericias', rotulo: 'Perícias' },
+  { chave: 'RITUAL', rotulo: 'Rituais' },
+  { chave: 'HABILIDADE', rotulo: 'Habilidades' },
+  { chave: 'PODER', rotulo: 'Poderes' },
+  { chave: 'EQUIPAMENTO', rotulo: 'Equipamentos' },
+  { chave: 'inventario', rotulo: 'Inventário' },
+]
 
-type Aba = (typeof ABAS)[number][0]
+type AbaFicha = 'pericias' | TipoEntrada | 'inventario'
 
 const TIPOS_ENTRADA: readonly string[] = ['RITUAL', 'HABILIDADE', 'PODER', 'EQUIPAMENTO'] satisfies TipoEntrada[]
 
@@ -49,7 +53,7 @@ export function VisaoFicha({
   podeEditar: boolean
   onAtualizada: (ficha: Ficha) => void
 }) {
-  const [aba, setAba] = useState<Aba>('pericias')
+  const [aba, setAba] = useState<AbaFicha>('pericias')
   const [pendente, setPendente] = useState<Recurso | 'nex' | null>(null)
   const [erro, setErro] = useState<string | null>(null)
   const mostrarSpinner = useAtrasado(pendente !== null)
@@ -71,86 +75,87 @@ export function VisaoFicha({
     enviar(recurso, { [`${recurso}_atual`]: atualDe(ficha, recurso) + delta })
 
   return (
-    <div className="space-y-4">
+    <Folha className="space-y-6 p-4 sm:p-4">
       <div className="flex items-center gap-3">
         {ficha.avatarUrl ? (
-          <img src={ficha.avatarUrl} alt="" className="h-14 w-14 rounded-full object-cover" />
+          <img src={ficha.avatarUrl} alt="" className="h-16 w-14 shrink-0 rounded-[2px] border-[3px] border-papel-50 object-cover shadow-[0_2px_4px_rgb(0_0_0/0.3)]" />
         ) : (
-          <div aria-hidden="true" className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-violet-900 text-xl font-semibold text-violet-200">
+          <div aria-hidden="true" className={`flex h-16 w-14 shrink-0 items-center justify-center rounded-[2px] border-[3px] border-papel-50 bg-arquivo-800 text-2xl font-extrabold text-grafite-300 shadow-[0_2px_4px_rgb(0_0_0/0.3)] ${condensado}`}>
             {ficha.nome.charAt(0).toUpperCase()}
           </div>
         )}
         <div className="min-w-0">
-          <h3 className="truncate text-lg font-semibold">{ficha.nome}</h3>
-          <p className="truncate text-sm text-zinc-400">
+          <h3 className={`truncate text-2xl leading-tight font-extrabold ${condensado}`}>{ficha.nome}</h3>
+          <p className="text-sm text-tinta-700">
             {ficha.origem} · {NOME_CLASSE[ficha.classe]} · {ficha.trilha}
           </p>
         </div>
       </div>
 
       <div>
-        <div className="mb-1 flex items-center justify-between text-xs text-zinc-400">
-          <span>NEX</span>
+        <div className="mb-1.5 flex items-center justify-between gap-3">
           {podeEditar ? (
-            <select aria-label="NEX" value={ficha.nex} disabled={pendente !== null}
-              onChange={(e) => enviar('nex', { nex: Number(e.target.value) })}
-              className="rounded border border-zinc-700 bg-zinc-900 px-1 py-0.5 font-semibold text-zinc-200">
-              {NEX_TIERS.map((n) => <option key={n} value={n}>{n}%</option>)}
-            </select>
+            <label htmlFor={`nex-${ficha.id}`} className={`${classeRotulo} mb-0`}>NEX</label>
           ) : (
-            <span className="font-semibold text-zinc-200">{ficha.nex}%</span>
+            <span className={`${classeRotulo} mb-0`}>NEX</span>
+          )}
+          {podeEditar ? (
+            <div className="w-24">
+              <select id={`nex-${ficha.id}`} value={ficha.nex} disabled={pendente !== null}
+                onChange={(e) => enviar('nex', { nex: Number(e.target.value) })} className={`${classeSelect(false)} py-1`}>
+                {NEX_TIERS.map((n) => <option key={n} value={n}>{n}%</option>)}
+              </select>
+            </div>
+          ) : (
+            <span className="font-datilo text-base">{ficha.nex}%</span>
           )}
         </div>
-        <div className="h-2 rounded-full bg-zinc-800">
-          <div className="h-2 rounded-full bg-violet-500" style={{ width: `${ficha.nex}%` }} />
+        <div className="h-2 rounded-[2px] bg-papel-300/70" aria-hidden="true">
+          <div className="h-2 rounded-[2px] bg-tinta-900" style={{ width: `${ficha.nex}%` }} />
         </div>
       </div>
 
       <PentagonoAtributos atributos={ficha} />
 
-      <div className="space-y-2.5" aria-label="Recursos">
+      <div className="space-y-4" role="group" aria-label="Recursos">
         {RECURSOS.map(({ chave, rotulo, cor }) => {
           const atual = atualDe(ficha, chave)
           const maximo = maximoDe(ficha, chave)
-          const botao = 'flex h-full w-8 items-center justify-center text-lg leading-none text-white/80 hover:bg-black/25 hover:text-white disabled:opacity-30 disabled:hover:bg-transparent'
           return (
             <div key={chave}>
-              <p className="mb-1 font-serif text-sm font-bold uppercase tracking-wider text-zinc-200">{rotulo}</p>
-              <div className="relative flex h-8 items-center overflow-hidden rounded-md bg-zinc-800 ring-1 ring-zinc-700">
-                <div className={`absolute inset-y-0 left-0 ${cor} transition-[width]`} style={{ width: `${maximo > 0 ? (atual / maximo) * 100 : 0}%` }} />
+              <div className="mb-1.5 flex items-baseline justify-between">
+                <p className={`text-sm font-extrabold tracking-[0.12em] uppercase ${condensado}`}>{rotulo}</p>
+                <p className="font-datilo text-base" aria-live="polite">
+                  {pendente === chave && mostrarSpinner ? <Spinner tamanho="sm" /> : <>{atual}<span className="text-tinta-600">/{maximo}</span></>}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
                 {podeEditar && (
                   <button type="button" aria-label={`Diminuir ${rotulo}`} onClick={() => ajustar(chave, -1)}
-                    disabled={pendente !== null || atual <= 0} className={`relative ${botao}`}>
-                    ‹
+                    disabled={pendente !== null || atual <= 0} className={classeBotaoIconeFolha}>
+                    <Icone nome="menos" className="h-4 w-4" />
                   </button>
                 )}
-                <span className="relative flex-1 text-center text-sm font-semibold tabular-nums text-white [text-shadow:0_1px_2px_rgb(0_0_0/0.8)]">
-                  {pendente === chave && mostrarSpinner ? <Spinner tamanho="sm" /> : `${atual}/${maximo}`}
-                </span>
+                <div className="h-3 flex-1 overflow-hidden rounded-[2px] bg-papel-300/70" aria-hidden="true">
+                  <div className={`h-full ${cor} transition-[width] duration-200 motion-reduce:transition-none`} style={{ width: `${maximo > 0 ? (atual / maximo) * 100 : 0}%` }} />
+                </div>
                 {podeEditar && (
                   <button type="button" aria-label={`Aumentar ${rotulo}`} onClick={() => ajustar(chave, 1)}
-                    disabled={pendente !== null || atual >= maximo} className={`relative ${botao}`}>
-                    ›
+                    disabled={pendente !== null || atual >= maximo} className={classeBotaoIconeFolha}>
+                    <Icone nome="mais" className="h-4 w-4" />
                   </button>
                 )}
               </div>
             </div>
           )
         })}
-        {erro && <Alerta mensagem={erro} />}
+        {erro && <Alerta tom="papel" mensagem={erro} />}
       </div>
 
       <div>
-        <div role="tablist" aria-label="Seções da ficha" className="flex flex-wrap gap-x-1 border-b border-zinc-800">
-          {ABAS.map(([chave, rotulo]) => (
-            <button key={chave} type="button" role="tab" aria-selected={aba === chave} onClick={() => setAba(chave)}
-              className={`-mb-px border-b-2 px-2 py-2 text-xs font-medium ${aba === chave ? 'border-violet-500 text-violet-300' : 'border-transparent text-zinc-400 hover:text-zinc-200'}`}>
-              {rotulo}
-            </button>
-          ))}
-        </div>
-
-        <div role="tabpanel" aria-label={ABAS.find(([chave]) => chave === aba)?.[1]} className="pt-3 text-sm">
+        <Abas abas={ABAS} ativa={aba} onTrocar={setAba} rotulo="Seções da ficha" idBase={`ficha-${ficha.id}`}
+          classeAba={classeAbaFolha} classeLista="grid grid-cols-3 gap-1.5" />
+        <div role="tabpanel" id={`ficha-${ficha.id}-painel`} aria-labelledby={`ficha-${ficha.id}-aba-${aba}`} className="pt-4 text-sm">
           {aba === 'pericias' && <AbaPericias ficha={ficha} podeEditar={podeEditar} onAtualizada={onAtualizada} />}
           {TIPOS_ENTRADA.includes(aba) && (
             <AbaEntradas key={aba} ficha={ficha} tipo={aba as TipoEntrada} podeEditar={podeEditar} onAtualizada={onAtualizada} />
@@ -158,6 +163,6 @@ export function VisaoFicha({
           {aba === 'inventario' && <AbaInventario ficha={ficha} podeEditar={podeEditar} onAtualizada={onAtualizada} />}
         </div>
       </div>
-    </div>
+    </Folha>
   )
 }
