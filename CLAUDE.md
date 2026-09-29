@@ -163,15 +163,14 @@ rpg-online/
 ├── backend/
 │   └── src/
 │       ├── modules/
-│       │   ├── usuario/
-│       │   ├── sala/
-│       │   ├── sessao/
+│       │   ├── usuario/    ← cadastro, login, /auth/me
+│       │   ├── sala/       ← mesas, membros, convite, expulsar/banir; monta as rotas /salas/:id/*
 │       │   ├── ficha/
 │       │   ├── npc/
 │       │   ├── pasta/
-│       │   ├── mapa/
-│       │   ├── documento/
-│       │   └── mensagem/
+│       │   ├── mapa/       ← mapas e tokens
+│       │   ├── mensagem/   ← sem routes.ts: histórico via /salas/:id/mensagens, envio pelo socket
+│       │   └── rtc/        ← só rtc.routes.ts: configuração ICE (STUN/TURN) para o vídeo
 │       ├── engine/
 │       │   ├── calculoFicha.ts       ← só OP1
 │       │   ├── progressaoClasse.ts   ← só OP1
@@ -227,7 +226,7 @@ rpg-online/
 └── CLAUDE.md
 ```
 
-Cada módulo em `modules/` tem: `<modulo>.controller.ts`, `<modulo>.service.ts`, `<modulo>.routes.ts`.
+Cada módulo em `modules/` tem `<modulo>.controller.ts`, `<modulo>.service.ts`, `<modulo>.routes.ts` e um `README.md` (rotas, quem pode, regras, dependências, testes) — exceções: `mensagem` (sem routes) e `rtc` (só routes). `Sessao` e `Documento` existem no schema, mas ainda não têm módulo.
 
 ---
 
@@ -359,7 +358,7 @@ Ao fechar uma etapa: `chore: etapa N concluída — critérios verificados`.
 | 8 | Frontend consumindo REST | ✅ Concluída (UI de ficha só OP1) |
 | 9 | Tempo real (Socket.IO) + turno + reconexão | ✅ Concluída |
 | 10 | Mapa, tokens e webcam | 🔄 6 de 7 — falta vídeo entre redes diferentes (exige TURN em produção + 2 dispositivos) |
-| 11 | Polimento e documentação formal | ⬜ |
+| 11 | Polimento e documentação formal | 🔄 5 de 6 + textos da landing — falta Firefox/Safari, avatar e auditoria de acessibilidade (RNF05/10/17) |
 
 ### Etapa 1 — Setup
 - [x] `docker compose up -d` sobe o Postgres; `docker ps` mostra `rpg-postgres` rodando
@@ -392,7 +391,7 @@ Ao fechar uma etapa: `chore: etapa N concluída — critérios verificados`.
 - [x] Convite tem expiração — **só a função pura** (`engine/convite.ts`, testada com vitest); endpoint de consumo (entrar na sala) é Etapa 4, por decisão
 - [x] 11ª tentativa de login no mesmo minuto pelo mesmo IP → **429** (testado com 15 requisições em sequência)
 
-> Rate limit aplicado em `/auth` inteiro (cadastro + login compartilham o mesmo limiter), não só login — conforme a meta não funcional "Rate limit em `/auth`: 10 tentativas/min por IP".
+> Rate limit em **cadastro e login** (os dois compartilham o mesmo contador, 10/min por IP); `GET /auth/me` fica sem limite, porque só valida o token da sessão. Reconferido na Etapa 11: 10 × 401 e a 11ª × 429.
 
 ### Etapa 4 — Sala e Membros
 - [x] Sala criada aparece em `GET /salas`
@@ -465,12 +464,13 @@ Ao fechar uma etapa: `chore: etapa N concluída — critérios verificados`.
 - [x] Queda de vídeo → reconexão automática; após 3 falhas, botão manual — queda simulada (sinalização de um participante some sem ele sair da sala, via gancho só de dev `window.__rpgVideo`): quem liga tenta 3 vezes, os dois lados mostram "Reconectar"; o botão dispara nova tentativa; quando a rede volta, o vídeo se restabelece sozinho (0,2s). Testado nos dois papéis (mestre ligando e jogador ligando)
 
 ### Etapa 11 — Polimento
-- [ ] Documento de requisitos formal com os requisitos classificados
-- [ ] README por módulo do backend
-- [ ] **Todas** as ações destrutivas com confirmação
-- [ ] 6 conexões WebSocket simultâneas numa sala sem degradação
-- [ ] Fluxo principal (login → sala → ficha → combate → mapa) **sem erro no console**
-- [ ] Tabela de requisitos não funcionais percorrida item a item
+> Verificado em 29/09/2026 contra o **build de produção** (`vite preview`), com 6 contas numa mesma mesa (Edge headless, `playwright-core` + `socket.io-client` em diretório temporário fora do repo). Números completos em `docs/REQUISITOS.md` §3.
+- [x] Documento de requisitos formal com os requisitos classificados — `docs/REQUISITOS.md` (RF/RN/RNF/RS, prioridade E/I/D, status e onde foi verificado)
+- [x] README por módulo do backend — `backend/src/modules/*/README.md` (rotas com quem pode, regras, dependências, testes)
+- [x] **Todas** as ações destrutivas com confirmação — inventário rotas DELETE × telas: apagar entrada da ficha, remover token, remover mapa, apagar NPC, expulsar, banir, encerrar combate e **apagar mesa** (faltava tela; criada na aba Membros, avisa quem está na mesa e apaga as imagens dos mapas do disco). Apagar pasta não tem tela (Biblioteca fora da v1); apagar ficha não existe
+- [x] 6 conexões WebSocket simultâneas numa sala sem degradação — 6/6 conectadas; chat p95 16 ms, rolagem p95 3 ms, token p95 9 ms (100 amostras cada)
+- [x] Fluxo principal (login → sala → ficha → combate → mapa) **sem erro no console** — pela interface, no build de produção: login, criar mesa, criar ficha, ajustar Vida, enviar mapa e mostrar, iniciar combate, encerrar turno, chat — zero erros
+- [ ] Tabela de requisitos não funcionais percorrida item a item — percorrida (RNF01–RNF18 em `docs/REQUISITOS.md`); **não fecha** porque RNF05 (Firefox/Safari não testados), RNF10 (não existe upload de avatar) e RNF17 (sem auditoria com leitor de tela) seguem abertos
 - [ ] **Hederson reescreve os textos da landing** (`frontend/src/pages/Apresentacao/Apresentacao.tsx`: título, etapas, "Por que existe", "Para quem", fechamento) com as próprias palavras — a primeira versão foi escrita por IA e a Licença da Comunidade proíbe material gerado por IA em conteúdo comercial. Adiado a pedido dele em 29/09/2026; **lembrar antes de qualquer lançamento.**
 
 ---
