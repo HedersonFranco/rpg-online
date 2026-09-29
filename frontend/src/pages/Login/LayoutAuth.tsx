@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
+import { Link } from 'react-router'
 import { Folha, Pasta } from '../../components/ui/arquivo'
-import { classeTituloArquivo } from '../../components/ui/estilosArquivo'
+import { classeLinkArquivo, classeTituloArquivo } from '../../components/ui/estilosArquivo'
 
 // Login e cadastro: uma pasta aberta sobre o arquivo, com a folha de acesso por cima.
 export function LayoutAuth({ titulo, subtitulo, children, rodape }: {
@@ -22,6 +23,9 @@ export function LayoutAuth({ titulo, subtitulo, children, rodape }: {
             <p className="mt-4 text-center text-sm text-tinta-900">{rodape}</p>
           </div>
         </Pasta>
+        <p className="mt-6 text-center">
+          <Link to="/" className={`text-sm ${classeLinkArquivo}`}>Conhecer o RPG Online</Link>
+        </p>
       </div>
     </main>
   )

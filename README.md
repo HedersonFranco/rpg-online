@@ -38,7 +38,7 @@ Cada mesa escolhe, na criação, entre as duas edições do jogo: **Ordem Parano
 <table>
   <tr>
     <td width="50%"><img src="docs/screenshots/login.png" alt="Tela de login: uma pasta aberta com a folha de acesso"></td>
-    <td width="50%"><img src="docs/screenshots/mesa.png" alt="Mesa: mapa ao centro, vídeo no topo, ficha com atributos e barras de Vida, Sanidade e Esforço à direita"></td>
+    <td width="50%"><img src="docs/screenshots/mesa.jpg" alt="Mesa em combate: planta de um casarão com tokens, ficha à direita e a régua de turno embaixo"></td>
   </tr>
   <tr>
     <td align="center">Login</td>

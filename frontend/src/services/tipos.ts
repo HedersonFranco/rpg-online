@@ -126,6 +126,16 @@ export type Combate = {
 
 export type Npc = { id: string; nome: string }
 
+// Bloco de estatística fixo (não passa pelo motor de cálculo). pv/pe/san são de OP1; pv/pd de OP2.
+export type NpcDetalhe = Npc & {
+  pv: number | null
+  pe: number | null
+  san: number | null
+  pd: number | null
+  atributos: string | null
+  avatarUrl: string | null
+}
+
 export type Mapa = { id: string; nome: string; imagemUrl: string; salaId: string }
 
 // Dados que o backend libera pro token: da ficha, nome e PV; do NPC, só nome/avatar.

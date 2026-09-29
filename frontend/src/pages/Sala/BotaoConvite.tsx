@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { api, mensagemDeErro } from '../../services/api'
 import type { SalaDetalhe } from '../../services/tipos'
 import { Icone } from '../../components/ui/Icone'
-import { classeBotaoSecundario } from '../../components/ui/estilos'
+import { Folha } from '../../components/ui/arquivo'
+import { classeBotaoArquivo, classeCampo } from '../../components/ui/estilosArquivo'
 
 // Só o dono gera convites (regra do backend). Convite vencido é renovado antes de copiar.
 export function BotaoConvite({ sala }: { sala: SalaDetalhe }) {
@@ -39,20 +40,22 @@ export function BotaoConvite({ sala }: { sala: SalaDetalhe }) {
 
   return (
     <div className="relative">
-      <button type="button" onClick={copiar} disabled={status === 'copiando'} className={`${classeBotaoSecundario} py-1.5 text-sm`}>
+      <button type="button" onClick={copiar} disabled={status === 'copiando'} className={classeBotaoArquivo}>
         <Icone nome="copiar" className="h-4 w-4" />
         {status === 'copiado' ? 'Link copiado!' : 'Copiar convite'}
       </button>
       {(linkManual || erro) && (
-        <div role={erro ? 'alert' : undefined} className="absolute top-full right-0 z-10 mt-2 w-80 rounded-md border border-zinc-700 bg-zinc-900 p-3 text-xs shadow-xl">
-          {erro ? (
-            <p className="text-red-300">{erro}</p>
-          ) : (
-            <>
-              <p className="mb-2 text-zinc-400">Não foi possível copiar automaticamente. Copie o link:</p>
-              <input readOnly value={linkManual ?? ''} onFocus={(e) => e.target.select()} className="w-full rounded bg-zinc-800 px-2 py-1 text-zinc-100" />
-            </>
-          )}
+        <div role={erro ? 'alert' : undefined} className="absolute top-full right-0 z-30 mt-2 w-80">
+          <Folha className="p-4 sm:p-4">
+            {erro ? (
+              <p className="text-sm text-carimbo-800">{erro}</p>
+            ) : (
+              <>
+                <p className="mb-2 text-sm text-tinta-700">Não foi possível copiar automaticamente. Copie o link:</p>
+                <input readOnly aria-label="Link do convite" value={linkManual ?? ''} onFocus={(e) => e.target.select()} className={`${classeCampo} text-sm`} />
+              </>
+            )}
+          </Folha>
         </div>
       )}
     </div>

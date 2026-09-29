@@ -1,20 +1,25 @@
 import { useState } from 'react'
 import { useSalaSocket } from '../../hooks/useSocket'
 import { mensagemDeErro } from '../../services/api'
+import { Carimbo } from '../ui/arquivo'
+import { useConfirmar } from '../ui/confirmacaoContext'
 import { Icone } from '../ui/Icone'
-import { classeBotaoPrimario, classeBotaoSecundario } from '../ui/estilos'
+import { classeBotaoArquivo, classeBotaoKraft, condensado } from '../ui/estilosArquivo'
 import { ModalIniciarCombate } from './ModalIniciarCombate'
 import { PainelRolagem } from './PainelRolagem'
 
+// A metade direita da régua inferior: de quem é a vez, a fila e a rolagem.
 export function BarraTurno({ salaId, usuarioId, souMestre }: { salaId: string; usuarioId: string; souMestre: boolean }) {
-  const { combate, aviso, limparAviso, emitir } = useSalaSocket()
+  const { combate, emitir } = useSalaSocket()
+  const confirmar = useConfirmar()
   const [modalAberto, setModalAberto] = useState(false)
   const [rolagemAberta, setRolagemAberta] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
 
   const ativo = combate?.ordem[combate.indiceAtivo]
-  const podeEncerrar = !!ativo && (souMestre || ativo.usuarioId === usuarioId)
+  const minhaVez = !!ativo && ativo.usuarioId === usuarioId
+  const podeEncerrar = !!ativo && (souMestre || minhaVez)
   const proximos = combate ? [...combate.ordem.slice(combate.indiceAtivo + 1), ...combate.ordem.slice(0, combate.indiceAtivo)] : []
 
   async function acao(evento: string, dados?: unknown) {
@@ -29,66 +34,67 @@ export function BarraTurno({ salaId, usuarioId, souMestre }: { salaId: string; u
     }
   }
 
-  function finalizar() {
-    if (window.confirm('Encerrar o combate? A ordem de iniciativa será descartada.')) acao('turno:finalizar')
+  async function finalizar() {
+    const ok = await confirmar({
+      titulo: 'Encerrar o combate?',
+      mensagem: 'A ordem de iniciativa é descartada para toda a mesa.',
+      confirmar: 'Encerrar combate',
+    })
+    if (ok) acao('turno:finalizar')
   }
 
   return (
-    <>
-      {aviso && (
-        <div role="alert" className="flex items-center justify-between gap-3 border-t border-amber-900/60 bg-amber-950/60 px-4 py-2 text-sm text-amber-200">
-          <span>{aviso}</span>
-          <button type="button" onClick={limparAviso} className="text-xs text-amber-300 hover:text-amber-100">Dispensar</button>
-        </div>
-      )}
-      <section aria-label="Turno"
-        className={`flex shrink-0 items-center gap-4 border-t border-zinc-800 bg-zinc-900 px-4 ${combate ? 'h-16' : 'h-11'}`}>
-        {combate && ativo ? (
-          <>
-            <div className="min-w-0">
-              <p className="text-[11px] tracking-wider text-zinc-500 uppercase">Rodada {combate.rodada} · vez de</p>
-              <p className="truncate font-semibold text-violet-300" aria-live="polite">
-                {ativo.nome} <span className="text-xs font-normal text-zinc-400">iniciativa {ativo.iniciativa}</span>
+    <section aria-label="Turno" className="flex min-w-0 flex-1 items-center justify-end gap-3">
+      {combate && ativo ? (
+        <>
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            <div className="textura-fibra flex min-w-0 shrink-0 items-center gap-3 rounded-[2px] bg-papel-50 px-3 py-1.5 text-tinta-900 shadow-[0_1px_2px_rgb(0_0_0/0.25)]">
+              <p className="min-w-0 max-w-44" aria-live="polite">
+                <span className={`block text-xs font-bold tracking-[0.12em] text-tinta-700 uppercase ${condensado}`}>Rodada {combate.rodada} · vez de</span>
+                <span className={`block truncate text-lg leading-tight font-extrabold ${condensado}`}>{ativo.nome}</span>
+                <span className="block font-datilo text-xs text-tinta-700">iniciativa {ativo.iniciativa}</span>
               </p>
+              {minhaVez && <Carimbo>Sua vez</Carimbo>}
             </div>
-            <ol aria-label="Próximos" className="flex min-w-0 flex-1 gap-1.5 overflow-hidden">
-              {proximos.map((p) => (
-                <li key={p.id} className="shrink-0 rounded-full border border-zinc-700 px-2.5 py-0.5 text-xs text-zinc-300">
-                  {p.nome} <span className="text-zinc-500">{p.iniciativa}</span>
-                </li>
-              ))}
-            </ol>
-            <button type="button" disabled={!podeEncerrar || enviando} className={`${classeBotaoPrimario} py-1.5 text-sm`}
-              title={podeEncerrar ? undefined : 'Só o jogador da vez ou o mestre encerram o turno'}
-              onClick={() => acao('turno:encerrar', { indiceAtivo: combate.indiceAtivo, rodada: combate.rodada })}>
-              Encerrar turno
-            </button>
-            {souMestre && (
-              <button type="button" onClick={finalizar} disabled={enviando} className={`${classeBotaoSecundario} py-1.5 text-sm`}>
-                Finalizar combate
-              </button>
+            {proximos.length > 0 && (
+              <ol aria-label="Próximos" className="flex min-w-0 flex-1 gap-1.5 overflow-hidden [mask-image:linear-gradient(to_right,black_85%,transparent)]">
+                {proximos.map((p) => (
+                  <li key={p.id} className="shrink-0 rounded-[2px] border border-kraft-700 px-2 py-1 text-xs text-grafite-100">
+                    {p.nome} <span className="font-datilo text-grafite-300">{p.iniciativa}</span>
+                  </li>
+                ))}
+              </ol>
             )}
-          </>
-        ) : (
-          <>
-            <p className="flex-1 text-sm text-zinc-500">Nenhum combate em andamento</p>
-            {souMestre && (
-              <button type="button" onClick={() => setModalAberto(true)} className={`${classeBotaoSecundario} py-1 text-sm`}>
-                Iniciar combate
-              </button>
-            )}
-          </>
-        )}
-        {erro && <p role="alert" className="max-w-56 text-xs text-red-300">{erro}</p>}
-        <div className="relative">
-          <button type="button" onClick={() => setRolagemAberta((a) => !a)} aria-expanded={rolagemAberta}
-            className={`${classeBotaoSecundario} py-1 text-sm`}>
-            <Icone nome="dados" className="h-4 w-4" /> Rolagem
+          </div>
+          <button type="button" disabled={!podeEncerrar || enviando} className={classeBotaoKraft}
+            title={podeEncerrar ? undefined : 'Só quem está na vez ou o mestre encerram o turno'}
+            onClick={() => acao('turno:encerrar', { indiceAtivo: combate.indiceAtivo, rodada: combate.rodada })}>
+            Encerrar turno
           </button>
-          {rolagemAberta && <PainelRolagem onFechar={() => setRolagemAberta(false)} />}
-        </div>
-      </section>
-      {modalAberto && <ModalIniciarCombate salaId={salaId} onFechar={() => setModalAberto(false)} />}
-    </>
+          {souMestre && (
+            <button type="button" onClick={finalizar} disabled={enviando} className={classeBotaoArquivo}>
+              Finalizar
+            </button>
+          )}
+        </>
+      ) : (
+        <>
+          <p className="text-sm text-grafite-300">Nenhum combate em andamento</p>
+          {souMestre && (
+            <button type="button" onClick={() => setModalAberto(true)} className={classeBotaoArquivo}>
+              Iniciar combate
+            </button>
+          )}
+        </>
+      )}
+      {erro && <p role="alert" className="max-w-56 text-xs text-carimbo-300">{erro}</p>}
+      <div className="relative">
+        <button type="button" onClick={() => setRolagemAberta((a) => !a)} aria-expanded={rolagemAberta} className={classeBotaoArquivo}>
+          <Icone nome="dados" className="h-4 w-4" /> Rolagem
+        </button>
+        {rolagemAberta && <PainelRolagem onFechar={() => setRolagemAberta(false)} />}
+      </div>
+      <ModalIniciarCombate salaId={salaId} aberto={modalAberto} onFechar={() => setModalAberto(false)} />
+    </section>
   )
 }

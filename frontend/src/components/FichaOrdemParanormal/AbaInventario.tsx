@@ -3,7 +3,7 @@ import { useAtrasado } from '../../hooks/useAtrasado'
 import { api, mensagemDeErro } from '../../services/api'
 import type { Ficha } from '../../services/tipos'
 import { Alerta, Spinner } from '../ui/Feedback'
-import { classeBotaoPrimario, classeInput } from '../ui/estilos'
+import { classeBotaoTinta, classeCampo } from '../ui/estilosArquivo'
 
 // Inventário continua texto livre (anotações soltas); itens com categoria/espaço vão na aba Equipamentos.
 export function AbaInventario({
@@ -23,8 +23,8 @@ export function AbaInventario({
 
   if (!podeEditar) {
     return ficha.inventario?.trim()
-      ? <p className="whitespace-pre-wrap break-words text-zinc-300">{ficha.inventario}</p>
-      : <p className="py-4 text-center text-zinc-500">Inventário vazio.</p>
+      ? <p className="whitespace-pre-wrap break-words font-datilo text-tinta-900">{ficha.inventario}</p>
+      : <p className="py-4 text-center text-tinta-700">Inventário vazio.</p>
   }
 
   async function salvar() {
@@ -41,15 +41,19 @@ export function AbaInventario({
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       <label htmlFor="ficha-inventario" className="sr-only">Inventário</label>
       <textarea id="ficha-inventario" rows={8} maxLength={10000} value={texto} onChange={(e) => setTexto(e.target.value)}
-        disabled={salvando} placeholder="Anotações livres: dinheiro, itens soltos, pistas..." className={`${classeInput} text-sm`} />
-      {erro && <Alerta mensagem={erro} />}
-      <button type="button" onClick={salvar} disabled={salvando || !alterado} className={`${classeBotaoPrimario} px-3 py-1.5 text-sm`}>
-        {mostrarSpinner && <Spinner tamanho="sm" />}
-        {salvando ? 'Salvando...' : alterado ? 'Salvar inventário' : 'Salvo'}
-      </button>
+        disabled={salvando} placeholder="Anotações livres: dinheiro, itens soltos, pistas..." className={`${classeCampo} text-sm`} />
+      {erro && <Alerta tom="papel" mensagem={erro} />}
+      {alterado || salvando ? (
+        <button type="button" onClick={salvar} disabled={salvando} className={classeBotaoTinta}>
+          {mostrarSpinner && <Spinner tamanho="sm" />}
+          {salvando ? 'Salvando...' : 'Salvar inventário'}
+        </button>
+      ) : (
+        <p role="status" className="text-sm text-tinta-700">Inventário salvo.</p>
+      )}
     </div>
   )
 }

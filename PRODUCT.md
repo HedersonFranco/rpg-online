@@ -67,6 +67,15 @@ VTT (mapa), nem para uma ferramenta de ficha.
 ## Brand Commitments
 
 - **Nome provisório.** "RPG Online" vai mudar; não construir identidade em cima dele.
+- **Licença da Comunidade de Ordem Paranormal (v1.0, 28/06/2026)** — https://ordemparanormal.com.br/licenca.
+  Permite vender material em aplicativos, incluindo VTTs. Exige: o aviso literal "Este é um conteúdo não
+  oficial, publicado sob a Licença da Comunidade de Ordem Paranormal" e o selo da licença (≥10% da largura
+  da "capa", 100% de opacidade; kit no Drive oficial). Proíbe: imagens e textos dos livros, logos e
+  identidade visual oficiais, nomes próprios do cânone (personagens, lugares, eventos, entidades,
+  organizações — salvo Ordo Realitas; ex.: Arthur, Dante, Santo Berço, Desconjuração), material gerado
+  por IA em conteúdo comercial, sugerir parceria/endosso, e vender ou compartilhar dados pessoais (LGPD).
+  Termos de regra (atributos, NEX, Sanidade, classes, trilhas, os cinco Elementos) são permitidos.
+  Dados de demonstração (screenshots, exemplos) também seguem isso: nada de nomes do cânone.
 - **Ferramenta de fã, sem vínculo oficial** com a Jambô ou com os criadores de Ordem Paranormal. Não pode
   usar logo, arte, ilustrações ou qualquer elemento que faça parecer produto oficial. Estrutura de regras e
   nomes de mecânicas (NEX, Sanidade, elementos) podem aparecer; arte protegida, não.

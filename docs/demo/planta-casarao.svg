@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2000 1400" width="2000" height="1400">
+  <!-- Planta baixa de demonstração do RPG Online: desenho próprio, sem arte de terceiros. -->
+  <defs>
+    <pattern id="grade" width="50" height="50" patternUnits="userSpaceOnUse">
+      <path d="M50 0H0V50" fill="none" stroke="#2a2620" stroke-opacity=".08" stroke-width="1.5"/>
+    </pattern>
+    <pattern id="hachura" width="16" height="16" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <path d="M0 0V16" stroke="#2a2620" stroke-opacity=".35" stroke-width="3"/>
+    </pattern>
+    <filter id="papel"><feTurbulence type="fractalNoise" baseFrequency=".8" numOctaves="2" seed="4"/><feColorMatrix values="0 0 0 0 .16 0 0 0 0 .14 0 0 0 0 .1 0 0 0 .07 0"/></filter>
+  </defs>
+  <rect width="2000" height="1400" fill="#e6dfcb"/>
+  <rect width="2000" height="1400" filter="url(#papel)"/>
+  <rect width="2000" height="1400" fill="url(#grade)"/>
+
+  <g fill="none" stroke="#2a2620" stroke-linejoin="square">
+    <!-- varanda -->
+    <rect x="200" y="1100" width="700" height="150" stroke-width="5" stroke-dasharray="18 10"/>
+    <!-- contorno externo, com vão da porta de entrada (500-590) -->
+    <path d="M200 200H1800V1100H590 M500 1100H200V200" stroke-width="16"/>
+    <!-- paredes internas -->
+    <path d="M900 200V470 M900 560V1100" stroke-width="9"/>
+    <path d="M200 650H380 M470 650H900" stroke-width="9"/>
+    <path d="M900 650H1250 M1340 650H1800" stroke-width="9"/>
+    <path d="M1250 200V420 M1250 500V650" stroke-width="9"/>
+    <path d="M1400 650V1100" stroke-width="9"/>
+    <!-- portas (arco de abertura) -->
+    <path d="M500 1100A90 90 0 0 1 590 1010 M590 1100V1010" stroke-width="3"/>
+    <path d="M900 470A90 90 0 0 1 990 560 M900 560H990" stroke-width="3"/>
+    <path d="M380 650A90 90 0 0 0 470 560 M470 650V560" stroke-width="3"/>
+    <path d="M1250 650A90 90 0 0 1 1340 560 M1340 650V560" stroke-width="3"/>
+    <path d="M1250 420A80 80 0 0 0 1170 500 M1250 500H1170" stroke-width="3"/>
+    <!-- janelas -->
+    <path d="M320 192V208 M320 200H560 M560 192V208 M320 206H560" stroke-width="3"/>
+    <path d="M1000 192V208 M1000 200H1180 M1180 192V208" stroke-width="3"/>
+    <path d="M1792 800V960 M1808 800V960" stroke-width="3"/>
+    <path d="M1100 1092V1108 M1100 1100H1300 M1300 1092V1108" stroke-width="3"/>
+  </g>
+
+  <!-- escada -->
+  <g stroke="#2a2620" stroke-width="3" fill="none">
+    <rect x="1440" y="700" width="160" height="360" fill="url(#hachura)"/>
+    <path d="M1440 745H1600 M1440 790H1600 M1440 835H1600 M1440 880H1600 M1440 925H1600 M1440 970H1600 M1440 1015H1600"/>
+    <path d="M1520 1040V720 M1500 745L1520 720L1540 745" stroke-width="4"/>
+  </g>
+  <!-- alçapão do porão -->
+  <g stroke="#2a2620" fill="none">
+    <rect x="1030" y="820" width="180" height="140" stroke-width="5" stroke-dasharray="14 8"/>
+    <path d="M1030 820L1210 960 M1210 820L1030 960" stroke-width="2" stroke-opacity=".6"/>
+  </g>
+  <!-- mobília mínima -->
+  <g fill="none" stroke="#2a2620" stroke-width="3" stroke-opacity=".7">
+    <rect x="300" y="300" width="260" height="120" rx="6"/>
+    <rect x="620" y="760" width="180" height="180" rx="90"/>
+    <path d="M1300 260H1760 M1300 330H1760 M1300 400H1760" stroke-width="6"/>
+    <rect x="980" y="280" width="200" height="110"/>
+    <rect x="1500" y="440" width="220" height="140"/>
+  </g>
+
+  <g font-family="Archivo, sans-serif" font-weight="800" fill="#2a2620" letter-spacing="3" style="font-stretch:72%">
+    <text x="545" y="520" font-size="44" text-anchor="middle">SALA DE ESTAR</text>
+    <text x="545" y="890" font-size="44" text-anchor="middle">SALA DE JANTAR</text>
+    <text x="1150" y="760" font-size="40" text-anchor="middle">DESPENSA</text>
+    <text x="1525" y="330" font-size="40" text-anchor="middle" dy="200">BIBLIOTECA</text>
+    <text x="1080" y="470" font-size="40" text-anchor="middle">COZINHA</text>
+    <text x="1120" y="1010" font-size="30" text-anchor="middle">ALÇAPÃO</text>
+    <text x="1680" y="900" font-size="36" text-anchor="middle" transform="rotate(-90 1680 900)">ESCADA</text>
+    <text x="550" y="1195" font-size="36" text-anchor="middle">VARANDA</text>
+  </g>
+
+  <!-- carimbo de planta -->
+  <g transform="translate(1440 1150)" font-family="Archivo, sans-serif" fill="#2a2620">
+    <rect width="360" height="170" fill="none" stroke="#2a2620" stroke-width="4"/>
+    <path d="M0 60H360 M0 115H360 M200 60V115" stroke="#2a2620" stroke-width="2"/>
+    <text x="18" y="42" font-size="30" font-weight="800" letter-spacing="3" style="font-stretch:72%">CASARÃO · TÉRREO</text>
+    <text x="18" y="96" font-size="22" font-family="Courier Prime, monospace">esc. 1:100</text>
+    <text x="218" y="96" font-size="22" font-family="Courier Prime, monospace">folha 01</text>
+    <text x="18" y="151" font-size="22" font-family="Courier Prime, monospace">mapa de demonstração</text>
+  </g>
+</svg>

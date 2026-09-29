@@ -3,6 +3,7 @@ import { useAoResincronizar, useEventoSocket } from '../../hooks/useSocket'
 import type { Ficha, SalaDetalhe, Usuario } from '../../services/tipos'
 import { Alerta, Carregando } from '../ui/Feedback'
 import { Icone } from '../ui/Icone'
+import { classeLinkArquivo } from '../ui/estilosArquivo'
 import { FormNovaFicha } from './FormNovaFicha'
 import { ListaAgentes } from './ListaAgentes'
 import { VisaoFicha } from './VisaoFicha'
@@ -21,7 +22,7 @@ type PropsPainel = {
 export function PainelFicha(props: PropsPainel) {
   if (props.sala.sistema === 'ORDEM_PARANORMAL_2') {
     return (
-      <p className="text-sm text-zinc-400">
+      <p className="text-sm text-grafite-300">
         Fichas de Ordem Paranormal RPG II ainda não estão disponíveis: o playtest oficial ainda não publicou
         as regras de criação de personagem.
       </p>
@@ -43,7 +44,7 @@ function PainelFichaOP1({ sala, usuario, visao, onVisao }: PropsPainel) {
   useAoResincronizar(revalidar)
 
   if (estado.tipo === 'carregando') return <Carregando texto="Carregando fichas..." />
-  if (estado.tipo === 'erro') return <Alerta mensagem={estado.mensagem} onTentarNovamente={recarregar} />
+  if (estado.tipo === 'erro') return <Alerta tom="arquivo" mensagem={estado.mensagem} onTentarNovamente={recarregar} />
 
   const fichas = estado.dados
   const souMestre = sala.membros.some((m) => m.usuarioId === usuario.id && m.papel === 'MESTRE')
@@ -75,7 +76,7 @@ function PainelFichaOP1({ sala, usuario, visao, onVisao }: PropsPainel) {
   return (
     <div className="space-y-4">
       <button type="button" onClick={() => onVisao('lista')}
-        className="inline-flex items-center gap-1 text-sm text-zinc-400 hover:text-zinc-200">
+        className={`inline-flex items-center gap-1 text-sm no-underline ${classeLinkArquivo}`}>
         <Icone nome="voltar" className="h-4 w-4" /> Agentes da mesa
       </button>
       <VisaoFicha

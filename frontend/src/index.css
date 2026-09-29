@@ -7,7 +7,7 @@
 
 /*
  * Mundo "Dossiê de caso": arquivo escuro, pastas kraft, folhas de papel, tinta e carimbo.
- * Vale hoje nas telas de entrada (login, cadastro, lista, convite); a mesa ainda usa zinc/violeta.
+ * Vale no produto inteiro: entrada, apresentação e mesa.
  * Vermelho de carimbo é só para estado (papel na mesa, erro), nunca para ação.
  */
 @theme {
@@ -41,6 +41,22 @@
   --color-tinta-700: #3a362f;
   --color-tinta-600: #4f4a41;
 
+  /* Tintas dos recursos da ficha (sobre papel). Nenhuma é a cor de ação (tinta-900) nem o carimbo. */
+  --color-recurso-vida: #a0283f; /* carmim: longe do vermelho-laranja do carimbo */
+  --color-recurso-sanidade: #2d5a86;
+  --color-recurso-esforco: #a56c13;
+
+  /* Marca de cor dos elementos dos rituais (sobre papel). */
+  --color-elemento-sangue: #7e2231;
+  --color-elemento-morte: #3a3731;
+  --color-elemento-conhecimento: #b0861a;
+  --color-elemento-energia: #6f3b93;
+  --color-elemento-medo: #c9d6e0; /* branco-frio: distinto do papel */
+  --color-elemento-varia: #6d6a62;
+
+  /* sinal de conexão ao vivo (a única cor fora da papelaria: é luz de equipamento) */
+  --color-sinal-vivo: #6fae7c;
+
   --color-carimbo-900: #6e1a15;
   --color-carimbo-800: #86201a;
   --color-carimbo-600: #c2352b;
@@ -55,8 +71,8 @@ body,
 }
 
 body {
-  background-color: var(--color-zinc-950);
-  color: var(--color-zinc-100);
+  background-color: var(--color-arquivo-900);
+  color: var(--color-grafite-100);
   -webkit-font-smoothing: antialiased;
 }
 

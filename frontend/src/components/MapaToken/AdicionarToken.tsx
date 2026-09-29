@@ -2,7 +2,9 @@ import { useState, type FormEvent } from 'react'
 import { useRecurso } from '../../hooks/useRecurso'
 import { api, mensagemDeErro } from '../../services/api'
 import type { Ficha, Npc } from '../../services/tipos'
-import { classeBotaoPrimario, classeInput } from '../ui/estilos'
+import { Alerta } from '../ui/Feedback'
+import { Folha } from '../ui/arquivo'
+import { classeAbaFolha, classeBotaoContorno, classeBotaoTinta, classeCampo, classeRotulo, classeSelect } from '../ui/estilosArquivo'
 
 type Tipo = 'FICHA' | 'NPC' | 'OBJETO'
 
@@ -44,33 +46,38 @@ export function AdicionarToken({
   }
 
   return (
-    <form onSubmit={adicionar} aria-label="Adicionar token" onPointerDown={(e) => e.stopPropagation()}
-      className="absolute top-3 left-16 z-30 w-72 space-y-3 rounded-lg border border-zinc-700 bg-zinc-900 p-3 shadow-xl">
-      <div role="radiogroup" aria-label="Tipo de token" className="grid grid-cols-3 gap-1 text-xs">
-        {(['FICHA', 'NPC', 'OBJETO'] as const).map((t) => (
-          <button key={t} type="button" role="radio" aria-checked={tipo === t} onClick={() => { setTipo(t); setRefId('') }}
-            className={`rounded-md py-1.5 ${tipo === t ? 'bg-violet-600 text-white' : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'}`}>
-            {t === 'FICHA' ? 'Ficha' : t === 'NPC' ? 'NPC' : 'Objeto'}
-          </button>
-        ))}
-      </div>
-      {tipo === 'OBJETO' ? (
-        <label className="block text-xs text-zinc-400">Nome do objeto
-          <input required value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex.: Baú, Porta" className={`${classeInput} mt-1 py-1.5 text-sm`} />
-        </label>
-      ) : (
-        <label className="block text-xs text-zinc-400">{tipo === 'FICHA' ? 'Ficha' : 'NPC'}
-          <select required value={refId} onChange={(e) => setRefId(e.target.value)} className={`${classeInput} mt-1 py-1.5 text-sm`}>
-            <option value="" disabled>{opcoes.length ? 'Escolha' : tipo === 'FICHA' ? 'Nenhuma ficha na mesa' : 'Nenhum NPC na mesa'}</option>
-            {opcoes.map((o) => <option key={o.id} value={o.id}>{o.nome}</option>)}
-          </select>
-        </label>
-      )}
-      {erro && <p role="alert" className="text-xs text-red-300">{erro}</p>}
-      <div className="flex justify-end gap-2">
-        <button type="button" onClick={onFechar} className="px-2 text-sm text-zinc-400 hover:text-zinc-200">Cancelar</button>
-        <button type="submit" disabled={enviando} className={`${classeBotaoPrimario} px-3 py-1.5 text-sm`}>Adicionar</button>
-      </div>
-    </form>
+    <div onPointerDown={(e) => e.stopPropagation()} className="absolute top-3 left-16 z-30 w-80">
+      <Folha className="p-4 sm:p-4">
+        <form onSubmit={adicionar} aria-label="Adicionar token" className="space-y-4">
+          <div role="radiogroup" aria-label="Tipo de token" className="grid grid-cols-3 gap-1.5">
+            {(['FICHA', 'NPC', 'OBJETO'] as const).map((t) => (
+              <button key={t} type="button" role="radio" aria-checked={tipo === t} onClick={() => { setTipo(t); setRefId('') }}
+                className={classeAbaFolha(tipo === t)}>
+                {t === 'FICHA' ? 'Ficha' : t === 'NPC' ? 'NPC' : 'Objeto'}
+              </button>
+            ))}
+          </div>
+          {tipo === 'OBJETO' ? (
+            <div>
+              <label htmlFor="token-nome" className={classeRotulo}>Nome do objeto</label>
+              <input id="token-nome" required value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex.: Baú, Porta" className={classeCampo} />
+            </div>
+          ) : (
+            <div>
+              <label htmlFor="token-ref" className={classeRotulo}>{tipo === 'FICHA' ? 'Ficha' : 'NPC'}</label>
+              <select id="token-ref" required value={refId} onChange={(e) => setRefId(e.target.value)} className={classeSelect(refId === '')}>
+                <option value="" disabled>{opcoes.length ? 'Escolha' : tipo === 'FICHA' ? 'Nenhuma ficha na mesa' : 'Nenhum NPC na mesa'}</option>
+                {opcoes.map((o) => <option key={o.id} value={o.id}>{o.nome}</option>)}
+              </select>
+            </div>
+          )}
+          {erro && <Alerta tom="papel" mensagem={erro} />}
+          <div className="flex justify-end gap-2">
+            <button type="button" onClick={onFechar} className={classeBotaoContorno}>Cancelar</button>
+            <button type="submit" disabled={enviando} className={classeBotaoTinta}>Adicionar</button>
+          </div>
+        </form>
+      </Folha>
+    </div>
   )
 }
