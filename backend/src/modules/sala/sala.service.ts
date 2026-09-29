@@ -1,7 +1,8 @@
 import { prisma } from '../../lib/prisma.js'
 import { AppError } from '../../errors/AppError.js'
 import { gerarConvite, validarConvite } from '../../engine/convite.js'
-import { emitirParaSala, expulsarDaSala } from '../../sockets/emissor.js'
+import { emitirParaSala, encerrarSala, expulsarDaSala } from '../../sockets/emissor.js'
+import { removerArquivo } from '../../lib/armazenamento.js'
 
 const LIMITE_SALAS_POR_DONO = 3
 const SISTEMAS_VALIDOS = ['ORDEM_PARANORMAL_1', 'ORDEM_PARANORMAL_2'] as const
@@ -92,7 +93,11 @@ export async function deletarSala(salaId: string, usuarioId: string) {
     throw new AppError('Apenas o dono pode deletar a sala', 403)
   }
 
+  // As imagens dos mapas ficam no disco (ou S3), fora do cascade do banco: guarda antes, remove depois.
+  const mapas = await prisma.mapa.findMany({ where: { salaId }, select: { imagemUrl: true } })
   await prisma.sala.delete({ where: { id: salaId } })
+  await encerrarSala(salaId)
+  await Promise.all(mapas.map((m) => removerArquivo(m.imagemUrl)))
 }
 
 export async function regenerarConvite(salaId: string, usuarioId: string) {
@@ -165,6 +170,10 @@ export async function promoverMembro(
   const membro = await prisma.membroSala.findFirst({ where: { id: membroId, salaId } })
   if (!membro) {
     throw new AppError('Membro não encontrado', 404)
+  }
+  // O dono é sempre mestre: rebaixá-lo tiraria dele as ferramentas de mestre da própria mesa.
+  if (membro.usuarioId === sala.donoId) {
+    throw new AppError('O dono da mesa é sempre mestre', 400)
   }
 
   const atualizado = await prisma.membroSala.update({ where: { id: membro.id }, data: { papel: novoPapel } })

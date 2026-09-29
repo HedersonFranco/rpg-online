@@ -1,11 +1,12 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router'
 import { useRecurso } from '../../hooks/useRecurso'
 import { api, mensagemDeErro } from '../../services/api'
 import type { Banimento, Membro, Papel, SalaDetalhe, Usuario } from '../../services/tipos'
 import { Alerta, Carregando } from '../ui/Feedback'
 import { CarimboPapel, Folha } from '../ui/arquivo'
 import { useConfirmar } from '../ui/confirmacaoContext'
-import { classeBotaoContorno, classeSelect, classeTituloArquivo, condensado } from '../ui/estilosArquivo'
+import { classeBotaoArquivo, classeBotaoContorno, classeSelect, classeTituloArquivo, condensado } from '../ui/estilosArquivo'
 
 const formatoData = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
 
@@ -15,6 +16,7 @@ const classeAcao = `${classeBotaoContorno} min-h-9 px-3 text-xs`
 export function PainelMembros({ sala, usuario }: { sala: SalaDetalhe; usuario: Usuario }) {
   const banidos = useRecurso<Banimento[]>(`/salas/${sala.id}/banidos`)
   const confirmar = useConfirmar()
+  const navigate = useNavigate()
   const [pendente, setPendente] = useState<string | null>(null)
   const [erro, setErro] = useState<string | null>(null)
 
@@ -51,6 +53,19 @@ export function PainelMembros({ sala, usuario }: { sala: SalaDetalhe; usuario: U
     await executar(membro.id, async () => {
       await api(`/salas/${sala.id}/membros/${membro.id}${banir ? '?banir=1' : ''}`, { method: 'DELETE' })
       if (banir) banidos.revalidar()
+    })
+  }
+
+  async function apagarMesa() {
+    const ok = await confirmar({
+      titulo: `Apagar "${sala.nome}"?`,
+      mensagem: 'A mesa some para todo mundo, com todas as fichas, NPCs, mapas, tokens e mensagens. Quem estiver nela agora é tirado da mesa. Isso não pode ser desfeito.',
+      confirmar: 'Apagar mesa',
+    })
+    if (!ok) return
+    await executar('apagar-mesa', async () => {
+      await api(`/salas/${sala.id}`, { method: 'DELETE' })
+      navigate('/salas', { replace: true, state: { aviso: `A mesa "${sala.nome}" foi apagada.` } })
     })
   }
 
@@ -130,6 +145,14 @@ export function PainelMembros({ sala, usuario }: { sala: SalaDetalhe; usuario: U
             </ul>
           </Folha>
         )}
+      </section>
+
+      <section aria-labelledby="titulo-apagar" className="border-t border-arquivo-700 pt-6">
+        <h4 id="titulo-apagar" className={`text-xl leading-none ${classeTituloArquivo}`}>Apagar esta mesa</h4>
+        <p className="mt-2 text-sm text-grafite-300">Apaga a mesa para todos, com fichas, NPCs, mapas e mensagens. Não tem volta.</p>
+        <button type="button" onClick={apagarMesa} disabled={pendente !== null} className={`${classeBotaoArquivo} mt-4`}>
+          Apagar mesa
+        </button>
       </section>
     </div>
   )

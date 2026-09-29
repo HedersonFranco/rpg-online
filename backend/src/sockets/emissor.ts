@@ -1,5 +1,5 @@
 import type { Server } from 'socket.io'
-import { nomeSalaSocket } from './estado.js'
+import { combates, nomeSalaSocket, ultimasRolagens } from './estado.js'
 
 // Separado de io.ts de propósito: os services importam só isto, sem puxar
 // salaSocket.ts (que importa services) — evita dependência circular.
@@ -34,4 +34,19 @@ export async function expulsarDaSala(salaId: string, usuarioId: string, motivo: 
     .filter((s) => s.data.video)
     .map((s) => ({ usuarioId: s.data.usuarioId, nome: s.data.nome, peerId: s.data.video.peerId, temCamera: s.data.video.temCamera }))
   servidor.to(sala).emit('video:participantes', { participantes })
+}
+
+// Mesa apagada pelo dono: todas as abas abertas nela recebem o aviso e saem da sala de socket,
+// e o estado em memória (combate, última rolagem) é descartado.
+export async function encerrarSala(salaId: string) {
+  combates.delete(salaId)
+  ultimasRolagens.delete(salaId)
+  if (!servidor) return
+  const sala = nomeSalaSocket(salaId)
+  servidor.to(sala).emit('sala:removido', { salaId, motivo: 'apagada' })
+  for (const s of await servidor.in(sala).fetchSockets()) {
+    s.leave(sala)
+    s.data.salaId = undefined
+    s.data.video = undefined
+  }
 }
