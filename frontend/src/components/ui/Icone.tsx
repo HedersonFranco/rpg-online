@@ -6,7 +6,7 @@ export type NomeIcone =
   | 'cursor' | 'mover' | 'zoomMais' | 'zoomMenos' | 'telaCheia'
   | 'mais' | 'menos' | 'dados'
   | 'camera' | 'cameraDesligada' | 'microfone' | 'lixeira' | 'ajustar'
-  | 'chat' | 'recolher'
+  | 'chat' | 'recolher' | 'membros'
 
 const caminhos: Record<NomeIcone, ReactNode> = {
   mesa: (<><rect x="3" y="3" width="7" height="9" rx="1" /><rect x="14" y="3" width="7" height="5" rx="1" /><rect x="14" y="12" width="7" height="9" rx="1" /><rect x="3" y="16" width="7" height="5" rx="1" /></>),
@@ -33,6 +33,8 @@ const caminhos: Record<NomeIcone, ReactNode> = {
   lixeira: (<><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" /></>),
   chat: <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />,
   recolher: <path d="m9 18 6-6-6-6" />,
+  // Crachá: os membros da mesa (diferente das duas silhuetas dos NPCs).
+  membros: (<><rect x="3" y="5" width="18" height="14" rx="2" /><circle cx="9" cy="11" r="2.5" /><path d="M5.5 17a3.5 3.5 0 0 1 7 0M15 10h3M15 14h3" /></>),
   ajustar: (<><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M8 12h8M12 8v8" /></>),
 }
 

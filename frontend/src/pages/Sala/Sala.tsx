@@ -1,9 +1,9 @@
 import { useState, type ReactNode } from 'react'
-import { Link, useParams } from 'react-router'
+import { Link, useNavigate, useParams } from 'react-router'
 import { useAuth, useUsuarioLogado } from '../../hooks/useAuth'
 import { useRecurso } from '../../hooks/useRecurso'
 import { useVideoChamada } from '../../hooks/useVideoChamada'
-import { NOME_SISTEMA, type SalaDetalhe, type Usuario } from '../../services/tipos'
+import { NOME_SISTEMA, type Membro, type SalaDetalhe, type Usuario } from '../../services/tipos'
 import { Alerta, Carregando } from '../../components/ui/Feedback'
 import { Abas, type Aba } from '../../components/ui/Abas'
 import { ConfirmacaoProvider } from '../../components/ui/ConfirmacaoProvider'
@@ -23,8 +23,9 @@ import { BarraTurno } from '../../components/TurnoTracker/BarraTurno'
 import { PainelFicha, type VisaoPainelFicha } from '../../components/FichaOrdemParanormal/PainelFicha'
 import { PainelChat } from '../../components/Chat/PainelChat'
 import { PainelNpcs } from '../../components/Npc/PainelNpcs'
+import { PainelMembros } from '../../components/Membros/PainelMembros'
 import { SalaSocketProvider } from '../../hooks/SalaSocketProvider'
-import { useSalaSocket } from '../../hooks/useSocket'
+import { useEventoSocket, useSalaSocket } from '../../hooks/useSocket'
 import { BotaoConvite } from './BotaoConvite'
 
 const ROTULO_CONEXAO = {
@@ -44,16 +45,18 @@ function IndicadorConexao() {
   )
 }
 
-type AbaPainel = 'ficha' | 'chat' | 'npcs'
+type AbaPainel = 'ficha' | 'chat' | 'npcs' | 'membros'
 
 const ABAS_PAINEL: (Aba<AbaPainel> & { icone: NomeIcone; texto: string })[] = [
   { chave: 'ficha', rotulo: 'Ficha', texto: 'Ficha', icone: 'fichas' },
   { chave: 'chat', rotulo: 'Chat', texto: 'Chat', icone: 'chat' },
   { chave: 'npcs', rotulo: 'NPCs', texto: 'NPCs', icone: 'npcs' },
+  { chave: 'membros', rotulo: 'Membros', texto: 'Membros', icone: 'membros' },
 ]
 
-// NPCs são ferramenta do mestre: o jogador não vê a aba.
-const abasDoPainel = (souMestre: boolean) => ABAS_PAINEL.filter((a) => souMestre || a.chave !== 'npcs')
+// NPCs são ferramenta do mestre; Membros (expulsar/banir/papel) é só do dono.
+const abasDoPainel = (souMestre: boolean, souDono: boolean) =>
+  ABAS_PAINEL.filter((a) => (a.chave !== 'npcs' || souMestre) && (a.chave !== 'membros' || souDono))
 
 const CHAVE_PAINEL_ABERTO = 'mesa:painelAberto'
 
@@ -89,10 +92,10 @@ function PainelDireito({ sala, usuario, souMestre, aberto, aba, onAbrir, onRecol
   if (!aberto) {
     return (
       <PastaDeFolhas lado="direita" rotulo="Painel lateral (recolhido)" onEscolher={onAbrir}
-        folhas={abasDoPainel(souMestre).map(({ chave, texto, icone }) => ({ chave, rotulo: texto, icone }))} />
+        folhas={abasDoPainel(souMestre, sala.donoId === usuario.id).map(({ chave, texto, icone }) => ({ chave, rotulo: texto, icone }))} />
     )
   }
-  const abas = abasDoPainel(souMestre)
+  const abas = abasDoPainel(souMestre, sala.donoId === usuario.id)
   const abaAtiva = abas.find((a) => a.chave === aba) ?? abas[0]
   return (
     <aside aria-label="Painel lateral" className="flex w-[380px] shrink-0 flex-col border-l border-arquivo-700 bg-arquivo-850">
@@ -107,6 +110,7 @@ function PainelDireito({ sala, usuario, souMestre, aberto, aba, onAbrir, onRecol
         {abaAtiva.chave === 'ficha' && <PainelFicha sala={sala} usuario={usuario} visao={visaoFicha} onVisao={onVisaoFicha} />}
         {abaAtiva.chave === 'chat' && <PainelChat salaId={sala.id} />}
         {abaAtiva.chave === 'npcs' && <PainelNpcs salaId={sala.id} sistema={sala.sistema} />}
+        {abaAtiva.chave === 'membros' && <PainelMembros sala={sala} usuario={usuario} />}
       </div>
     </aside>
   )
@@ -148,10 +152,23 @@ const VISTAS: Folha<Vista>[] = [
   { chave: 'mapas', rotulo: 'Mapas', icone: 'mapa' },
 ]
 
-function Mesa({ sala }: { sala: SalaDetalhe }) {
+function Mesa({ sala: salaInicial }: { sala: SalaDetalhe }) {
   const usuario = useUsuarioLogado()
   const { sair } = useAuth()
   const { aviso, limparAviso } = useSalaSocket()
+  const navigate = useNavigate()
+  // Membros ao vivo: entrou alguém, trocou papel, saiu alguém — a mesa inteira (vídeo, ficha, turno) acompanha.
+  const [membros, setMembros] = useState<Membro[]>(salaInicial.membros)
+  const sala = { ...salaInicial, membros }
+  useEventoSocket<{ membros: Membro[] }>('sala:membros', ({ membros: novos }) => setMembros(novos))
+  // Expulso ou banido pelo dono: volta pra lista de mesas com o aviso.
+  useEventoSocket<{ salaId: string; motivo: 'expulso' | 'banido' }>('sala:removido', ({ salaId, motivo }) => {
+    if (salaId !== salaInicial.id) return
+    navigate('/salas', {
+      replace: true,
+      state: { aviso: motivo === 'banido' ? `Você foi banido de "${salaInicial.nome}" pelo dono da mesa.` : `Você foi removido de "${salaInicial.nome}" pelo dono da mesa.` },
+    })
+  })
   const video = useVideoChamada()
   const [vista, setVista] = useState<Vista>('mesa')
   const [painelAberto, setPainelAberto] = useState(lerPainelAberto)

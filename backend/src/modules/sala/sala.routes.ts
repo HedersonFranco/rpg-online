@@ -6,8 +6,11 @@ import {
   deletarController,
   entrarController,
   listarController,
+  desbanirController,
+  listarBanidosController,
   promoverMembroController,
   regenerarConviteController,
+  removerMembroController,
 } from './sala.controller.js'
 import {
   criarController as criarFichaController,
@@ -42,6 +45,9 @@ salaRoutes.get('/:id', buscarController)
 salaRoutes.delete('/:id', deletarController)
 salaRoutes.post('/:id/convite', regenerarConviteController)
 salaRoutes.patch('/:id/membros/:membroId', promoverMembroController)
+salaRoutes.delete('/:id/membros/:membroId', removerMembroController)
+salaRoutes.get('/:id/banidos', listarBanidosController)
+salaRoutes.delete('/:id/banidos/:usuarioId', desbanirController)
 salaRoutes.post('/:id/fichas', criarFichaController)
 salaRoutes.get('/:id/fichas', listarFichasController)
 salaRoutes.post('/:id/npcs', criarNpcController)
