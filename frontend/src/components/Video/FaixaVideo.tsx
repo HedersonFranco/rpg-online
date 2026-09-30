@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react'
-import { useSalaSocket } from '../../hooks/useSocket'
 import { useVideoChamada, type ModoCamera } from '../../hooks/useVideoChamada'
 import type { EstadoPar } from '../../services/malhaVideo'
 import type { SalaDetalhe, Usuario } from '../../services/tipos'
@@ -61,11 +60,18 @@ export function AvisoCamera({ video }: { video: ReturnType<typeof useVideoChamad
 }
 
 // Metade esquerda da régua inferior: uma foto por membro da mesa, com borda de papel impresso.
-export function FaixaVideo({ sala, usuario, video }: { sala: SalaDetalhe; usuario: Usuario; video: ReturnType<typeof useVideoChamada> }) {
-  // Em combate o turno precisa de espaço na régua: as fotos cedem e rolam para o lado.
-  const { combate } = useSalaSocket()
+// `alturaFoto` acompanha a altura da régua; a largura segue 16:9, mas nunca passa da faixa (aí o vídeo recorta).
+export function FaixaVideo({ sala, usuario, video, alturaFoto }: {
+  sala: SalaDetalhe
+  usuario: Usuario
+  video: ReturnType<typeof useVideoChamada>
+  alturaFoto: number
+}) {
+  // A régua é dividida com o turno (que cresce 1, ou 2 em combate): no tamanho padrão as fotos
+  // ficam com ~metade (~1/3 em combate) e rolam para o lado; câmeras maiores ganham largura na
+  // mesma proporção. O turno nunca encolhe abaixo do que os botões dele precisam.
   return (
-    <section aria-label="Participantes" className={`flex min-w-0 shrink items-center gap-2 ${combate ? 'max-w-[30%]' : 'max-w-[45%]'}`}>
+    <section aria-label="Participantes" style={{ flexGrow: alturaFoto / 72 }} className="flex min-w-0 basis-0 items-center gap-2">
       <ul className="flex min-w-0 items-center gap-2 overflow-x-auto py-1">
         {sala.membros.map((membro) => {
           const souEu = membro.usuarioId === usuario.id
@@ -85,13 +91,13 @@ export function FaixaVideo({ sala, usuario, video }: { sala: SalaDetalhe; usuari
           }
 
           return (
-            <li key={membro.id} data-membro={membro.usuario.nome}
-              className={`relative h-[72px] w-32 shrink-0 overflow-hidden rounded-[2px] border-[3px] border-papel-100 bg-arquivo-800 shadow-[0_6px_12px_-8px_rgb(0_0_0/0.9)] ${online ? '' : 'opacity-50'}`}>
+            <li key={membro.id} data-membro={membro.usuario.nome} style={{ height: alturaFoto, width: Math.round((alturaFoto * 16) / 9) }}
+              className={`relative max-w-full shrink-0 overflow-hidden rounded-[2px] border-[3px] border-papel-100 bg-arquivo-800 shadow-[0_6px_12px_-8px_rgb(0_0_0/0.9)] ${online ? '' : 'opacity-50'}`}>
               {stream ? (
                 <VideoAoVivo stream={stream} silenciado={souEu} nome={membro.usuario.nome} />
               ) : (
                 <div className="flex h-full flex-col items-center justify-center gap-0.5 pt-2 pb-5">
-                  <span aria-hidden="true" className={`text-2xl leading-none font-extrabold text-grafite-300 ${condensado}`}>
+                  <span aria-hidden="true" style={{ fontSize: Math.round(alturaFoto / 3) }} className={`leading-none font-extrabold text-grafite-300 ${condensado}`}>
                     {membro.usuario.nome.charAt(0).toUpperCase()}
                   </span>
                   {!souEu && estado === 'falhou' && principal ? (
@@ -125,26 +131,31 @@ export function FaixaVideo({ sala, usuario, video }: { sala: SalaDetalhe; usuari
           )
         })}
       </ul>
-
-      <div className="flex shrink-0 items-center gap-1.5">
-        {video.streamLocal ? (
-          <>
-            <button type="button" onClick={video.desligarCamera} aria-label="Desligar câmera" title="Desligar câmera" className={classeBotaoIconeArquivo}>
-              <Icone nome="cameraDesligada" className="h-4 w-4" />
-            </button>
-            <button type="button" onClick={video.alternarMicrofone} aria-pressed={!video.microfoneLigado}
-              aria-label={video.microfoneLigado ? 'Silenciar microfone' : 'Ativar microfone'}
-              title={video.microfoneLigado ? 'Silenciar microfone' : 'Ativar microfone'} className={classeBotaoIconeArquivo}>
-              <Icone nome={video.microfoneLigado ? 'microfone' : 'microfoneDesligado'} className="h-4 w-4" />
-            </button>
-          </>
-        ) : (
-          <button type="button" onClick={video.ligarCamera} disabled={video.modo === 'pedindo'} className={classeBotaoArquivo}
-            aria-label="Entrar com câmera" title="Entrar com câmera (opcional)">
-            <Icone nome="camera" className="h-4 w-4" /> Câmera
-          </button>
-        )}
-      </div>
     </section>
+  )
+}
+
+// Câmera e microfone valem pra chamada inteira: ficam no cabeçalho, e a régua fica toda para as fotos e o turno.
+export function ControlesCamera({ video }: { video: ReturnType<typeof useVideoChamada> }) {
+  return (
+    <div className="flex shrink-0 items-center gap-1.5">
+      {video.streamLocal ? (
+        <>
+          <button type="button" onClick={video.desligarCamera} aria-label="Desligar câmera" title="Desligar câmera" className={classeBotaoIconeArquivo}>
+            <Icone nome="cameraDesligada" className="h-4 w-4" />
+          </button>
+          <button type="button" onClick={video.alternarMicrofone} aria-pressed={!video.microfoneLigado}
+            aria-label={video.microfoneLigado ? 'Silenciar microfone' : 'Ativar microfone'}
+            title={video.microfoneLigado ? 'Silenciar microfone' : 'Ativar microfone'} className={classeBotaoIconeArquivo}>
+            <Icone nome={video.microfoneLigado ? 'microfone' : 'microfoneDesligado'} className="h-4 w-4" />
+          </button>
+        </>
+      ) : (
+        <button type="button" onClick={video.ligarCamera} disabled={video.modo === 'pedindo'} className={classeBotaoArquivo}
+          aria-label="Entrar com câmera" title="Entrar com câmera (opcional)">
+          <Icone nome="camera" className="h-4 w-4" /> Câmera
+        </button>
+      )}
+    </div>
   )
 }
