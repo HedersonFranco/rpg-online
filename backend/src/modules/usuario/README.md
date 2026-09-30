@@ -8,14 +8,15 @@ Montado em `/auth` (`server.ts`).
 
 | Método | Caminho | Quem pode | O que faz |
 |---|---|---|---|
-| POST | `/auth/cadastro` | qualquer um (rate limit) | Cria usuário e devolve `{ usuario, token }` (201). `400` para nome vazio, email inválido, senha curta ou email já cadastrado. |
+| POST | `/auth/cadastro` | qualquer um (rate limit) | Cria usuário e devolve `{ usuario, token }` (201). `400` para nome vazio ou longo demais, email inválido, senha curta ou email já cadastrado. |
 | POST | `/auth/login` | qualquer um (rate limit) | Devolve `{ usuario, token }`. `401` para email ou senha inválidos. |
 | GET | `/auth/me` | autenticado | Devolve `{ id, nome, email }` do dono do token. `404` se o usuário não existe mais. |
 
 ## Regras
 
-- Nome obrigatório (após `trim`); email validado por regex simples; senha com no mínimo 6 caracteres.
-- Email duplicado é rejeitado com `400` ("Email já cadastrado").
+- Nome obrigatório (após `trim`), no máximo 60 caracteres; email validado por regex simples, no máximo 254; senha com no mínimo 6 caracteres.
+- Email é guardado e buscado em minúsculas, sem espaços (`normalizarEmail`) — no cadastro e no login. `Joao@x.com` e `joao@x.com` são a mesma conta.
+- Email duplicado (em qualquer caixa) é rejeitado com `400` ("Email já cadastrado").
 - Senha guardada só como hash bcrypt (`bcryptjs`, 10 rounds) em `senha_hash`.
 - Login com email inexistente ou senha errada dá a mesma mensagem genérica (`401`), para não revelar se o email existe.
 - A resposta nunca inclui `senha_hash` — só `id`, `nome`, `email` (`paraPublico`).
