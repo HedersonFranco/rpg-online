@@ -44,12 +44,13 @@ export function BarraTurno({ salaId, usuarioId, souMestre }: { salaId: string; u
   }
 
   return (
-    <section aria-label="Turno" className="flex min-w-0 flex-1 items-center justify-end gap-3">
+    // Sem min-w-0: o turno não encolhe abaixo dos próprios botões; quem cede é a fila (e as fotos).
+    <section aria-label="Turno" className={`flex basis-0 items-center justify-end gap-3 ${combate ? 'grow-2' : 'grow'}`}>
       {combate && ativo ? (
         <>
-          <div className="flex min-w-0 flex-1 items-center gap-3">
+          <div className="flex flex-1 items-center gap-3">
             <div className="textura-fibra flex min-w-0 shrink-0 items-center gap-3 rounded-[2px] bg-papel-50 px-3 py-1.5 text-tinta-900 shadow-[0_1px_2px_rgb(0_0_0/0.25)]">
-              <p className="min-w-0 max-w-44" aria-live="polite">
+              <p className="min-w-0 max-w-44 whitespace-nowrap" aria-live="polite">
                 <span className={`block text-xs font-bold tracking-[0.12em] text-tinta-700 uppercase ${condensado}`}>Rodada {combate.rodada} · vez de</span>
                 <span className={`block truncate text-lg leading-tight font-extrabold ${condensado}`}>{ativo.nome}</span>
                 <span className="block font-datilo text-xs text-tinta-700">iniciativa {ativo.iniciativa}</span>
@@ -79,7 +80,7 @@ export function BarraTurno({ salaId, usuarioId, souMestre }: { salaId: string; u
         </>
       ) : (
         <>
-          <p className="text-sm text-grafite-300">Nenhum combate em andamento</p>
+          <p className="text-sm whitespace-nowrap text-grafite-300">Nenhum combate em andamento</p>
           {souMestre && (
             <button type="button" onClick={() => setModalAberto(true)} className={classeBotaoArquivo}>
               Iniciar combate

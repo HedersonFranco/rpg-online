@@ -1,8 +1,10 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { useAuth, useUsuarioLogado } from '../../hooks/useAuth'
 import { useRecurso } from '../../hooks/useRecurso'
 import { useVideoChamada } from '../../hooks/useVideoChamada'
+import { preferenciaBooleana, preferenciaNumero, usePreferencia } from '../../hooks/usePreferencia'
+import { AlcaRedimensionar } from '../../components/ui/AlcaRedimensionar'
 import { NOME_SISTEMA, type Membro, type SalaDetalhe, type Usuario } from '../../services/tipos'
 import { Alerta, Carregando } from '../../components/ui/Feedback'
 import { Abas, type Aba } from '../../components/ui/Abas'
@@ -18,7 +20,7 @@ import {
 } from '../../components/ui/estilosArquivo'
 import { AreaMapa } from '../../components/MapaToken/AreaMapa'
 import { GerenciarMapas } from '../../components/MapaToken/GerenciarMapas'
-import { AvisoCamera, FaixaVideo } from '../../components/Video/FaixaVideo'
+import { AvisoCamera, ControlesCamera, FaixaVideo } from '../../components/Video/FaixaVideo'
 import { BarraTurno } from '../../components/TurnoTracker/BarraTurno'
 import { PainelFicha, type VisaoPainelFicha } from '../../components/FichaOrdemParanormal/PainelFicha'
 import { PainelChat } from '../../components/Chat/PainelChat'
@@ -58,23 +60,25 @@ const ABAS_PAINEL: (Aba<AbaPainel> & { icone: NomeIcone; texto: string })[] = [
 const abasDoPainel = (souMestre: boolean, souDono: boolean) =>
   ABAS_PAINEL.filter((a) => (a.chave !== 'npcs' || souMestre) && (a.chave !== 'membros' || souDono))
 
-const CHAVE_PAINEL_ABERTO = 'mesa:painelAberto'
+// Tamanhos ajustáveis (px). O mínimo da régua é o tamanho de sempre; para sumir com ela há o botão de recolher.
+const PAINEL = { min: 320, max: 560, padrao: 380 }
+const REGUA = { min: 96, max: 300, padrao: 96 }
+// O centro (mapa + régua) nunca fica mais estreito que isto: é o que cabe do turno em combate + uma foto.
+// Em 1280px o painel fica no máximo em 380px; em telas maiores, ele pode ir até 560px.
+const CENTRO_MIN = 828
+const BARRA_ESQUERDA = 72
 
-// Preferência só deste navegador; sem storage (aba privada etc.) o painel simplesmente nasce aberto.
-function lerPainelAberto() {
-  try {
-    return localStorage.getItem(CHAVE_PAINEL_ABERTO) !== 'nao'
-  } catch {
-    return true
-  }
-}
+const larguraMaxPainel = () =>
+  Math.max(PAINEL.min, Math.min(PAINEL.max, Math.max(window.innerWidth, 1280) - BARRA_ESQUERDA - CENTRO_MIN))
 
-function gravarPainelAberto(aberto: boolean) {
-  try {
-    localStorage.setItem(CHAVE_PAINEL_ABERTO, aberto ? 'sim' : 'nao')
-  } catch {
-    // sem storage: vale só até recarregar
-  }
+function useLarguraMaxPainel() {
+  const [max, setMax] = useState(larguraMaxPainel)
+  useEffect(() => {
+    const aoRedimensionar = () => setMax(larguraMaxPainel())
+    window.addEventListener('resize', aoRedimensionar)
+    return () => window.removeEventListener('resize', aoRedimensionar)
+  }, [])
+  return max
 }
 
 // Coluna direita: uma pasta aberta com abas. Recolhida, sobra uma faixa com os atalhos.
@@ -89,6 +93,10 @@ function PainelDireito({ sala, usuario, souMestre, aberto, aba, onAbrir, onRecol
   visaoFicha: VisaoPainelFicha
   onVisaoFicha: (visao: VisaoPainelFicha) => void
 }) {
+  const [larguraSalva, setLargura] = usePreferencia('mesa:larguraPainel', preferenciaNumero(PAINEL.padrao, PAINEL.min, PAINEL.max))
+  // A preferência fica guardada inteira; numa tela menor ela só é limitada na exibição.
+  const max = useLarguraMaxPainel()
+  const largura = Math.min(larguraSalva, max)
   if (!aberto) {
     return (
       <PastaDeFolhas lado="direita" rotulo="Painel lateral (recolhido)" onEscolher={onAbrir}
@@ -98,7 +106,8 @@ function PainelDireito({ sala, usuario, souMestre, aberto, aba, onAbrir, onRecol
   const abas = abasDoPainel(souMestre, sala.donoId === usuario.id)
   const abaAtiva = abas.find((a) => a.chave === aba) ?? abas[0]
   return (
-    <aside aria-label="Painel lateral" className="flex w-[380px] shrink-0 flex-col border-l border-arquivo-700 bg-arquivo-850">
+    <aside aria-label="Painel lateral" style={{ width: largura }} className="relative flex shrink-0 flex-col border-l border-arquivo-700 bg-arquivo-850">
+      <AlcaRedimensionar eixo="x" rotulo="Largura do painel" valor={largura} onMudar={setLargura} {...PAINEL} max={max} />
       <div className="flex shrink-0 items-end gap-1 border-b-2 border-kraft-500 px-2 pt-2">
         <button type="button" onClick={onRecolher} aria-label="Recolher painel" title="Recolher painel"
           className="mb-1 flex h-8 w-8 items-center justify-center rounded-[3px] text-grafite-300 hover:bg-arquivo-800 hover:text-kraft-300 focus-visible:outline-2 focus-visible:outline-kraft-400">
@@ -113,6 +122,24 @@ function PainelDireito({ sala, usuario, souMestre, aberto, aba, onAbrir, onRecol
         {abaAtiva.chave === 'membros' && <PainelMembros sala={sala} usuario={usuario} />}
       </div>
     </aside>
+  )
+}
+
+// Régua recolhida: uma faixa fina que ainda diz de quem é a vez, para o combate não sumir junto.
+function ReguaRecolhida({ onAbrir }: { onAbrir: () => void }) {
+  const { combate } = useSalaSocket()
+  const ativo = combate?.ordem[combate.indiceAtivo]
+  return (
+    <div className="flex h-9 shrink-0 items-center gap-3 border-t border-arquivo-700 bg-arquivo-950 px-3">
+      <button type="button" onClick={onAbrir} className={`${classeBotaoIconeArquivo} h-7 w-auto gap-1.5 px-2 text-xs`}>
+        <Icone nome="recolher" className="h-4 w-4 -rotate-90" /> Vídeo e turno
+      </button>
+      {combate && ativo && (
+        <p aria-live="polite" className="truncate text-xs text-grafite-100">
+          Rodada {combate.rodada} · vez de <strong className="font-bold text-kraft-300">{ativo.nome}</strong>
+        </p>
+      )}
+    </div>
   )
 }
 
@@ -177,18 +204,18 @@ function Mesa({ sala: salaInicial }: { sala: SalaDetalhe }) {
   })
   const video = useVideoChamada()
   const [vista, setVista] = useState<Vista>('mesa')
-  const [painelAberto, setPainelAberto] = useState(lerPainelAberto)
+  const [painelAberto, setPainelAberto] = usePreferencia('mesa:painelAberto', preferenciaBooleana(true))
+  const [reguaAberta, setReguaAberta] = usePreferencia('mesa:reguaAberta', preferenciaBooleana(true))
+  const [alturaRegua, setAlturaRegua] = usePreferencia('mesa:alturaRegua', preferenciaNumero(REGUA.padrao, REGUA.min, REGUA.max))
   const [abaPainel, setAbaPainel] = useState<AbaPainel>('ficha')
   const [visaoFicha, setVisaoFicha] = useState<VisaoPainelFicha>(null)
 
   function abrirPainel(aba: AbaPainel) {
     setAbaPainel(aba)
     setPainelAberto(true)
-    gravarPainelAberto(true)
   }
   function recolherPainel() {
     setPainelAberto(false)
-    gravarPainelAberto(false)
   }
   const souMestre = sala.membros.some((m) => m.usuarioId === usuario.id && m.papel === 'MESTRE')
   // Só o mestre alterna para os mapas (material de preparo); o jogador sempre vê a mesa.
@@ -213,6 +240,7 @@ function Mesa({ sala: salaInicial }: { sala: SalaDetalhe }) {
             </div>
             <div className="flex shrink-0 items-center gap-3">
               <IndicadorConexao />
+              <ControlesCamera video={video} />
               {sala.donoId === usuario.id && <BotaoConvite sala={sala} />}
               <span className="max-w-40 truncate text-sm text-grafite-300">{usuario.nome}</span>
               <button type="button" onClick={sair} className={classeBotaoArquivo}>
@@ -242,8 +270,17 @@ function Mesa({ sala: salaInicial }: { sala: SalaDetalhe }) {
                 </div>
               )}
               <AvisoCamera video={video} />
-              <div className="flex h-24 shrink-0 items-center gap-4 border-t border-arquivo-700 bg-arquivo-950 px-3">
-                <FaixaVideo sala={sala} usuario={usuario} video={video} />
+              {!reguaAberta && <ReguaRecolhida onAbrir={() => setReguaAberta(true)} />}
+              {/* Recolhida, a régua só some da vista: desmontar cortaria o áudio dos outros participantes. */}
+              <div style={{ height: alturaRegua }}
+                className={`relative shrink-0 items-center gap-3 border-t border-arquivo-700 bg-arquivo-950 px-3 ${reguaAberta ? 'flex' : 'hidden'}`}>
+                <AlcaRedimensionar eixo="y" rotulo="Altura do vídeo e turno" valor={alturaRegua} onMudar={setAlturaRegua} {...REGUA} />
+                {/* Aba sobre a borda, fora da linha: a régua não tem largura sobrando. */}
+                <button type="button" onClick={() => setReguaAberta(false)} aria-label="Recolher vídeo e turno" title="Recolher vídeo e turno"
+                  className="absolute right-3 bottom-full z-30 flex h-5 w-9 items-center justify-center rounded-t-[3px] border border-b-0 border-arquivo-700 bg-arquivo-950 text-grafite-300 hover:text-kraft-300 focus-visible:outline-2 focus-visible:outline-kraft-400">
+                  <Icone nome="recolher" className="h-3.5 w-3.5 rotate-90" />
+                </button>
+                <FaixaVideo sala={sala} usuario={usuario} video={video} alturaFoto={alturaRegua - 24} />
                 <BarraTurno salaId={sala.id} usuarioId={usuario.id} souMestre={souMestre} />
               </div>
             </div>
