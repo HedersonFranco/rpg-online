@@ -38,7 +38,7 @@ export default function Login() {
       <form onSubmit={enviar} className="space-y-4">
         <div>
           <label htmlFor="email" className={classeRotulo}>Email</label>
-          <input id="email" type="email" autoComplete="email" required value={email}
+          <input id="email" type="email" autoComplete="email" required maxLength={254} value={email}
             onChange={(e) => setEmail(e.target.value)} disabled={enviando} className={classeCampo} />
         </div>
         <div>

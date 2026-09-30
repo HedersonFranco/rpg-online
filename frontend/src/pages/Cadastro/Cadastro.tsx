@@ -39,12 +39,12 @@ export default function Cadastro() {
       <form onSubmit={enviar} className="space-y-4">
         <div>
           <label htmlFor="nome" className={classeRotulo}>Nome</label>
-          <input id="nome" autoComplete="name" required value={nome}
+          <input id="nome" autoComplete="name" required maxLength={60} value={nome}
             onChange={(e) => setNome(e.target.value)} disabled={enviando} className={classeCampo} />
         </div>
         <div>
           <label htmlFor="email" className={classeRotulo}>Email</label>
-          <input id="email" type="email" autoComplete="email" required value={email}
+          <input id="email" type="email" autoComplete="email" required maxLength={254} value={email}
             onChange={(e) => setEmail(e.target.value)} disabled={enviando} className={classeCampo} />
         </div>
         <div>
