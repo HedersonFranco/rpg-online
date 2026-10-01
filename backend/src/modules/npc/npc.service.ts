@@ -1,4 +1,4 @@
-import { prisma } from '../../lib/prisma.js'
+import { prisma, semIndefinidos } from '../../lib/prisma.js'
 import { AppError } from '../../errors/AppError.js'
 import { garantirMestre } from '../sala/sala.service.js'
 import { validarPastaDaSala } from '../pasta/pasta.service.js'
@@ -92,7 +92,7 @@ export async function atualizarNpc(usuarioId: string, npcId: string, dados: Dado
 
   return prisma.npc.update({
     where: { id: npcId },
-    data: {
+    data: semIndefinidos({
       nome: dados.nome?.trim(),
       pv: dados.pv,
       pe: dados.pe,
@@ -101,7 +101,7 @@ export async function atualizarNpc(usuarioId: string, npcId: string, dados: Dado
       atributos: dados.atributos,
       avatarUrl: dados.avatarUrl,
       pastaId: dados.pastaId,
-    },
+    }),
   })
 }
 

@@ -22,5 +22,8 @@
     "skipLibCheck": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true
-  }
+  },
+  // seed e prisma7.config ficam fora de src/ (rodam pelo tsx/Prisma, não pelo build) — sem isto,
+  // o erro de rootDir derruba o tsc antes da checagem de tipos e esconde os erros de verdade.
+  "include": ["src"]
 }
