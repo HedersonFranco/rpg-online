@@ -139,7 +139,9 @@ Função pura chamada pela API REST e pelo WebSocket:
 **Teste de perícia = (atributo-base)d20, fica com o melhor, + bônus do grau de treino** (`Destreinado` 0 / `Treinado` +5 / `Veterano` +10 / `Expert` +15). O atributo é a **quantidade de dados**, não soma no bônus — ex.: Vigor 3 + Fortitude Treinado = **3d20+5**. Atributo 0 rola 2d20 e fica com o **pior** (`modo: 'menor'`). Confirmado no livro (p. 10, "Modificador" e graus de treino). *(Corrigido em 23/09/2026 — a versão anterior deste arquivo e do motor somava atributo + treino, o que estava errado.)* `montarTestesPericias()` é a função pura; toda ficha que sai da API/socket traz `testesPericias` com as 28 (sem linha em `FichaPericia` = Destreinado).
 
 `pv/pe/san_maximo_cache` na tabela `Ficha` são **cache** — nunca fonte da verdade.
-Botões de combate alteram só o valor **atual** (0 ≤ atual ≤ máximo), validado no servidor.
+Botões de combate alteram só o valor **atual**, validado no servidor: **Vida e Sanidade podem passar do máximo** (há habilidades para isso — decisão de 30/09/2026; teto 999 só contra valor absurdo); Esforço fica em 0 ≤ atual ≤ máximo. A ficha tem −1/+1 nos três e −5/+5 em Vida e Esforço.
+
+**Defesa (30/09/2026, livro p. 42 e p. 87):** `calcularDefesa()` no motor — Defesa = 10 + Agilidade + `defesa_bonus` (modificadores de equipamento/habilidades/condições, informados pelo jogador na ficha); **Esquiva** (treinado em Reflexos) = Defesa + bônus de Reflexos; **Bloqueio** (treinado em Fortitude) = RD igual ao bônus de Fortitude, só contra corpo a corpo. Sem treino → reação indisponível (`null`). Uma reação por rodada. Contra-ataque (treinado em Luta) não entrou — não foi pedido.
 NPCs **não** passam por este motor.
 
 A função deve rodar **sem conexão com o banco** nos testes — as tabelas entram como parâmetro ou mock. Se precisar do Prisma para ser testada, não é pura o bastante.
@@ -418,7 +420,7 @@ Ao fechar uma etapa: `chore: etapa N concluída — critérios verificados`.
 - [x] `PATCH /fichas/:id` alterando NEX recalcula os máximos na resposta
 - [x] Jogador A editando ficha do Jogador B → **403**; mestre → **200**
 - [x] Treinar perícia grava em `FichaPericia` e o bônus aparece no `GET` (upsert testado via `POST /fichas/:id/pericias`)
-- [x] `pv_atual > pv_maximo` é rejeitado pelo servidor (`pe_atual`/`san_atual` também, mesma regra)
+- [x] `pv_atual > pv_maximo` é rejeitado pelo servidor (`pe_atual`/`san_atual` também, mesma regra) — **regra revista em 30/09/2026:** Vida e Sanidade passaram a aceitar acima do máximo (até 999); só Esforço segue limitado ao máximo
 - [ ] Uma ficha completa criada pela API bate com a mesma montada no C.R.I.S. — **não verificado**: não tenho acesso ao C.R.I.S. pra comparar ao vivo. A fórmula em si já foi conferida contra o livro (Etapa 5); esse item é especificamente sobre bater com a ferramenta C.R.I.S., que fica pendente de alguém rodar manualmente.
 
 > **FichaOP2 ainda não tem CRUD** — só o schema existe (Etapa "multissistema"). Como OP2 não tem motor de cálculo (fichas pré-prontas, sem fórmula), o CRUD dela seria mais simples (sem cálculo, só atribuição direta de pv/pd) mas não foi pedido nesta etapa — Etapa 6 como documentada é só OP1.

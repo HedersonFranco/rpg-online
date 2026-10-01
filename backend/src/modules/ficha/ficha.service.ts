@@ -1,7 +1,7 @@
-import { prisma } from '../../lib/prisma.js'
+import { prisma, semIndefinidos } from '../../lib/prisma.js'
 import { AppError } from '../../errors/AppError.js'
 import { buscarSalaOuFalhar } from '../sala/sala.service.js'
-import { calcularFicha, montarTestesPericias, type AtributosOP1, type NivelTreinoPericia } from '../../engine/calculoFicha.js'
+import { calcularDefesa, calcularFicha, montarTestesPericias, type AtributosOP1, type NivelTreinoPericia } from '../../engine/calculoFicha.js'
 import { PERICIAS_OP1 } from '../../engine/pericias.js'
 import { habilidadesAcumuladas, motivoClasseNexInvalidos, type ProgressaoClasseEntry } from '../../engine/progressaoClasse.js'
 import { emitirParaSala } from '../../sockets/emissor.js'
@@ -23,6 +23,9 @@ type DadosFicha = {
 
 const ATRIBUTOS = ['for', 'agi', 'int', 'vig', 'pre'] as const
 const LIMITE_INVENTARIO = 10000
+// Vida e Sanidade podem passar do máximo (há habilidades que concedem isso); o teto só barra valor absurdo.
+const TETO_RECURSO = 999
+const LIMITE_DEFESA_BONUS = 50
 const INCLUIR_PERICIAS = {
   pericias: { include: { pericia: true } },
   entradas: { orderBy: { createdAt: 'asc' } },
@@ -48,7 +51,12 @@ function apresentar(ficha: FichaComRelacoes, progressao: ProgressaoClasseEntry[]
     { for: ficha.for, agi: ficha.agi, int: ficha.int, vig: ficha.vig, pre: ficha.pre },
     PERICIAS_OP1.map((p) => ({ ...p, nivel: nivelPorNome.get(p.nome) ?? 'DESTREINADO' })),
   )
-  return { ...ficha, testesPericias, habilidadesDesbloqueadas: habilidadesAcumuladas(progressao, ficha.classe, ficha.nex) }
+  return {
+    ...ficha,
+    testesPericias,
+    habilidadesDesbloqueadas: habilidadesAcumuladas(progressao, ficha.classe, ficha.nex),
+    defesa: calcularDefesa(ficha.agi, ficha.defesa_bonus, testesPericias),
+  }
 }
 
 async function emitirFicha(ficha: FichaComRelacoes) {
@@ -152,8 +160,8 @@ export async function criarFicha(usuarioId: string, salaId: string, dados: Dados
       pe_maximo_cache: resultado.pe_maximo,
       san_atual: resultado.san_maximo,
       san_maximo_cache: resultado.san_maximo,
-      inventario: dados.inventario,
-      avatarUrl: dados.avatarUrl,
+      inventario: dados.inventario ?? null,
+      avatarUrl: dados.avatarUrl ?? null,
     },
     include: INCLUIR_PERICIAS,
   })
@@ -191,7 +199,7 @@ export async function buscarFichaOuFalhar(fichaId: string, usuarioId: string) {
 export async function atualizarFicha(
   fichaId: string,
   usuarioId: string,
-  dados: Partial<DadosFicha> & { pv_atual?: number; pe_atual?: number; san_atual?: number },
+  dados: Partial<DadosFicha> & { pv_atual?: number; pe_atual?: number; san_atual?: number; defesa_bonus?: number },
 ) {
   const ficha = await buscarFichaInterna(fichaId, usuarioId)
   await garantirAutorizacaoEdicao(ficha, usuarioId)
@@ -236,23 +244,28 @@ export async function atualizarFicha(
   }
 
   const pv_atual = dados.pv_atual ?? ficha.pv_atual
-  const pe_atual = dados.pe_atual ?? ficha.pe_atual
   const san_atual = dados.san_atual ?? ficha.san_atual
+  // Esforço não passa do máximo. Se o máximo caiu (NEX/atributo menor) e o cliente não mandou
+  // um PE novo, o atual desce junto — antes, baixar o NEX com PE cheio dava 400.
+  const pe_atual = dados.pe_atual ?? Math.min(ficha.pe_atual, pe_maximo_cache)
 
   const recursos = [
-    ['pv_atual', pv_atual, pv_maximo_cache],
+    ['pv_atual', pv_atual, TETO_RECURSO],
     ['pe_atual', pe_atual, pe_maximo_cache],
-    ['san_atual', san_atual, san_maximo_cache],
+    ['san_atual', san_atual, TETO_RECURSO],
   ] as const
-  for (const [campo, atual, maximo] of recursos) {
-    if (!Number.isInteger(atual) || atual < 0 || atual > maximo) {
-      throw new AppError(`${campo} deve ser um inteiro entre 0 e ${maximo}`, 400)
+  for (const [campo, atual, limite] of recursos) {
+    if (!Number.isInteger(atual) || atual < 0 || atual > limite) {
+      throw new AppError(`${campo} deve ser um inteiro entre 0 e ${limite}`, 400)
     }
+  }
+  if (dados.defesa_bonus !== undefined && (!Number.isInteger(dados.defesa_bonus) || Math.abs(dados.defesa_bonus) > LIMITE_DEFESA_BONUS)) {
+    throw new AppError(`Bônus de Defesa deve ser um inteiro entre -${LIMITE_DEFESA_BONUS} e ${LIMITE_DEFESA_BONUS}`, 400)
   }
 
   const atualizado = await prisma.ficha.update({
     where: { id: fichaId },
-    data: {
+    data: semIndefinidos({
       nome: dados.nome?.trim(),
       classe: dados.classe as never,
       origem: dados.origem?.trim(),
@@ -269,9 +282,10 @@ export async function atualizarFicha(
       pe_maximo_cache,
       san_atual,
       san_maximo_cache,
+      defesa_bonus: dados.defesa_bonus,
       inventario: dados.inventario,
       avatarUrl: dados.avatarUrl,
-    },
+    }),
     include: INCLUIR_PERICIAS,
   })
 

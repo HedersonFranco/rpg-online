@@ -189,6 +189,10 @@ model Ficha {
   san_atual        Int
   san_maximo_cache Int
 
+  // Modificadores de Defesa de equipamento/habilidades/condições (livro p. 42) — o jogador informa;
+  // a Defesa total (10 + Agi + isto) é calculada no backend (engine/calculoFicha.ts → calcularDefesa).
+  defesa_bonus Int @default(0)
+
   inventario String?
   avatarUrl  String?
   createdAt  DateTime @default(now())

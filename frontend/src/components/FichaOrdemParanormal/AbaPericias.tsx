@@ -56,8 +56,9 @@ export function AbaPericias({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-end gap-2">
-        <div className="min-w-0 flex-1">
+      {/* Folha estreita (painel perto de 320px): o filtro desce para a linha de baixo e a busca fica inteira. */}
+      <div className="flex flex-wrap items-end gap-2">
+        <div className="min-w-40 flex-1">
           <label htmlFor="busca-pericia" className="sr-only">Buscar perícia</label>
           <input id="busca-pericia" type="search" placeholder="Buscar perícia" value={busca}
             onChange={(e) => setBusca(e.target.value)} className={`${classeCampo} py-1.5`} />

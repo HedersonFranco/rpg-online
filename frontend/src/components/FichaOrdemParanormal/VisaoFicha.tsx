@@ -10,16 +10,22 @@ import { classeAbaFolha, classeBotaoIconeFolha, classeRotulo, classeSelect, cond
 import { AbaEntradas } from './AbaEntradas'
 import { AbaInventario } from './AbaInventario'
 import { AbaPericias } from './AbaPericias'
+import { DefesaFicha } from './DefesaFicha'
 import { HabilidadesDeClasse } from './HabilidadesDeClasse'
 import { PentagonoAtributos } from './PentagonoAtributos'
 
 type Recurso = 'pv' | 'pe' | 'san'
 
+// Mesmo teto do servidor (ficha.service.ts, TETO_RECURSO) — só evita pedir o que ele recusaria.
+const TETO_RECURSO = 999
+
 // Ordem e nomes da ficha oficial: Vida, Sanidade, Esforço. Cada recurso tem a sua tinta.
-const RECURSOS: { chave: Recurso; rotulo: string; cor: string }[] = [
-  { chave: 'pv', rotulo: 'Vida', cor: 'bg-recurso-vida' },
-  { chave: 'san', rotulo: 'Sanidade', cor: 'bg-recurso-sanidade' },
-  { chave: 'pe', rotulo: 'Esforço', cor: 'bg-recurso-esforco' },
+// `passaDoMaximo`: habilidades do sistema dão Vida/Sanidade acima do máximo (o servidor aceita);
+// Esforço para no máximo. `passo5`: botões de −5/+5 (dano e gasto de PE vêm em blocos).
+const RECURSOS: { chave: Recurso; rotulo: string; cor: string; passaDoMaximo: boolean; passo5: boolean }[] = [
+  { chave: 'pv', rotulo: 'Vida', cor: 'bg-recurso-vida', passaDoMaximo: true, passo5: true },
+  { chave: 'san', rotulo: 'Sanidade', cor: 'bg-recurso-sanidade', passaDoMaximo: true, passo5: false },
+  { chave: 'pe', rotulo: 'Esforço', cor: 'bg-recurso-esforco', passaDoMaximo: false, passo5: true },
 ]
 
 const ABAS: Aba<AbaFicha>[] = [
@@ -44,7 +50,7 @@ function maximoDe(ficha: Ficha, recurso: Recurso) {
 }
 
 // Tudo que aparece aqui vem do backend. Os botões +/− só PEDEM um novo valor
-// atual; o servidor valida (0 ≤ atual ≤ máximo) e a tela exibe o que ele devolver.
+// atual; o servidor valida (≥ 0; Esforço ≤ máximo) e a tela exibe o que ele devolver.
 export function VisaoFicha({
   ficha,
   podeEditar,
@@ -55,11 +61,11 @@ export function VisaoFicha({
   onAtualizada: (ficha: Ficha) => void
 }) {
   const [aba, setAba] = useState<AbaFicha>('pericias')
-  const [pendente, setPendente] = useState<Recurso | 'nex' | null>(null)
+  const [pendente, setPendente] = useState<Recurso | 'nex' | 'defesa' | null>(null)
   const [erro, setErro] = useState<string | null>(null)
   const mostrarSpinner = useAtrasado(pendente !== null)
 
-  async function enviar(campo: Recurso | 'nex', corpo: Record<string, number>) {
+  async function enviar(campo: Recurso | 'nex' | 'defesa', corpo: Record<string, number>) {
     setErro(null)
     setPendente(campo)
     try {
@@ -72,11 +78,14 @@ export function VisaoFicha({
     }
   }
 
-  const ajustar = (recurso: Recurso, delta: number) =>
-    enviar(recurso, { [`${recurso}_atual`]: atualDe(ficha, recurso) + delta })
+  // −5 com 3 de Vida pede 0; +5 de Esforço com 33/35 pede 35 — o botão não pede o que o servidor recusaria.
+  const ajustar = (recurso: Recurso, delta: number, teto: number) =>
+    enviar(recurso, { [`${recurso}_atual`]: Math.min(teto, Math.max(0, atualDe(ficha, recurso) + delta)) })
 
   return (
-    <Folha className="space-y-6 p-4 sm:p-4">
+    // @container: o painel tem largura ajustável (320–560px) — as divisórias e a Defesa se ajustam
+    // à largura da FOLHA, não da janela. Abaixo de 18.5rem de conteúdo, "Equipamentos" não cabe em 3 colunas.
+    <Folha className="@container space-y-6 p-4 sm:p-4">
       <div className="flex items-center gap-3">
         {ficha.avatarUrl ? (
           <img src={ficha.avatarUrl} alt="" className="h-16 w-14 shrink-0 rounded-[2px] border-[3px] border-papel-50 object-cover shadow-[0_2px_4px_rgb(0_0_0/0.3)]" />
@@ -118,32 +127,57 @@ export function VisaoFicha({
 
       <PentagonoAtributos atributos={ficha} />
 
+      <DefesaFicha ficha={ficha} podeEditar={podeEditar} pendente={pendente !== null}
+        onBonus={(bonus) => enviar('defesa', { defesa_bonus: bonus })} />
+
       <div className="space-y-4" role="group" aria-label="Recursos">
-        {RECURSOS.map(({ chave, rotulo, cor }) => {
+        {RECURSOS.map(({ chave, rotulo, cor, passaDoMaximo, passo5 }) => {
           const atual = atualDe(ficha, chave)
           const maximo = maximoDe(ficha, chave)
+          const acima = atual > maximo
+          const teto = passaDoMaximo ? TETO_RECURSO : maximo
+          const bloqueado = pendente !== null
           return (
             <div key={chave}>
-              <div className="mb-1.5 flex items-baseline justify-between">
+              <div className="mb-1.5 flex items-baseline justify-between gap-2">
                 <p className={`text-sm font-extrabold tracking-[0.12em] uppercase ${condensado}`}>{rotulo}</p>
-                <p className="font-datilo text-base" aria-live="polite">
-                  {pendente === chave && mostrarSpinner ? <Spinner tamanho="sm" /> : <>{atual}<span className="text-tinta-600">/{maximo}</span></>}
+                <p className="flex items-baseline gap-1.5 font-datilo text-base" aria-live="polite">
+                  {pendente === chave && mostrarSpinner ? <Spinner tamanho="sm" /> : (
+                    <>
+                      {acima && <span className={`rounded-[2px] bg-tinta-900 px-1 font-arquivo text-xs font-bold tracking-[0.08em] text-papel-50 uppercase ${condensado}`}>acima do máx.</span>}
+                      <span>{atual}<span className="text-tinta-600">/{maximo}</span></span>
+                    </>
+                  )}
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
+                {podeEditar && passo5 && (
+                  <button type="button" aria-label={`Diminuir 5 de ${rotulo}`} title={`−5 de ${rotulo}`} onClick={() => ajustar(chave, -5, teto)}
+                    disabled={bloqueado || atual <= 0} className={`${classeBotaoIconeFolha} font-datilo text-sm`}>
+                    −5
+                  </button>
+                )}
                 {podeEditar && (
-                  <button type="button" aria-label={`Diminuir ${rotulo}`} onClick={() => ajustar(chave, -1)}
-                    disabled={pendente !== null || atual <= 0} className={classeBotaoIconeFolha}>
+                  <button type="button" aria-label={`Diminuir ${rotulo}`} onClick={() => ajustar(chave, -1, teto)}
+                    disabled={bloqueado || atual <= 0} className={classeBotaoIconeFolha}>
                     <Icone nome="menos" className="h-4 w-4" />
                   </button>
                 )}
-                <div className="h-3 flex-1 overflow-hidden rounded-[2px] bg-papel-300/70" aria-hidden="true">
-                  <div className={`h-full ${cor} transition-[width] duration-200 motion-reduce:transition-none`} style={{ width: `${maximo > 0 ? (atual / maximo) * 100 : 0}%` }} />
+                {/* Acima do máximo: barra cheia com tracejado de tinta por cima (o excedente não cabe na régua). */}
+                <div className="relative h-3 min-w-6 flex-1 overflow-hidden rounded-[2px] bg-papel-300/70" aria-hidden="true">
+                  <div className={`h-full ${cor} transition-[width] duration-200 motion-reduce:transition-none`} style={{ width: `${maximo > 0 ? Math.min(100, (atual / maximo) * 100) : 0}%` }} />
+                  {acima && <div className="absolute inset-0 bg-[repeating-linear-gradient(135deg,transparent_0_4px,rgb(255_255_255/0.45)_4px_6px)]" />}
                 </div>
                 {podeEditar && (
-                  <button type="button" aria-label={`Aumentar ${rotulo}`} onClick={() => ajustar(chave, 1)}
-                    disabled={pendente !== null || atual >= maximo} className={classeBotaoIconeFolha}>
+                  <button type="button" aria-label={`Aumentar ${rotulo}`} onClick={() => ajustar(chave, 1, teto)}
+                    disabled={bloqueado || atual >= teto} className={classeBotaoIconeFolha}>
                     <Icone nome="mais" className="h-4 w-4" />
+                  </button>
+                )}
+                {podeEditar && passo5 && (
+                  <button type="button" aria-label={`Aumentar 5 de ${rotulo}`} title={`+5 de ${rotulo}`} onClick={() => ajustar(chave, 5, teto)}
+                    disabled={bloqueado || atual >= teto} className={`${classeBotaoIconeFolha} font-datilo text-sm`}>
+                    +5
                   </button>
                 )}
               </div>
@@ -155,7 +189,7 @@ export function VisaoFicha({
 
       <div>
         <Abas abas={ABAS} ativa={aba} onTrocar={setAba} rotulo="Seções da ficha" idBase={`ficha-${ficha.id}`}
-          classeAba={classeAbaFolha} classeLista="grid grid-cols-3 gap-1.5" />
+          classeAba={classeAbaFolha} classeLista="grid grid-cols-2 gap-1.5 @min-[18.5rem]:grid-cols-3" />
         <div role="tabpanel" id={`ficha-${ficha.id}-painel`} aria-labelledby={`ficha-${ficha.id}-aba-${aba}`} className="pt-4 text-sm">
           {aba === 'pericias' && <AbaPericias ficha={ficha} podeEditar={podeEditar} onAtualizada={onAtualizada} />}
           {aba === 'HABILIDADE' && <HabilidadesDeClasse ficha={ficha} />}

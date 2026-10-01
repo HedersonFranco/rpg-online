@@ -24,7 +24,9 @@ Criação e listagem ficam em `sala.routes.ts`; o resto em `/fichas` (`server.ts
 - `classe` precisa ser COMBATENTE, ESPECIALISTA ou OCULTISTA e `nex` um dos 20 degraus (5, 10, …, 95, 99) — senão `400` com o motivo (`motivoClasseNexInvalidos()` em `engine/progressaoClasse.ts`), na criação e no PATCH que recalcula.
 - Qualquer membro da sala lê qualquer ficha dela; não-membro recebe `404`.
 - Edição: permitida se `ficha.usuario_id` é o usuário, ou se ele tem papel `MESTRE` na sala; senão `403`.
-- `pv_atual`, `pe_atual`, `san_atual` devem ser inteiros entre 0 e o máximo (já recalculado) — senão `400`.
+- `pv_atual` e `san_atual`: inteiros de 0 a 999 — **podem passar do máximo** (há habilidades que concedem isso; decisão de 30/09/2026). `pe_atual`: inteiro de 0 ao máximo (já recalculado). Fora disso, `400`.
+- Se o PE máximo cair (NEX/atributo menor) e o PATCH não mandar `pe_atual`, o atual desce para o novo máximo (antes, baixar o NEX com PE cheio dava `400`).
+- `defesa_bonus`: inteiro de −50 a 50 (modificadores de equipamento/habilidades/condições, informados pelo jogador). Toda ficha devolvida traz `defesa: { defesa, esquiva, bloqueio }` (via `calcularDefesa`): Defesa = 10 + Agi + bônus; Esquiva = Defesa + bônus de Reflexos e Bloqueio = RD igual ao bônus de Fortitude, `null` sem treino (livro p. 42 e p. 87).
 - `pv/pe/san_maximo_cache` são gravados a partir de `calcularFicha()`; nunca vêm do cliente.
 - `inventario`: texto de até 10.000 caracteres.
 - Graus de perícia: `DESTREINADO`, `TREINADO`, `VETERANO`, `EXPERT`. Perícia sem linha em `FichaPericia` sai como Destreinado.

@@ -67,9 +67,9 @@ export function TokenNoMapa({
       </button>
       <span className="mt-1 max-w-32 truncate rounded-[2px] bg-arquivo-950/85 px-1.5 text-xs whitespace-nowrap text-grafite-100">{nome}</span>
       {pv && (
-        <span role="meter" aria-label={`PV ${pv.atual}/${pv.maximo}`} aria-valuenow={pv.atual} aria-valuemin={0} aria-valuemax={pv.maximo}
+        <span role="meter" aria-label={`PV ${pv.atual}/${pv.maximo}`} aria-valuenow={pv.atual} aria-valuemin={0} aria-valuemax={Math.max(pv.maximo, pv.atual)}
           className="mt-0.5 h-1.5 w-12 overflow-hidden rounded-[1px] bg-arquivo-800 ring-1 ring-arquivo-950">
-          <span className="block h-1.5 bg-recurso-vida" style={{ width: `${pv.maximo > 0 ? (pv.atual / pv.maximo) * 100 : 0}%` }} />
+          <span className="block h-1.5 bg-recurso-vida" style={{ width: `${pv.maximo > 0 ? Math.min(100, (pv.atual / pv.maximo) * 100) : 0}%` }} />
         </span>
       )}
     </div>

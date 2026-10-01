@@ -82,7 +82,7 @@ function FormIniciarCombate({ salaId, onFechar }: { salaId: string; onFechar: ()
         </ul>
 
         {erro && <div className="mt-3"><Alerta tom="papel" mensagem={erro} /></div>}
-        <div className="mt-6 flex justify-end gap-2">
+        <div className="mt-6 flex flex-wrap justify-end gap-2">
           <button type="button" onClick={onFechar} className={classeBotaoContorno}>Cancelar</button>
           <button type="submit" disabled={enviando || escolhidas.length === 0} className={classeBotaoTinta}>
             Iniciar ({escolhidas.length})

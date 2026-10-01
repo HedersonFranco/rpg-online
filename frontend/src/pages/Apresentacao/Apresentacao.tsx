@@ -84,7 +84,8 @@ function Recorte({ src, alt, largura, altura, carimbo }: { src: string; alt: str
           className="h-auto w-full rounded-[2px] bg-arquivo-800 shadow-[0_2px_4px_rgb(0_0_0/0.35)]" />
       </Folha>
       <span className="absolute -top-4 -right-2 sm:-right-4">
-        <span className="inline-block rounded-[3px] bg-papel-100 p-1 shadow-[0_4px_10px_-6px_rgb(0_0_0/0.9)]">
+        {/* O carimbo é girado −4°: a etiqueta precisa de folga para as pontas não encostarem na borda. */}
+        <span className="inline-block rounded-[3px] bg-papel-100 px-3 py-2.5 shadow-[0_4px_10px_-6px_rgb(0_0_0/0.9)]">
           <Carimbo>{carimbo}</Carimbo>
         </span>
       </span>
@@ -172,17 +173,27 @@ export function Apresentacao() {
 
         <Secao id="como-funciona" titulo="Uma noite de jogo">
           <ol className="space-y-24 sm:space-y-32">
-            {ETAPAS.map((etapa, i) => (
-              <li key={etapa.numero} className="grid items-center gap-8 md:grid-cols-12 md:gap-12">
-                <div className={`md:col-span-5 ${i % 2 === 1 ? 'md:order-2 md:col-start-8' : ''}`}>
-                  <h3 className={`text-3xl leading-none sm:text-4xl ${classeTituloArquivo}`}>{etapa.titulo}</h3>
-                  <p className="mt-4 max-w-prose text-base leading-relaxed text-grafite-300">{etapa.texto}</p>
-                </div>
-                <div className={`${etapa.largura < 500 ? 'mx-auto w-full max-w-xs md:col-span-4 md:col-start-8' : 'md:col-span-7'} ${i % 2 === 1 ? 'md:order-1 md:col-start-1' : ''}`}>
-                  <Recorte src={etapa.imagem} alt={etapa.alt} largura={etapa.largura} altura={etapa.altura} carimbo={etapa.carimbo} />
-                </div>
-              </li>
-            ))}
+            {ETAPAS.map((etapa, i) => {
+              // Etapas alternam: nas ímpares a imagem vai para a esquerda. Imagem estreita (a ficha) ocupa
+              // 4 das 7 colunas do lado dela. A coluna sai daqui, uma vez só: duas `col-start` brigando
+              // punham texto e imagem no mesmo lado e deixavam o outro vazio.
+              const imagemEsquerda = i % 2 === 1
+              const estreita = etapa.largura < 500
+              const colunaImagem = estreita
+                ? `mx-auto w-full max-w-xs md:col-span-4 ${imagemEsquerda ? 'md:col-start-2' : 'md:col-start-8'}`
+                : `md:col-span-7 ${imagemEsquerda ? 'md:col-start-1' : ''}`
+              return (
+                <li key={etapa.numero} className="grid items-center gap-8 md:grid-cols-12 md:gap-12">
+                  <div className={`md:col-span-5 ${imagemEsquerda ? 'md:order-2 md:col-start-8' : ''}`}>
+                    <h3 className={`text-3xl leading-none sm:text-4xl ${classeTituloArquivo}`}>{etapa.titulo}</h3>
+                    <p className="mt-4 max-w-prose text-base leading-relaxed text-grafite-300">{etapa.texto}</p>
+                  </div>
+                  <div className={`${colunaImagem} ${imagemEsquerda ? 'md:order-1' : ''}`}>
+                    <Recorte src={etapa.imagem} alt={etapa.alt} largura={etapa.largura} altura={etapa.altura} carimbo={etapa.carimbo} />
+                  </div>
+                </li>
+              )
+            })}
           </ol>
         </Secao>
 

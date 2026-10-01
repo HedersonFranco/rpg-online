@@ -92,7 +92,7 @@ export function PainelChat({ salaId }: { salaId: string }) {
         <form onSubmit={enviar} className="flex gap-2">
           <label htmlFor="chat-texto" className="sr-only">Mensagem</label>
           <input id="chat-texto" value={texto} onChange={(e) => setTexto(e.target.value)} maxLength={1000}
-            placeholder="Escreva uma mensagem" disabled={enviando} className={`${classeCampo} min-w-0 text-sm`} />
+            placeholder="Mensagem" disabled={enviando} className={`${classeCampo} min-w-0 text-sm`} />
           <button type="submit" disabled={enviando || !texto.trim()} className={`${classeBotaoTinta} px-4`}>
             Enviar
           </button>

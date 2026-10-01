@@ -46,7 +46,8 @@ visual em [`DESIGN.md`](../DESIGN.md), decisões e critérios por etapa em [`CLA
 |---|---|---|---|---|
 | RF20 | Criar ficha: nome, classe, origem, trilha, NEX e 5 atributos | E | ✅ | Etapa 6 |
 | RF21 | PV, PE e Sanidade máximos calculados pelo servidor com a fórmula do livro | E | ✅ | Etapa 5 (testes) |
-| RF22 | Ajustar PV/PE/Sanidade atuais (0 ≤ atual ≤ máximo, validado no servidor) | E | ✅ | Etapa 6 |
+| RF22 | Ajustar PV/PE/Sanidade atuais, validado no servidor: PV e Sanidade podem passar do máximo (até 999, revisto em 30/09/2026); PE fica em 0 ≤ atual ≤ máximo. Botões de ±1 e, em PV/PE, ±5 | E | ✅ | Etapa 6; revisto em 30/09/2026 (API 13/13, tela 9/9) |
+| RF40 | Defesa na ficha, calculada no servidor: Defesa = 10 + Agi + bônus informado; Esquiva (treinado em Reflexos) e Bloqueio (treinado em Fortitude, RD) — livro p. 42 e p. 87 | I | ✅ | 30/09/2026 (motor: `calcularDefesa`, 3 testes; API e tela) |
 | RF23 | 28 perícias com grau de treino; teste "(atributo)d20 + bônus" calculado no servidor | E | ✅ | Etapa 5/6 |
 | RF24 | Rituais, habilidades, poderes e equipamentos cadastrados na ficha | E | ✅ | Etapa 6 |
 | RF25 | Habilidades de classe desbloqueadas até o NEX atual | I | ✅ | Etapa 2 (seed + testes) |

@@ -172,7 +172,7 @@ function FormEntrada({
       </div>
 
       {erro && <Alerta tom="papel" mensagem={erro} />}
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <button type="submit" disabled={enviando} className={classeBotaoTinta}>
           {mostrarSpinner && <Spinner tamanho="sm" />}
           {enviando ? 'Salvando...' : entrada ? 'Salvar' : 'Adicionar'}

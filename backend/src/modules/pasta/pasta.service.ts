@@ -1,4 +1,4 @@
-import { prisma } from '../../lib/prisma.js'
+import { prisma, semIndefinidos } from '../../lib/prisma.js'
 import { AppError } from '../../errors/AppError.js'
 import { garantirMestre } from '../sala/sala.service.js'
 
@@ -63,7 +63,7 @@ export async function atualizarPasta(
 
   return prisma.pasta.update({
     where: { id: pastaId },
-    data: { nome: dados.nome?.trim(), paiId: dados.paiId },
+    data: semIndefinidos({ nome: dados.nome?.trim(), paiId: dados.paiId }),
   })
 }
 

@@ -72,6 +72,27 @@ export function montarTestesPericias(atributos: AtributosOP1, pericias: PericiaP
   })
 }
 
+// Defesa e reações de defesa — livro v1.3, p. 42 ("Defesa") e p. 87 ("Ações Especiais de Defesa"):
+// - Defesa = 10 + Agilidade + modificadores (equipamento, habilidades, condições → `bonus`, informado na ficha).
+// - Esquiva (treinado em Reflexos): soma o bônus de Reflexos na Defesa contra um ataque.
+// - Bloqueio (treinado em Fortitude): RD igual ao bônus de Fortitude contra um ataque corpo a corpo.
+// Só uma reação por rodada, declarada antes de o inimigo rolar. `null` = não treinado, reação indisponível.
+export type DefesaOP1 = {
+  defesa: number
+  esquiva: number | null
+  bloqueio: number | null
+}
+
+export function calcularDefesa(agi: number, bonus: number, testes: TestePericia[]): DefesaOP1 {
+  const defesa = 10 + agi + bonus
+  const treinada = (nome: string) => {
+    const teste = testes.find((t) => t.nome === nome)
+    return teste && teste.nivel !== 'DESTREINADO' ? teste.bonus : null
+  }
+  const reflexos = treinada('Reflexos')
+  return { defesa, esquiva: reflexos === null ? null : defesa + reflexos, bloqueio: treinada('Fortitude') }
+}
+
 export function calcularFicha(
   entrada: EntradaCalculoFicha,
   tabelaHabilidades: ProgressaoClasseEntry[],
