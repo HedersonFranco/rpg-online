@@ -65,7 +65,7 @@ export function PainelRolagem({ onFechar }: { onFechar: () => void }) {
             </select>
           </div>
           {erro && <Alerta tom="papel" mensagem={erro} />}
-          <div className="flex justify-end gap-2">
+          <div className="flex flex-wrap justify-end gap-2">
             <button type="button" onClick={onFechar} className={classeBotaoContorno}>Cancelar</button>
             <button type="submit" disabled={enviando} className={classeBotaoTinta}>Rolar</button>
           </div>
