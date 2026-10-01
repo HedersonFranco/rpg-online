@@ -58,6 +58,10 @@ export type Ficha = {
   pe_maximo_cache: number
   san_atual: number
   san_maximo_cache: number
+  // Modificador de Defesa informado pelo jogador (equipamento, habilidades, condições).
+  defesa_bonus: number
+  // Calculado no backend: Defesa = 10 + Agi + bônus; esquiva/bloqueio = null quando não treinado.
+  defesa: { defesa: number; esquiva: number | null; bloqueio: number | null }
   inventario: string | null
   avatarUrl: string | null
   pericias: FichaPericia[]

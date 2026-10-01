@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { calcularFicha } from './calculoFicha.js'
+import { calcularDefesa, calcularFicha, montarTestesPericias } from './calculoFicha.js'
+import { PERICIAS_OP1 } from './pericias.js'
 import type { ProgressaoClasseEntry, ClasseFormulaEntry } from './progressaoClasse.js'
 
 // Dados confirmados no livro (Ordem Paranormal RPG v1.3, Cap. 1 — Combatente
@@ -157,5 +158,27 @@ describe('calcularFicha', () => {
   it('roda sem banco — tabelas são só parâmetros', () => {
     const r = calcularFicha({ classe: 'OCULTISTA', nex: 5, atributos: ATRIBUTOS_BASE }, [], FORMULAS)
     expect(r).toBeDefined()
+  })
+})
+
+// Livro v1.3, p. 42 (Defesa = 10 + Agi + modificadores) e p. 87 (Esquiva/Bloqueio exigem treino).
+describe('calcularDefesa', () => {
+  const atributos = { for: 1, agi: 3, int: 1, vig: 2, pre: 1 }
+  const testes = (niveis: Record<string, 'TREINADO' | 'VETERANO' | 'EXPERT'>) =>
+    montarTestesPericias(atributos, PERICIAS_OP1.map((p) => ({ ...p, nivel: niveis[p.nome] ?? 'DESTREINADO' })))
+
+  it('Defesa = 10 + Agilidade + bônus informado (ex.: proteção leve +5)', () => {
+    expect(calcularDefesa(3, 0, testes({})).defesa).toBe(13)
+    expect(calcularDefesa(3, 5, testes({})).defesa).toBe(18)
+    expect(calcularDefesa(3, -5, testes({})).defesa).toBe(8) // sobrecarregado: -5 em Defesa
+  })
+
+  it('sem treino em Reflexos/Fortitude, esquiva e bloqueio ficam indisponíveis', () => {
+    expect(calcularDefesa(3, 0, testes({}))).toEqual({ defesa: 13, esquiva: null, bloqueio: null })
+  })
+
+  it('Esquiva soma o bônus de Reflexos na Defesa; Bloqueio dá RD igual ao bônus de Fortitude', () => {
+    expect(calcularDefesa(3, 5, testes({ Reflexos: 'TREINADO', Fortitude: 'VETERANO' }))).toEqual({ defesa: 18, esquiva: 23, bloqueio: 10 })
+    expect(calcularDefesa(3, 0, testes({ Reflexos: 'EXPERT' }))).toEqual({ defesa: 13, esquiva: 28, bloqueio: null })
   })
 })
