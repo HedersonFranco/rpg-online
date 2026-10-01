@@ -110,8 +110,12 @@ export type Mensagem = {
 export type Rolagem = {
   id: string
   autor: { id: string; nome: string }
+  // O que foi rolado, quando vem da ficha: "Fortitude · Helena Duarte".
+  rotulo?: string
   expressao: string
   dados: number[]
+  // Dados de cada grupo + modificador, formatados no servidor: "[3, 5] + [7] + 3".
+  detalhe: string
   total: number
   modo: 'soma' | 'maior' | 'menor'
   criadoEm: string

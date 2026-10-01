@@ -72,6 +72,30 @@ export function montarTestesPericias(atributos: AtributosOP1, pericias: PericiaP
   })
 }
 
+// Teste rolável a partir da ficha. Perícia: (atributo-base)d20 + treino, como em montarTestesPericias.
+// Atributo puro: (atributo)d20, fica com o melhor, sem bônus — atributo 0 rola 2d20 e fica com o pior.
+// `null` = perícia/atributo que não existe (o chamador decide o erro).
+export const NOME_ATRIBUTO: Record<keyof AtributosOP1, string> = {
+  for: 'Força', agi: 'Agilidade', int: 'Intelecto', vig: 'Vigor', pre: 'Presença',
+}
+
+export type PedidoDeTeste = { quantidade: number; faces: 20; modificador: number; modo: 'maior' | 'menor'; nomeTeste: string }
+
+export function pedidoDeTeste(
+  atributos: AtributosOP1,
+  testes: TestePericia[],
+  alvo: { tipo: 'pericia' | 'atributo'; nome: string },
+): PedidoDeTeste | null {
+  if (alvo.tipo === 'pericia') {
+    const t = testes.find((x) => x.nome === alvo.nome)
+    return t ? { quantidade: t.dados, faces: 20, modificador: t.bonus, modo: t.modo, nomeTeste: t.nome } : null
+  }
+  if (!Object.hasOwn(NOME_ATRIBUTO, alvo.nome)) return null // `in` aceitaria "toString" (protótipo)
+  const chave = alvo.nome as keyof AtributosOP1
+  const valor = atributos[chave]
+  return { quantidade: valor > 0 ? valor : 2, faces: 20, modificador: 0, modo: valor > 0 ? 'maior' : 'menor', nomeTeste: NOME_ATRIBUTO[chave] }
+}
+
 // Defesa e reações de defesa — livro v1.3, p. 42 ("Defesa") e p. 87 ("Ações Especiais de Defesa"):
 // - Defesa = 10 + Agilidade + modificadores (equipamento, habilidades, condições → `bonus`, informado na ficha).
 // - Esquiva (treinado em Reflexos): soma o bônus de Reflexos na Defesa contra um ataque.

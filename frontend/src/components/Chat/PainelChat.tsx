@@ -4,7 +4,7 @@ import { useAoResincronizar, useEventoSocket, useSalaSocket } from '../../hooks/
 import { mensagemDeErro } from '../../services/api'
 import type { Mensagem, Rolagem } from '../../services/tipos'
 import { Alerta, Carregando } from '../ui/Feedback'
-import { Icone } from '../ui/Icone'
+import { BilheteRolagem } from './BilheteRolagem'
 import { Folha } from '../ui/arquivo'
 import { classeBotaoTinta, classeCampo, condensado } from '../ui/estilosArquivo'
 
@@ -71,18 +71,7 @@ export function PainelChat({ salaId }: { salaId: string }) {
               <p className="mt-0.5 break-words whitespace-pre-wrap text-grafite-100">{item.dado.conteudo}</p>
             </div>
           ) : (
-            // Rolagem: um bilhete de papel com o resultado (quem rolou é o servidor).
-            <div key={item.dado.id} className="textura-fibra rounded-[2px] bg-papel-100 px-3 py-2 text-tinta-900 shadow-[0_6px_14px_-8px_rgb(0_0_0/0.9)]">
-              <p className="flex items-center gap-1.5 text-xs text-tinta-700">
-                <Icone nome="dados" className="h-3.5 w-3.5" />
-                <span className="font-bold">{item.dado.autor.nome}</span> rolou <span className="font-datilo text-tinta-900">{item.dado.expressao}</span>
-                <span className="ml-auto font-datilo">{hora(item.dado.criadoEm)}</span>
-              </p>
-              <p className="mt-1 flex items-baseline justify-between gap-3">
-                <span className="font-datilo text-sm text-tinta-700">[{item.dado.dados.join(', ')}]</span>
-                <strong className={`text-3xl leading-none font-extrabold ${condensado}`}>{item.dado.total}</strong>
-              </p>
-            </div>
+            <BilheteRolagem key={item.dado.id} rolagem={item.dado} />
           ),
         )}
         <div ref={fimDaLista} />

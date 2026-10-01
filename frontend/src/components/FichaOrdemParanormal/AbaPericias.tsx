@@ -8,6 +8,7 @@ import {
   type TestePericia,
 } from '../../services/tipos'
 import { Alerta, Spinner } from '../ui/Feedback'
+import { Icone } from '../ui/Icone'
 import { classeCampo, classeSelect, condensado } from '../ui/estilosArquivo'
 
 const NIVEIS = Object.keys(NOME_NIVEL_TREINO) as NivelTreino[]
@@ -22,10 +23,15 @@ export function AbaPericias({
   ficha,
   podeEditar,
   onAtualizada,
+  onRolar,
+  rolando = null,
 }: {
   ficha: Ficha
   podeEditar: boolean
   onAtualizada: (ficha: Ficha) => void
+  // Sem onRolar (quem não pode editar a ficha), o teste aparece só como texto.
+  onRolar?: (pericia: string) => void
+  rolando?: string | null
 }) {
   const [busca, setBusca] = useState('')
   const [soTreinadas, setSoTreinadas] = useState(false)
@@ -55,7 +61,9 @@ export function AbaPericias({
   )
 
   return (
-    <div className="space-y-4">
+    // @container: com a folha estreita (painel perto de 320px) o treino desce para baixo do nome —
+    // três colunas não cabem e o seletor cortava o texto.
+    <div className="@container space-y-4">
       {/* Folha estreita (painel perto de 320px): o filtro desce para a linha de baixo e a busca fica inteira. */}
       <div className="flex flex-wrap items-end gap-2">
         <div className="min-w-40 flex-1">
@@ -84,38 +92,56 @@ export function AbaPericias({
           <thead>
             <tr className={`text-left text-xs tracking-[0.1em] text-tinta-700 uppercase ${condensado}`}>
               <th className="pb-1.5 font-bold">Perícia</th>
-              <th className="pb-1.5 font-bold">Teste</th>
-              <th className="pb-1.5 text-right font-bold">Treino</th>
+              <th className="pb-1.5 font-bold">
+                {onRolar ? <span className="inline-flex items-center gap-1">Teste <Icone nome="dados" className="h-3.5 w-3.5" /><span className="sr-only">(clique para rolar)</span></span> : 'Teste'}
+              </th>
+              <th className="hidden pb-1.5 text-right font-bold @min-[18.5rem]:table-cell">Treino</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-papel-300">
             {visiveis.map((teste) => {
               const treinada = teste.nivel !== 'DESTREINADO'
+              const treino = pendente === teste.nome && mostrarSpinner ? (
+                <Spinner tamanho="sm" />
+              ) : podeEditar ? (
+                <select aria-label={`Treino em ${teste.nome}`} value={teste.nivel} disabled={pendente !== null}
+                  onChange={(e) => treinar(teste.nome, e.target.value as NivelTreino)}
+                  // Destreinada não mostra a linha do campo até o hover/foco: as treinadas saltam aos olhos.
+                  className={`${classeSelect(false)} py-1 text-sm ${treinada ? '' : '!border-transparent !bg-transparent !text-xs text-tinta-600 hover:!border-tinta-600 focus:!border-tinta-900'}`}>
+                  {NIVEIS.map((n) => <option key={n} value={n}>{NOME_NIVEL_TREINO[n]}</option>)}
+                </select>
+              ) : (
+                <span className="text-xs">{NOME_NIVEL_TREINO[teste.nivel]}</span>
+              )
               return (
                 <tr key={teste.nome} className={treinada ? 'text-tinta-900' : 'text-tinta-600'}>
                   <td className="py-1.5 pr-2">
                     <span className={treinada ? 'font-bold' : ''}>{teste.nome}</span>{' '}
                     <span className={`text-xs tracking-[0.08em] uppercase ${condensado}`}>{teste.atributoBase}</span>
+                    {/* Folha estreita: o treino mora aqui, embaixo do nome (a coluna própria some). */}
+                    <div className="mt-1 max-w-40 @min-[18.5rem]:hidden">{treino}</div>
                   </td>
-                  <td className="py-1.5 pr-3 font-datilo text-sm whitespace-nowrap"
+                  <td className="py-1 pr-3 font-datilo text-sm whitespace-nowrap"
                     title={teste.modo === 'menor' ? 'Atributo 0: rola 2d20 e fica com o pior' : 'Rola os d20 e fica com o melhor'}>
-                    {expressaoTeste(teste)}
-                    {teste.modo === 'menor' && <span className="ml-1 font-arquivo text-xs text-tinta-700">(pior)</span>}
-                  </td>
-                  <td className="w-32 py-1 text-right">
-                    {pendente === teste.nome && mostrarSpinner ? (
-                      <Spinner tamanho="sm" />
-                    ) : podeEditar ? (
-                      <select aria-label={`Treino em ${teste.nome}`} value={teste.nivel} disabled={pendente !== null}
-                        onChange={(e) => treinar(teste.nome, e.target.value as NivelTreino)}
-                        // Destreinada não mostra a linha do campo até o hover/foco: as treinadas saltam aos olhos.
-                        className={`${classeSelect(false)} py-1 text-sm ${treinada ? '' : '!border-transparent !bg-transparent !text-xs text-tinta-600 hover:!border-tinta-600 focus:!border-tinta-900'}`}>
-                        {NIVEIS.map((n) => <option key={n} value={n}>{NOME_NIVEL_TREINO[n]}</option>)}
-                      </select>
+                    {onRolar ? (
+                      // O teste é o próprio botão de rolar: quem rola é o servidor, com o bônus da ficha.
+                      <button type="button" onClick={() => onRolar(teste.nome)} disabled={rolando !== null}
+                        aria-label={`Rolar ${teste.nome} (${expressaoTeste(teste)}${teste.modo === 'menor' ? ', fica com o pior' : ''})`}
+                        // Sem ícone por linha: a coluna "Teste" tem o dado no cabeçalho, e cada pixel aqui
+                        // sai do seletor de treino ao lado (com ícone, ele cortava em 380px).
+                        className="inline-flex min-h-8 items-center gap-1 rounded-sm underline decoration-tinta-600 decoration-dotted underline-offset-4 hover:bg-tinta-900/10 hover:decoration-solid focus-visible:outline-2 focus-visible:outline-tinta-900 disabled:cursor-wait disabled:opacity-60">
+                        {rolando === `pericia:${teste.nome}` && <Spinner tamanho="sm" />}
+                        {expressaoTeste(teste)}
+                        {teste.modo === 'menor' && <span className="font-arquivo text-xs text-tinta-700">(pior)</span>}
+                      </button>
                     ) : (
-                      <span className="text-xs">{NOME_NIVEL_TREINO[teste.nivel]}</span>
+                      <>
+                        {expressaoTeste(teste)}
+                        {teste.modo === 'menor' && <span className="ml-1 font-arquivo text-xs text-tinta-700">(pior)</span>}
+                      </>
                     )}
                   </td>
+                  <td className="hidden w-32 py-1 text-right @min-[18.5rem]:table-cell">{treino}</td>
                 </tr>
               )
             })}

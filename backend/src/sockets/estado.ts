@@ -1,12 +1,13 @@
 import { randomUUID } from 'node:crypto'
 import type { Combate } from '../engine/combate.js'
-import type { ResultadoRolagem } from '../engine/rolagem.js'
+import type { ResultadoExpressao, ResultadoRolagem } from '../engine/rolagem.js'
 
 // Muda a cada processo: é como o cliente descobre que o servidor reiniciou
 // (e que o combate que ele tinha na tela não existe mais).
 export const INSTANCIA_SERVIDOR = randomUUID()
 
-export type Rolagem = ResultadoRolagem & {
+export type Rolagem = (ResultadoRolagem | ResultadoExpressao) & {
+  rotulo?: string
   id: string
   autor: { id: string; nome: string }
   criadoEm: string

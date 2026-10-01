@@ -1,7 +1,7 @@
 import { prisma, semIndefinidos } from '../../lib/prisma.js'
 import { AppError } from '../../errors/AppError.js'
 import { buscarSalaOuFalhar } from '../sala/sala.service.js'
-import { calcularDefesa, calcularFicha, montarTestesPericias, type AtributosOP1, type NivelTreinoPericia } from '../../engine/calculoFicha.js'
+import { calcularDefesa, calcularFicha, montarTestesPericias, pedidoDeTeste, type AtributosOP1, type NivelTreinoPericia } from '../../engine/calculoFicha.js'
 import { PERICIAS_OP1 } from '../../engine/pericias.js'
 import { habilidadesAcumuladas, motivoClasseNexInvalidos, type ProgressaoClasseEntry } from '../../engine/progressaoClasse.js'
 import { emitirParaSala } from '../../sockets/emissor.js'
@@ -45,12 +45,16 @@ function tabelaProgressao() {
 // O que sai pra API/socket: a ficha + o teste de cada uma das 28 perícias e as habilidades de
 // classe desbloqueadas até o NEX atual (tudo calculado aqui — o frontend só exibe). Perícia sem
 // linha em FichaPericia conta como Destreinado.
-function apresentar(ficha: FichaComRelacoes, progressao: ProgressaoClasseEntry[]) {
+function testesDa(ficha: FichaComRelacoes) {
   const nivelPorNome = new Map(ficha.pericias.map((fp) => [fp.pericia.nome, fp.nivel as NivelTreinoPericia]))
-  const testesPericias = montarTestesPericias(
+  return montarTestesPericias(
     { for: ficha.for, agi: ficha.agi, int: ficha.int, vig: ficha.vig, pre: ficha.pre },
     PERICIAS_OP1.map((p) => ({ ...p, nivel: nivelPorNome.get(p.nome) ?? 'DESTREINADO' })),
   )
+}
+
+function apresentar(ficha: FichaComRelacoes, progressao: ProgressaoClasseEntry[]) {
+  const testesPericias = testesDa(ficha)
   return {
     ...ficha,
     testesPericias,
@@ -190,6 +194,33 @@ async function buscarFichaInterna(fichaId: string, usuarioId: string) {
 
   await buscarSalaOuFalhar(ficha.salaId, usuarioId)
   return ficha
+}
+
+// Rolar da ficha: o cliente diz só QUAL teste; quantidade de dados e bônus saem da ficha no banco
+// (ninguém infla o próprio bônus). Rola quem pode editar a ficha — o dono ou o mestre.
+export async function montarTesteDaFicha(salaId: string, usuarioId: string, { fichaId, tipo, nome }: Record<string, unknown>) {
+  if (typeof fichaId !== 'string' || (tipo !== 'pericia' && tipo !== 'atributo') || typeof nome !== 'string') {
+    throw new AppError('Informe fichaId, tipo ("pericia" ou "atributo") e nome', 400)
+  }
+  const ficha = await buscarFichaInterna(fichaId, usuarioId)
+  if (ficha.salaId !== salaId) throw new AppError('Ficha não encontrada', 404)
+  await garantirAutorizacaoEdicao(ficha, usuarioId)
+  const pedido = pedidoDeTeste(ficha, testesDa(ficha), { tipo, nome })
+  if (!pedido) throw new AppError(tipo === 'pericia' ? `Perícia "${nome}" não existe` : `Atributo "${nome}" não existe`, 400)
+  return { pedido, fichaNome: ficha.nome }
+}
+
+// Iniciativa automática: o teste da perícia Iniciativa de cada ficha pedida (só fichas desta sala).
+export async function montarIniciativas(salaId: string, fichaIds: unknown) {
+  if (!Array.isArray(fichaIds) || fichaIds.length === 0 || fichaIds.length > 50 || !fichaIds.every((id) => typeof id === 'string')) {
+    throw new AppError('Informe de 1 a 50 fichas', 400)
+  }
+  const fichas = await prisma.ficha.findMany({ where: { salaId, id: { in: fichaIds as string[] } }, include: INCLUIR_PERICIAS })
+  return fichas.map((ficha) => ({
+    fichaId: ficha.id,
+    fichaNome: ficha.nome,
+    pedido: pedidoDeTeste(ficha, testesDa(ficha), { tipo: 'pericia', nome: 'Iniciativa' })!,
+  }))
 }
 
 export async function buscarFichaOuFalhar(fichaId: string, usuarioId: string) {

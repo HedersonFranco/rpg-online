@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { useAtrasado } from '../../hooks/useAtrasado'
+import { useRolarTeste } from '../../hooks/useRolarTeste'
 import { api, mensagemDeErro } from '../../services/api'
 import { NEX_TIERS, NOME_CLASSE, type Ficha, type TipoEntrada } from '../../services/tipos'
 import { Alerta, Spinner } from '../ui/Feedback'
 import { Abas, type Aba } from '../ui/Abas'
+import { BilheteRolagem } from '../Chat/BilheteRolagem'
 import { Folha } from '../ui/arquivo'
 import { Icone } from '../ui/Icone'
 import { classeAbaFolha, classeBotaoIconeFolha, classeRotulo, classeSelect, condensado } from '../ui/estilosArquivo'
@@ -64,6 +66,9 @@ export function VisaoFicha({
   const [pendente, setPendente] = useState<Recurso | 'nex' | 'defesa' | null>(null)
   const [erro, setErro] = useState<string | null>(null)
   const mostrarSpinner = useAtrasado(pendente !== null)
+  // Rolar perícia/atributo: só quem pode editar a ficha (o servidor confere a mesma regra).
+  const teste = useRolarTeste(ficha.id)
+  const rolar = podeEditar ? teste.rolarTeste : undefined
 
   async function enviar(campo: Recurso | 'nex' | 'defesa', corpo: Record<string, number>) {
     setErro(null)
@@ -125,7 +130,7 @@ export function VisaoFicha({
         </div>
       </div>
 
-      <PentagonoAtributos atributos={ficha} />
+      <PentagonoAtributos atributos={ficha} onRolar={rolar && ((nome) => rolar({ tipo: 'atributo', nome }))} rolando={teste.rolando} />
 
       <DefesaFicha ficha={ficha} podeEditar={podeEditar} pendente={pendente !== null}
         onBonus={(bonus) => enviar('defesa', { defesa_bonus: bonus })} />
@@ -191,7 +196,8 @@ export function VisaoFicha({
         <Abas abas={ABAS} ativa={aba} onTrocar={setAba} rotulo="Seções da ficha" idBase={`ficha-${ficha.id}`}
           classeAba={classeAbaFolha} classeLista="grid grid-cols-2 gap-1.5 @min-[18.5rem]:grid-cols-3" />
         <div role="tabpanel" id={`ficha-${ficha.id}-painel`} aria-labelledby={`ficha-${ficha.id}-aba-${aba}`} className="pt-4 text-sm">
-          {aba === 'pericias' && <AbaPericias ficha={ficha} podeEditar={podeEditar} onAtualizada={onAtualizada} />}
+          {aba === 'pericias' && <AbaPericias ficha={ficha} podeEditar={podeEditar} onAtualizada={onAtualizada}
+            onRolar={rolar && ((nome) => rolar({ tipo: 'pericia', nome }))} rolando={teste.rolando} />}
           {aba === 'HABILIDADE' && <HabilidadesDeClasse ficha={ficha} />}
           {TIPOS_ENTRADA.includes(aba) && (
             <AbaEntradas key={aba} ficha={ficha} tipo={aba as TipoEntrada} podeEditar={podeEditar} onAtualizada={onAtualizada} />
@@ -199,6 +205,12 @@ export function VisaoFicha({
           {aba === 'inventario' && <AbaInventario ficha={ficha} podeEditar={podeEditar} onAtualizada={onAtualizada} />}
         </div>
       </div>
+      {(teste.ultima || teste.erro) && (
+        // Fica grudado no pé do painel enquanto se rola a lista: o resultado aparece onde a pessoa está.
+        <div className="sticky bottom-2 z-10" aria-live="polite">
+          {teste.erro ? <Alerta tom="papel" mensagem={teste.erro} /> : teste.ultima && <BilheteRolagem rolagem={teste.ultima} onFechar={teste.dispensar} />}
+        </div>
+      )}
     </Folha>
   )
 }

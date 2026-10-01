@@ -71,7 +71,7 @@ Isso significa: estados de erro, estados de carregamento e confirmação em aç�
 ### Tempo real
 - Rolagem de dados: evento em tempo real, **não persiste** no banco — apenas o resultado mais recente em memória.
 - **Turnos/iniciativa: DENTRO do escopo da v1.** (Decisão revisada em 22/09/2026 — o CLAUDE.md anterior dizia o contrário.)
-  - O mestre inicia o combate informando manualmente um valor de iniciativa por participante.
+  - O mestre inicia o combate informando um valor de iniciativa por participante — digitando, ou (fichas) com "Rolar iniciativa": o servidor rola a perícia Iniciativa de cada ficha marcada (`turno:rolarIniciativa`), cada rolagem vai pro chat e o valor preenche o campo, ainda editável. NPC segue manual (não tem perícias). *(01/10/2026)*
   - Participantes: fichas dos jogadores + NPCs que o mestre incluir.
   - A barra inferior mostra o jogador ativo e a fila; "Encerrar turno" avança.
   - Só o jogador ativo e o mestre podem encerrar o turno.
@@ -80,10 +80,11 @@ Isso significa: estados de erro, estados de carregamento e confirmação em aç�
 
 ### Tempo real — como está implementado (Etapa 9)
 - **Escrita continua pelo REST.** Ficha criada/alterada/perícia treinada: o service grava, e só então `emitirParaSala(salaId, 'ficha:atualizada', { ficha })` distribui. Nenhuma regra de validação duplicada no socket.
-- **Eventos cliente → servidor** (todos com ack `{ ok, ...dados }` ou `{ ok: false, erro, status }`): `sala:entrar`, `turno:estadoSolicitado`, `chat:enviar`, `rolagem:rolar`, `turno:iniciar` (mestre), `turno:encerrar`, `turno:finalizar` (mestre).
+- **Eventos cliente → servidor** (todos com ack `{ ok, ...dados }` ou `{ ok: false, erro, status }`): `sala:entrar`, `turno:estadoSolicitado`, `chat:enviar`, `rolagem:rolar`, `rolagem:teste`, `turno:rolarIniciativa` (mestre), `turno:iniciar` (mestre), `turno:encerrar`, `turno:finalizar` (mestre).
 - **Eventos servidor → sala:** `ficha:atualizada`, `chat:mensagem`, `rolagem:resultado`, `turno:estado`.
 - Socket autentica com o mesmo JWT (`auth.token` no handshake). Token recusado → cliente faz logout (o socket.io não tenta de novo nesse caso).
 - **Chat persiste** (`Mensagem`, até 1000 caracteres; histórico via `GET /salas/:id/mensagens`, últimas 50). **Rolagem não persiste**: o servidor rola (crypto, ninguém escolhe o resultado) e guarda só a última por sala em memória. Modos: soma, maior (teste de OP1) e menor (OP1 com atributo 0).
+- **Rolagens a partir da ficha e de dano (01/10/2026):** `rolagem:teste { fichaId, tipo: 'pericia'|'atributo', nome }` — o cliente diz só QUAL teste; dados e bônus saem da ficha no banco (`pedidoDeTeste()` no motor, função pura), ninguém infla o próprio bônus. Rola quem pode editar a ficha (dono ou mestre — `403` pro resto). Atributo puro = (atributo)d20, fica com o melhor, sem bônus (0 → 2d20, pior). `rolagem:rolar { expressao }` aceita dano livre (`rolarExpressao()`: "2d6+1d8+3", até 10 termos/50 dados, mesmas faces). Toda rolagem traz `detalhe` (dados formatados no servidor) e, quando vem da ficha, `rotulo` ("Fortitude · Helena Duarte"). Na ficha, o teste da perícia e os atributos do círculo são os botões de rolar; o bilhete do resultado aparece também no pé da ficha (o chat pode estar escondido atrás dela).
 - `turno:encerrar` manda `indiceAtivo`/`rodada` esperados: clique duplo simultâneo (jogador + mestre) não pula turno — o segundo recebe `409`.
 - **Detecção de reinício:** cada processo gera um `INSTANCIA_SERVIDOR`. Se o cliente tinha combate e, ao reconectar, a instância mudou e não há combate → aviso "Sessão reiniciada — reinicie o combate." e o estado local é limpo.
 - Heartbeat do socket: `pingInterval` 10s + `pingTimeout` 5s; backoff de reconexão do cliente máx. 5s → queda detectada e recuperada bem dentro dos 30s.
