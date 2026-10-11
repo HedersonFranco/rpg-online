@@ -1,0 +1,5 @@
+# Páginas públicas (apresentação, entrar, criar conta) podem ser indexadas.
+# Mesas e links de convite são privados e exigem login.
+User-agent: *
+Disallow: /salas
+Disallow: /convite/
