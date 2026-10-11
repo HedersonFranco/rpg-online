@@ -48,17 +48,18 @@ function Inicio() {
   return <Apresentacao />
 }
 
+// <title> em cada rota: o React 19 leva para o <head> e tira ao trocar de página.
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<Inicio />} />
-      <Route path="/sobre" element={<Apresentacao />} />
-      <Route path="/login" element={<RotaPublica><Login /></RotaPublica>} />
-      <Route path="/cadastro" element={<RotaPublica><Cadastro /></RotaPublica>} />
-      <Route path="/salas" element={<RotaProtegida><ListaSalas /></RotaProtegida>} />
+      <Route path="/" element={<><title>Início</title><Inicio /></>} />
+      <Route path="/sobre" element={<><title>Sobre</title><Apresentacao /></>} />
+      <Route path="/login" element={<RotaPublica><title>Entrar</title><Login /></RotaPublica>} />
+      <Route path="/cadastro" element={<RotaPublica><title>Criar conta</title><Cadastro /></RotaPublica>} />
+      <Route path="/salas" element={<RotaProtegida><title>Suas mesas</title><ListaSalas /></RotaProtegida>} />
       <Route path="/salas/:id" element={<RotaProtegida><SalaPorId /></RotaProtegida>} />
-      <Route path="/convite/:token" element={<RotaProtegida><Convite /></RotaProtegida>} />
-      <Route path="*" element={<NaoEncontrada />} />
+      <Route path="/convite/:token" element={<RotaProtegida><title>Convite</title><Convite /></RotaProtegida>} />
+      <Route path="*" element={<><title>Página não encontrada</title><NaoEncontrada /></>} />
     </Routes>
   )
 }
