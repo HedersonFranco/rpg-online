@@ -223,6 +223,7 @@ function Mesa({ sala: salaInicial }: { sala: SalaDetalhe }) {
 
   return (
     <div className="mundo-arquivo flex h-full flex-col">
+      <title>{sala.nome}</title>
       <p className="bg-kraft-700 px-4 py-1.5 text-center text-xs text-papel-50 xl:hidden">
         A mesa foi feita para telas a partir de 1280px de largura. Em telas menores, role para os lados.
       </p>

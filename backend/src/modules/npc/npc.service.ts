@@ -1,5 +1,6 @@
 import { prisma, semIndefinidos } from '../../lib/prisma.js'
 import { AppError } from '../../errors/AppError.js'
+import { ehArquivoEnviado } from '../../lib/armazenamento.js'
 import { garantirMestre } from '../sala/sala.service.js'
 import { validarPastaDaSala } from '../pasta/pasta.service.js'
 
@@ -20,6 +21,9 @@ const CAMPOS_POR_SISTEMA = {
 } as const
 
 function validarEstatisticas(dados: DadosNpc, sistema: keyof typeof CAMPOS_POR_SISTEMA) {
+  if (dados.avatarUrl != null && !ehArquivoEnviado(dados.avatarUrl)) {
+    throw new AppError('Avatar deve ser uma imagem enviada ao sistema', 400)
+  }
   for (const campo of CAMPOS_POR_SISTEMA[sistema].proibidos) {
     if (dados[campo] !== undefined && dados[campo] !== null) {
       throw new AppError(`Campo "${campo}" não existe no sistema desta sala`, 400)

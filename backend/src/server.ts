@@ -18,6 +18,8 @@ import { PASTA_UPLOADS } from "./lib/armazenamento.js";
 dotenv.config();
 
 const app = express();
+// Não anunciar a tecnologia do servidor em toda resposta.
+app.disable("x-powered-by");
 const httpServer = createServer(app);
 
 app.use(cors());

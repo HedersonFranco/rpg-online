@@ -60,7 +60,7 @@ export function TokenNoMapa({
         style={{ width: diametro, height: diametro, fontSize: Math.max(FONTE_MINIMA, 20 * escala) }}
       >
         {avatar ? (
-          <img src={avatar.startsWith('/') ? BASE_URL + avatar : avatar} alt="" draggable={false} className="h-full w-full object-cover" />
+          <img src={BASE_URL + avatar} alt="" draggable={false} className="h-full w-full object-cover" />
         ) : (
           nome.charAt(0).toUpperCase()
         )}

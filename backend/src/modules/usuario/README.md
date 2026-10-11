@@ -14,7 +14,7 @@ Montado em `/auth` (`server.ts`).
 
 ## Regras
 
-- Nome obrigatório (após `trim`), no máximo 60 caracteres; email validado por regex simples, no máximo 254; senha com no mínimo 6 caracteres.
+- Nome obrigatório (após `trim`), no máximo 60 caracteres; email validado por regex simples, no máximo 254; senha com 8 a 72 bytes (acima disso o bcrypt ignoraria o final da senha). Senha ou campo de tipo errado → 400, nunca 500.
 - Email é guardado e buscado em minúsculas, sem espaços (`normalizarEmail`) — no cadastro e no login. `Joao@x.com` e `joao@x.com` são a mesma conta.
 - Email duplicado (em qualquer caixa) é rejeitado com `400` ("Email já cadastrado").
 - Senha guardada só como hash bcrypt (`bcryptjs`, 10 rounds) em `senha_hash`.

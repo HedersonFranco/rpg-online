@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { cadastrar, normalizarEmail, NOME_MAX, EMAIL_MAX } from './usuario.service.js'
+import { cadastrar, normalizarEmail, NOME_MAX, EMAIL_MAX, SENHA_MIN, SENHA_MAX_BYTES } from './usuario.service.js'
 
 describe('normalizarEmail', () => {
   it('tira espaços e passa para minúsculas', () => {
@@ -15,18 +15,33 @@ describe('normalizarEmail', () => {
 // Estas rejeições acontecem antes de qualquer consulta — não precisam do banco.
 describe('cadastrar — validação de entrada', () => {
   const email = 'a@b.com'
-  const senha = '123456'
+  const senha = '12345678'
 
   it(`nome acima de ${NOME_MAX} caracteres → 400`, async () => {
-    await expect(cadastrar('x'.repeat(NOME_MAX + 1), email, senha)).rejects.toMatchObject({ statusCode: 400 })
+    await expect(cadastrar('x'.repeat(NOME_MAX + 1), email, senha)).rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('Nome') })
   })
 
   it(`email acima de ${EMAIL_MAX} caracteres → 400`, async () => {
     const longo = 'a'.repeat(EMAIL_MAX) + '@b.com'
-    await expect(cadastrar('Nome', longo, senha)).rejects.toMatchObject({ statusCode: 400 })
+    await expect(cadastrar('Nome', longo, senha)).rejects.toMatchObject({ statusCode: 400, message: 'Email inválido' })
   })
 
   it('nome que não é texto → 400, não 500', async () => {
     await expect(cadastrar(123 as unknown as string, email, senha)).rejects.toMatchObject({ statusCode: 400 })
+  })
+
+  it(`senha com menos de ${SENHA_MIN} caracteres → 400`, async () => {
+    await expect(cadastrar('Nome', email, '1234567')).rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('ao menos') })
+  })
+
+  it('senha que não é texto → 400, não 500', async () => {
+    await expect(cadastrar('Nome', email, 12345678 as unknown as string)).rejects.toMatchObject({ statusCode: 400 })
+    await expect(cadastrar('Nome', email, { length: 9 } as unknown as string)).rejects.toMatchObject({ statusCode: 400 })
+  })
+
+  // Acima de 72 bytes o bcrypt ignoraria o final: "a"×72 + qualquer coisa entraria na mesma conta.
+  it(`senha acima de ${SENHA_MAX_BYTES} bytes → 400 (acento conta 2)`, async () => {
+    await expect(cadastrar('Nome', email, 'a'.repeat(SENHA_MAX_BYTES + 1))).rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('no máximo') })
+    await expect(cadastrar('Nome', email, 'é'.repeat(37))).rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('no máximo') })
   })
 })

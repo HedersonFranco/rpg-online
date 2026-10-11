@@ -7,6 +7,9 @@ const SALT_ROUNDS = 10
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 export const NOME_MAX = 60
 export const EMAIL_MAX = 254 // limite prático de endereço (RFC 5321)
+export const SENHA_MIN = 8
+// O bcrypt só lê os primeiros 72 bytes: acima disso, duas senhas com o mesmo começo virariam a mesma senha.
+export const SENHA_MAX_BYTES = 72
 
 // Email é guardado e buscado sempre em minúsculas: "Joao@x.com" e "joao@x.com" são a mesma conta.
 export function normalizarEmail(email: unknown): string {
@@ -35,8 +38,11 @@ export async function cadastrar(nomeBruto: string, emailBruto: string, senha: st
   if (email.length > EMAIL_MAX || !EMAIL_REGEX.test(email)) {
     throw new AppError('Email inválido', 400)
   }
-  if (!senha || senha.length < 6) {
-    throw new AppError('Senha deve ter ao menos 6 caracteres', 400)
+  if (typeof senha !== 'string' || senha.length < SENHA_MIN) {
+    throw new AppError(`Senha deve ter ao menos ${SENHA_MIN} caracteres`, 400)
+  }
+  if (Buffer.byteLength(senha) > SENHA_MAX_BYTES) {
+    throw new AppError(`Senha deve ter no máximo ${SENHA_MAX_BYTES} caracteres`, 400)
   }
 
   const existente = await prisma.usuario.findUnique({ where: { email } })
@@ -57,7 +63,7 @@ export async function login(email: string, senha: string) {
   const usuario = await prisma.usuario.findUnique({ where: { email: normalizarEmail(email) } })
 
   // Mensagem genérica de propósito — não revela se o email existe.
-  if (!usuario || !(await bcrypt.compare(senha ?? '', usuario.senha_hash))) {
+  if (!usuario || !(await bcrypt.compare(typeof senha === 'string' ? senha : '', usuario.senha_hash))) {
     throw new AppError('Email ou senha inválidos', 401)
   }
 

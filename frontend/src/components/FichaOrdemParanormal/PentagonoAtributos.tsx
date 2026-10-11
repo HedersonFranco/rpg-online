@@ -1,3 +1,4 @@
+import type { KeyboardEvent } from 'react'
 import type { AtributoOP1 } from '../../services/tipos'
 
 // Disposição da ficha oficial: AGI no topo e, em sentido horário, INT, VIG, PRE, FOR, em volta do
@@ -39,11 +40,18 @@ const HASTES = ORDEM.map((_, i) => {
   return { x1, y1, x2, y2 }
 })
 
-// Os valores vêm do backend; o componente só desenha.
-export function PentagonoAtributos({ atributos }: { atributos: Record<AtributoOP1, number> }) {
+// Os valores vêm do backend; o componente só desenha. Com `onRolar`, cada atributo é um botão
+// (teste de atributo puro: Nd20, fica com o melhor) — aí o SVG vira grupo, porque role="img"
+// esconderia os botões do leitor de tela.
+export function PentagonoAtributos({ atributos, onRolar, rolando = null }: {
+  atributos: Record<AtributoOP1, number>
+  onRolar?: ((atributo: AtributoOP1) => void) | undefined
+  rolando?: string | null
+}) {
   const descricao = ORDEM.map(({ chave, nome }) => `${nome} ${atributos[chave]}`).join(', ')
   return (
-    <svg viewBox="0 0 300 300" role="img" aria-label={`Atributos: ${descricao}`} className="mx-auto block w-full max-w-[300px]">
+    <svg viewBox="0 0 300 300" role={onRolar ? 'group' : 'img'} aria-label={onRolar ? 'Atributos — clique para rolar' : `Atributos: ${descricao}`}
+      className="mx-auto block w-full max-w-[300px]">
       <g fill="none" className="stroke-tinta-900">
         <circle cx={CX} cy={CY} r={RAIO_VERTICES + 44} strokeWidth={1.5} opacity={0.5} />
         {MARCAS.map((m, k) => (
@@ -62,11 +70,31 @@ export function PentagonoAtributos({ atributos }: { atributos: Record<AtributoOP
         ATRIBUTOS
       </text>
 
-      {ORDEM.map(({ chave, sigla }, i) => {
+      {ORDEM.map(({ chave, sigla, nome }, i) => {
         const [x, y] = ponto(anguloDe(i), RAIO_VERTICES)
+        const valor = atributos[chave]
+        const interativo = onRolar
+          ? {
+              role: 'button',
+              tabIndex: rolando === null ? 0 : -1,
+              'aria-label': `Rolar ${nome} ${valor} (${valor > 0 ? `${valor}d20, fica com o melhor` : '2d20, fica com o pior'})`,
+              'aria-disabled': rolando !== null,
+              onClick: () => rolando === null && onRolar(chave),
+              onKeyDown: (e: KeyboardEvent<SVGGElement>) => {
+                if (rolando !== null || (e.key !== 'Enter' && e.key !== ' ')) return
+                e.preventDefault()
+                onRolar(chave)
+              },
+              className: 'group cursor-pointer focus:outline-none',
+            }
+          : {}
         return (
-          <g key={chave}>
-            <circle cx={x} cy={y} r={RAIO_ATRIBUTO} className="fill-papel-50 stroke-tinta-900" strokeWidth={2.5} />
+          <g key={chave} {...interativo}>
+            {onRolar && (
+              // Anel de foco/hover: o mesmo traço de tinta, um pouco fora do círculo.
+              <circle cx={x} cy={y} r={RAIO_ATRIBUTO + 5} fill="none" className="stroke-tinta-900 opacity-0 transition-opacity group-hover:opacity-40 group-focus-visible:opacity-100 motion-reduce:transition-none" strokeWidth={2} strokeDasharray="4 3" />
+            )}
+            <circle cx={x} cy={y} r={RAIO_ATRIBUTO} className={`fill-papel-50 stroke-tinta-900 ${rolando === `atributo:${chave}` ? 'animate-pulse motion-reduce:animate-none' : ''}`} strokeWidth={2.5} />
             <circle cx={x} cy={y} r={RAIO_ATRIBUTO - 5} fill="none" className="stroke-tinta-600" strokeWidth={1} />
             <text x={x} y={y + 8} textAnchor="middle" className="fill-tinta-900"
               style={{ ...CONDENSADO, fontSize: 30, fontWeight: 800 }}>

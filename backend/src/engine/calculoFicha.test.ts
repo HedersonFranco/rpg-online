@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { calcularDefesa, calcularFicha, montarTestesPericias } from './calculoFicha.js'
+import { calcularDefesa, calcularFicha, montarTestesPericias, pedidoDeTeste } from './calculoFicha.js'
 import { PERICIAS_OP1 } from './pericias.js'
 import type { ProgressaoClasseEntry, ClasseFormulaEntry } from './progressaoClasse.js'
 
@@ -180,5 +180,30 @@ describe('calcularDefesa', () => {
   it('Esquiva soma o bônus de Reflexos na Defesa; Bloqueio dá RD igual ao bônus de Fortitude', () => {
     expect(calcularDefesa(3, 5, testes({ Reflexos: 'TREINADO', Fortitude: 'VETERANO' }))).toEqual({ defesa: 18, esquiva: 23, bloqueio: 10 })
     expect(calcularDefesa(3, 0, testes({ Reflexos: 'EXPERT' }))).toEqual({ defesa: 13, esquiva: 28, bloqueio: null })
+  })
+})
+
+describe('pedidoDeTeste (rolar da ficha)', () => {
+  const atributos = { for: 0, agi: 3, int: 1, vig: 2, pre: 1 }
+  const testes = montarTestesPericias(atributos, PERICIAS_OP1.map((p) => ({ ...p, nivel: p.nome === 'Fortitude' ? 'TREINADO' as const : 'DESTREINADO' as const })))
+
+  it('perícia: (atributo-base)d20 + treino — Vigor 2 + Fortitude treinado = 2d20+5', () => {
+    expect(pedidoDeTeste(atributos, testes, { tipo: 'pericia', nome: 'Fortitude' }))
+      .toEqual({ quantidade: 2, faces: 20, modificador: 5, modo: 'maior', nomeTeste: 'Fortitude' })
+  })
+
+  it('perícia de atributo 0 rola 2d20 e fica com o pior (Atletismo, Força 0)', () => {
+    expect(pedidoDeTeste(atributos, testes, { tipo: 'pericia', nome: 'Atletismo' })).toMatchObject({ quantidade: 2, modo: 'menor', modificador: 0 })
+  })
+
+  it('atributo puro: Agilidade 3 → 3d20 sem bônus; Força 0 → 2d20 pior', () => {
+    expect(pedidoDeTeste(atributos, testes, { tipo: 'atributo', nome: 'agi' })).toEqual({ quantidade: 3, faces: 20, modificador: 0, modo: 'maior', nomeTeste: 'Agilidade' })
+    expect(pedidoDeTeste(atributos, testes, { tipo: 'atributo', nome: 'for' })).toMatchObject({ quantidade: 2, modo: 'menor', nomeTeste: 'Força' })
+  })
+
+  it('perícia ou atributo inexistente → null', () => {
+    expect(pedidoDeTeste(atributos, testes, { tipo: 'pericia', nome: 'Voar' })).toBeNull()
+    expect(pedidoDeTeste(atributos, testes, { tipo: 'atributo', nome: 'sorte' })).toBeNull()
+    expect(pedidoDeTeste(atributos, testes, { tipo: 'atributo', nome: 'toString' })).toBeNull()
   })
 })

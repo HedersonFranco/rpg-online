@@ -61,7 +61,10 @@ visual em [`DESIGN.md`](../DESIGN.md), decisões e critérios por etapa em [`CLA
 |---|---|---|---|---|
 | RF30 | Chat da mesa com histórico | E | ✅ | Etapa 9 |
 | RF31 | Rolagem de dados feita no servidor (soma, maior, menor) | E | ✅ | Etapa 9 (testes) |
-| RF32 | Combate: iniciativa informada pelo mestre, vez de quem, fila, encerrar turno | E | ✅ | Etapa 9 |
+| RF41 | Rolar teste de perícia e de atributo direto da ficha; dados e bônus montados no servidor a partir da ficha (dono ou mestre) | I | ✅ | 01/10/2026 (motor 4 testes; socket 19/19; tela 13/13) |
+| RF42 | Rolagem de dano por expressão livre ("2d6+1d8+3") | I | ✅ | 01/10/2026 (motor 5 testes; socket; tela) |
+| RF43 | Iniciativa das fichas rolada pelo servidor no "Iniciar combate" (mestre), visível no chat e editável antes de iniciar | I | ✅ | 01/10/2026 (socket; tela) |
+| RF32 | Combate: iniciativa informada pelo mestre (ou rolada pelo servidor para fichas, RF43), vez de quem, fila, encerrar turno | E | ✅ | Etapa 9 |
 | RF33 | Enviar mapas e escolher o mapa da mesa (só o mestre) | E | ✅ | Etapa 10 |
 | RF34 | Tokens de ficha, NPC ou objeto; arrastar ao vivo | E | ✅ | Etapa 10 |
 | RF35 | Zoom e pan por mouse e por toque | E | ✅ | Etapa 10 |

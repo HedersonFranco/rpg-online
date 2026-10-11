@@ -49,10 +49,10 @@ export default function Cadastro() {
         </div>
         <div>
           <label htmlFor="senha" className={classeRotulo}>Senha</label>
-          <input id="senha" type="password" autoComplete="new-password" required minLength={6} value={senha}
+          <input id="senha" type="password" autoComplete="new-password" required minLength={8} maxLength={72} value={senha}
             onChange={(e) => setSenha(e.target.value)} disabled={enviando} className={classeCampo}
             aria-describedby="dica-senha" />
-          <p id="dica-senha" className="mt-1 text-xs text-tinta-700">Mínimo de 6 caracteres.</p>
+          <p id="dica-senha" className="mt-1 text-xs text-tinta-700">Mínimo de 8 caracteres.</p>
         </div>
         {erro && <Alerta tom="papel" mensagem={erro} />}
         <button type="submit" disabled={enviando} className={`${classeBotaoTinta} w-full`}>
