@@ -30,6 +30,7 @@ Criação e listagem ficam em `sala.routes.ts`; o resto em `/fichas` (`server.ts
 - `defesa_bonus`: inteiro de −50 a 50 (modificadores de equipamento/habilidades/condições, informados pelo jogador). Toda ficha devolvida traz `defesa: { defesa, esquiva, bloqueio }` (via `calcularDefesa`): Defesa = 10 + Agi + bônus; Esquiva = Defesa + bônus de Reflexos e Bloqueio = RD igual ao bônus de Fortitude, `null` sem treino (livro p. 42 e p. 87).
 - `pv/pe/san_maximo_cache` são gravados a partir de `calcularFicha()`; nunca vêm do cliente.
 - `inventario`: texto de até 10.000 caracteres.
+- `avatarUrl`: só arquivo enviado ao próprio sistema (`/uploads/<uuid>.png|jpg|webp`, `ehArquivoEnviado()` em `lib/armazenamento.ts`) ou `null`; URL externa → `400` — num `<img>`, ela entregaria o IP de cada pessoa da mesa a um servidor de terceiros.
 - Graus de perícia: `DESTREINADO`, `TREINADO`, `VETERANO`, `EXPERT`. Perícia sem linha em `FichaPericia` sai como Destreinado.
 - Toda ficha devolvida traz `testesPericias` (as 28 de `PERICIAS_OP1`, via `montarTestesPericias`) e `habilidadesDesbloqueadas` (via `habilidadesAcumuladas` sobre `ProgressaoClasse`).
 - Entradas (`FichaEntrada`):

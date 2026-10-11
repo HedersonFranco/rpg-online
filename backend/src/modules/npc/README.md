@@ -24,7 +24,8 @@ Quem não é mestre recebe `403`; não-membro, `404` (via `garantirMestre`).
   - `ORDEM_PARANORMAL_1`: aceita `pv`, `pe`, `san`; `pd` é rejeitado (`400`).
   - `ORDEM_PARANORMAL_2`: aceita `pv`, `pd`; `pe` e `san` são rejeitados (`400`).
   - Valores aceitos devem ser inteiros ≥ 0 ou `null`.
-- `atributos` é texto livre; `avatarUrl` opcional. Valores são gravados como enviados, sem cálculo.
+- `atributos` é texto livre. Valores são gravados como enviados, sem cálculo.
+- `avatarUrl` opcional: só arquivo enviado ao próprio sistema (`/uploads/<uuid>.png|jpg|webp`, `ehArquivoEnviado()` em `lib/armazenamento.ts`) ou `null`; URL externa → `400` — num `<img>`, ela entregaria o IP de cada pessoa da mesa a um servidor de terceiros.
 - `pastaId`: `undefined` não mexe, `null` move para a raiz, string precisa ser pasta da mesma sala (`400` senão, via `validarPastaDaSala`).
 - Apagar o NPC deixa os tokens que apontavam para ele no mapa com `npcId = null` (`onDelete: SetNull`).
 - Nenhum evento em tempo real.

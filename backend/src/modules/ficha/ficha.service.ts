@@ -1,5 +1,6 @@
 import { prisma, semIndefinidos } from '../../lib/prisma.js'
 import { AppError } from '../../errors/AppError.js'
+import { ehArquivoEnviado } from '../../lib/armazenamento.js'
 import { buscarSalaOuFalhar } from '../sala/sala.service.js'
 import { calcularDefesa, calcularFicha, montarTestesPericias, pedidoDeTeste, type AtributosOP1, type NivelTreinoPericia } from '../../engine/calculoFicha.js'
 import { PERICIAS_OP1 } from '../../engine/pericias.js'
@@ -94,6 +95,9 @@ function validarCamposBasicos(dados: Partial<DadosFicha>, obrigatorio: boolean) 
     }
   }
   validarAtributos(dados, obrigatorio)
+  if (dados.avatarUrl != null && !ehArquivoEnviado(dados.avatarUrl)) {
+    throw new AppError('Avatar deve ser uma imagem enviada ao sistema', 400)
+  }
 }
 
 async function carregarTabelasDeCalculo(classe: string) {

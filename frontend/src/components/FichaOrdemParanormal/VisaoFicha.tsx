@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useAtrasado } from '../../hooks/useAtrasado'
 import { useRolarTeste } from '../../hooks/useRolarTeste'
-import { api, mensagemDeErro } from '../../services/api'
+import { api, BASE_URL, mensagemDeErro } from '../../services/api'
 import { NEX_TIERS, NOME_CLASSE, type Ficha, type TipoEntrada } from '../../services/tipos'
 import { Alerta, Spinner } from '../ui/Feedback'
 import { Abas, type Aba } from '../ui/Abas'
@@ -93,7 +93,7 @@ export function VisaoFicha({
     <Folha className="@container space-y-6 p-4 sm:p-4">
       <div className="flex items-center gap-3">
         {ficha.avatarUrl ? (
-          <img src={ficha.avatarUrl} alt="" className="h-16 w-14 shrink-0 rounded-[2px] border-[3px] border-papel-50 object-cover shadow-[0_2px_4px_rgb(0_0_0/0.3)]" />
+          <img src={BASE_URL + ficha.avatarUrl} alt="" className="h-16 w-14 shrink-0 rounded-[2px] border-[3px] border-papel-50 object-cover shadow-[0_2px_4px_rgb(0_0_0/0.3)]" />
         ) : (
           <div aria-hidden="true" className={`flex h-16 w-14 shrink-0 items-center justify-center rounded-[2px] border-[3px] border-papel-50 bg-arquivo-800 text-2xl font-extrabold text-grafite-300 shadow-[0_2px_4px_rgb(0_0_0/0.3)] ${condensado}`}>
             {ficha.nome.charAt(0).toUpperCase()}

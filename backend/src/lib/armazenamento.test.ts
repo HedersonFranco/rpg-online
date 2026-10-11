@@ -1,5 +1,20 @@
 import { describe, expect, it } from 'vitest'
-import { detectarTipoImagem } from './armazenamento.js'
+import { detectarTipoImagem, ehArquivoEnviado } from './armazenamento.js'
+
+describe('ehArquivoEnviado', () => {
+  it('aceita só o que salvarArquivo gera', () => {
+    expect(ehArquivoEnviado('/uploads/0b91cbdf-112c-4abd-a31b-fd64697069ac.webp')).toBe(true)
+  })
+
+  it('recusa URL externa, javascript:, caminho escapando da pasta e não-texto', () => {
+    expect(ehArquivoEnviado('https://rastreador.example/pixel.png')).toBe(false)
+    expect(ehArquivoEnviado('//rastreador.example/0b91cbdf-112c-4abd-a31b-fd64697069ac.png')).toBe(false)
+    expect(ehArquivoEnviado('javascript:alert(1)')).toBe(false)
+    expect(ehArquivoEnviado('/uploads/../../etc/passwd')).toBe(false)
+    expect(ehArquivoEnviado('/uploads/0b91cbdf-112c-4abd-a31b-fd64697069ac.svg')).toBe(false)
+    expect(ehArquivoEnviado({ url: 'x' })).toBe(false)
+  })
+})
 
 describe('detectarTipoImagem', () => {
   it('reconhece PNG, JPEG e WebP pelos bytes iniciais', () => {

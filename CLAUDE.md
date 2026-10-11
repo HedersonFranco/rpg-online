@@ -156,6 +156,7 @@ A função deve rodar **sem conexão com o banco** nos testes — as tabelas ent
 - Jogador: altera apenas própria ficha (`usuario_id == ficha.usuario_id`).
 - Mestre: altera qualquer ficha da sala (checar papel em `MembroSala`).
 - **Toda rota de escrita** (`POST`, `PATCH`, `DELETE`) valida propriedade ou papel de mestre. Estar autenticado não basta.
+- **Avatar só do próprio sistema (decisão de 10/10/2026):** `avatarUrl` de ficha e NPC aceita apenas `/uploads/<uuid>.png|jpg|webp` (`ehArquivoEnviado()` em `lib/armazenamento.ts`) ou `null` — URL externa → `400`. Antes qualquer jogador podia apontar o avatar para um servidor de terceiros, e o navegador de cada pessoa da mesa entregava o próprio IP a ele. O front sempre monta o avatar com `BASE_URL`.
 
 ---
 

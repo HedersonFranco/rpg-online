@@ -28,6 +28,13 @@ export async function salvarArquivo(conteudo: Buffer, extensao: TipoImagem): Pro
   return PREFIXO_URL + nome
 }
 
+// Só um arquivo que este servidor gravou. Uma URL de terceiros num <img> faria o navegador
+// de cada pessoa da mesa entregar o próprio IP a esse servidor (pixel rastreador).
+const URL_ENVIADA = new RegExp(`^${PREFIXO_URL}[0-9a-f-]{36}\\.(png|jpg|webp)$`)
+export function ehArquivoEnviado(url: unknown): url is string {
+  return typeof url === 'string' && URL_ENVIADA.test(url)
+}
+
 export async function removerArquivo(url: string) {
   if (!url.startsWith(PREFIXO_URL)) return
   // basename: uma URL adulterada no banco não consegue apontar pra fora da pasta.
