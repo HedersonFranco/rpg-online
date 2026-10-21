@@ -45,7 +45,11 @@ const upgradesPeerJs = new EventEmitter();
 httpServer.on("upgrade", (req, socket, head) => {
   if (req.url?.startsWith("/peerjs")) upgradesPeerJs.emit("upgrade", req, socket, head);
 });
-app.use("/peerjs", ExpressPeerServer(upgradesPeerJs as unknown as Server, { path: "/" }));
+const peerServer = ExpressPeerServer(upgradesPeerJs as unknown as Server, { path: "/" });
+// O PeerJS repassa erros de conexão (ex.: mensagem que não é JSON) como evento "error";
+// sem ouvinte, esse emit lança e derruba o processo inteiro.
+peerServer.on("error", (erro) => console.error("PeerJS:", erro));
+app.use("/peerjs", peerServer);
 
 app.use("/auth", usuarioRoutes);
 app.use("/salas", salaRoutes);
