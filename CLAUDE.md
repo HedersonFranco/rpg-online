@@ -80,7 +80,7 @@ Isso significa: estados de erro, estados de carregamento e confirmação em aç�
 
 ### Tempo real — como está implementado (Etapa 9)
 - **Escrita continua pelo REST.** Ficha criada/alterada/perícia treinada: o service grava, e só então `emitirParaSala(salaId, 'ficha:atualizada', { ficha })` distribui. Nenhuma regra de validação duplicada no socket.
-- **Eventos cliente → servidor** (todos com ack `{ ok, ...dados }` ou `{ ok: false, erro, status }`): `sala:entrar`, `turno:estadoSolicitado`, `chat:enviar`, `rolagem:rolar`, `rolagem:teste`, `turno:rolarIniciativa` (mestre), `turno:iniciar` (mestre), `turno:encerrar`, `turno:finalizar` (mestre).
+- **Eventos cliente → servidor** (todos com ack `{ ok, ...dados }` ou `{ ok: false, erro, status }`): `sala:entrar`, `turno:estadoSolicitado`, `chat:enviar`, `rolagem:rolar`, `rolagem:teste`, `turno:rolarIniciativa` (mestre), `turno:iniciar` (mestre), `turno:encerrar`, `turno:finalizar` (mestre). O ack só vale se for função (`tratar()` em `salaSocket.ts`); qualquer outra coisa no lugar é ignorada — antes, isso derrubava o processo inteiro.
 - **Eventos servidor → sala:** `ficha:atualizada`, `chat:mensagem`, `rolagem:resultado`, `turno:estado`.
 - Socket autentica com o mesmo JWT (`auth.token` no handshake). Token recusado → cliente faz logout (o socket.io não tenta de novo nesse caso).
 - **Chat persiste** (`Mensagem`, até 1000 caracteres; histórico via `GET /salas/:id/mensagens`, últimas 50). **Rolagem não persiste**: o servidor rola (crypto, ninguém escolhe o resultado) e guarda só a última por sala em memória. Modos: soma, maior (teste de OP1) e menor (OP1 com atributo 0).
