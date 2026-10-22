@@ -228,7 +228,9 @@ function Mesa({ sala: salaInicial }: { sala: SalaDetalhe }) {
         A mesa foi feita para telas a partir de 1280px de largura. Em telas menores, role para os lados.
       </p>
       <div className="min-h-0 flex-1 overflow-x-auto">
-        <div className="flex h-full min-w-[1280px] flex-col">
+        {/* relative + overflow-clip: nada aqui dentro cria sobra de rolagem (um rótulo sr-only do painel escapava
+            para baixo da tela e a rodinha no fim da ficha arrastava a mesa inteira). clip, não hidden: nem foco rola. */}
+        <div className="relative flex h-full min-w-[1280px] flex-col overflow-clip">
           <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-arquivo-700 bg-arquivo-950 px-4">
             <div className="flex min-w-0 items-center gap-3">
               <Link to="/salas" className={`inline-flex shrink-0 items-center gap-1 text-sm ${classeLinkArquivo} no-underline`}>
