@@ -8,7 +8,7 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "lint": "eslint .",
-    "test": "vitest run"
+    "test": "vitest run --dir src"
   },
   "keywords": [],
   "author": "",
