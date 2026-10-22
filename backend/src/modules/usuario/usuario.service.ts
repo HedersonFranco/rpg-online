@@ -10,6 +10,21 @@ export const EMAIL_MAX = 254 // limite prático de endereço (RFC 5321)
 export const SENHA_MIN = 8
 // O bcrypt só lê os primeiros 72 bytes: acima disso, duas senhas com o mesmo começo virariam a mesma senha.
 export const SENHA_MAX_BYTES = 72
+// Checklist clássico (escolha de 21/10/2026, no lugar de "só tamanho + lista de senhas comuns" do NIST/OWASP).
+// O cadastro mostra as mesmas regras enquanto a pessoa digita; quem barra é aqui.
+// Símbolo é qualquer coisa fora de letra, acento combinado ou número — espaço conta.
+const REGRAS_SENHA = [
+  { falta: 'uma letra maiúscula', atende: /\p{Lu}/u },
+  { falta: 'uma letra minúscula', atende: /\p{Ll}/u },
+  { falta: 'um número', atende: /\p{N}/u },
+  { falta: 'um símbolo', atende: /[^\p{L}\p{M}\p{N}]/u },
+]
+const emLista = new Intl.ListFormat('pt-BR', { type: 'conjunction' })
+
+// O que falta para a senha atender ao checklist (lista vazia = atende).
+export function faltasNaSenha(senha: string): string[] {
+  return REGRAS_SENHA.filter((regra) => !regra.atende.test(senha)).map((regra) => regra.falta)
+}
 
 // Email é guardado e buscado sempre em minúsculas: "Joao@x.com" e "joao@x.com" são a mesma conta.
 export function normalizarEmail(email: unknown): string {
@@ -43,6 +58,10 @@ export async function cadastrar(nomeBruto: string, emailBruto: string, senha: st
   }
   if (Buffer.byteLength(senha) > SENHA_MAX_BYTES) {
     throw new AppError(`Senha deve ter no máximo ${SENHA_MAX_BYTES} caracteres`, 400)
+  }
+  const faltas = faltasNaSenha(senha)
+  if (faltas.length > 0) {
+    throw new AppError(`A senha precisa de ${emLista.format(faltas)}`, 400)
   }
 
   const existente = await prisma.usuario.findUnique({ where: { email } })

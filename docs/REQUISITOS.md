@@ -22,7 +22,7 @@ visual em [`DESIGN.md`](../DESIGN.md), decisões e critérios por etapa em [`CLA
 
 | ID | Requisito | Prior. | Status | Verificação |
 |---|---|---|---|---|
-| RF01 | Cadastrar conta com nome, e-mail e senha | E | ✅ | Etapa 3 |
+| RF01 | Cadastrar conta com nome, e-mail e senha (checklist: 8+ caracteres, maiúscula, minúscula, número e símbolo, conferido no servidor e mostrado ao vivo no cadastro) | E | ✅ | Etapa 3; checklist em 21/10/2026 (testes do serviço + navegador em 375 px) |
 | RF02 | Entrar com e-mail e senha; sessão por token JWT | E | ✅ | Etapa 3 |
 | RF03 | Manter a sessão ao recarregar a página | E | ✅ | Etapa 8 |
 | RF04 | Sair da conta | E | ✅ | Etapa 8 |

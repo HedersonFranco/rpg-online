@@ -158,6 +158,7 @@ A função deve rodar **sem conexão com o banco** nos testes — as tabelas ent
 - **Toda rota de escrita** (`POST`, `PATCH`, `DELETE`) valida propriedade ou papel de mestre. Estar autenticado não basta.
 - **Avatar só do próprio sistema (decisão de 10/10/2026):** `avatarUrl` de ficha e NPC aceita apenas `/uploads/<uuid>.png|jpg|webp` (`ehArquivoEnviado()` em `lib/armazenamento.ts`) ou `null` — URL externa → `400`. Antes qualquer jogador podia apontar o avatar para um servidor de terceiros, e o navegador de cada pessoa da mesa entregava o próprio IP a ele. O front sempre monta o avatar com `BASE_URL`.
 - **Senha e JWT (decisão de 10/10/2026):** senha de 8 a 72 bytes no cadastro (o bcrypt ignora o que passa de 72 — antes, "a"×72 + qualquer final entrava na mesma conta); contas antigas seguem entrando. Senha de tipo errado → `400`/`401`, nunca `500`. O JWT só é aceito em HS256, e o servidor **não sobe** com `JWT_SECRET` de menos de 32 caracteres (ver `.env.example`). `X-Powered-By` desligado.
+- **Checklist da senha (decisão de 21/10/2026):** além dos 8 a 72 bytes, uma maiúscula, uma minúscula, um número e um símbolo (`faltasNaSenha()` em `usuario.service.ts`, que é quem barra; o `400` diz o que falta). O cadastro mostra o checklist ao vivo (✓/✗, o que faltar fica em vermelho depois de tentar enviar) e tem "Mostrar". O Hederson escolheu o checklist clássico no lugar da linha NIST/OWASP (só tamanho + bloquear senhas comuns) — não trocar sem pedir. Vale só para senha nova.
 
 ---
 
