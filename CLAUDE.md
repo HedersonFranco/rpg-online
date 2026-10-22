@@ -68,7 +68,8 @@ Isso significa: estados de erro, estados de carregamento e confirmação em aç�
 ### NPCs / Tokens
 - NPCs são blocos de estatística fixos — não passam pelo motor de cálculo.
 - NPCs são reutilizáveis (um registro → múltiplos tokens em mapas diferentes).
-- Token = Ficha, NPC ou objeto genérico (nunca os dois primeiros ao mesmo tempo).
+- Token = Ficha, NPC, Montaria ou objeto genérico — no máximo um vínculo (CHECK `token_um_vinculo`, que em 22/10/2026 substituiu `token_ficha_xor_npc`).
+- **Montarias (decisão de 22/10/2026):** biblioteca da mesa (aba **Montarias** do painel, para todos): carro, cavalo, skate — nome + imagem (PNG/JPEG/WebP pelos bytes, até 2MB). **Qualquer membro** salva, põe no mapa ("Pôr no mapa": ponto livre no centro da vista), move, muda o tamanho e tira do mapa; apagar da biblioteca é de quem salvou ou do mestre (leva os tokens e a imagem). O token de montaria fica **sempre por baixo** dos outros (desenhado antes, z 0) e não tem círculo nem nome no mapa: é a própria imagem, 2× o token comum vezes `Token.escala`. Tamanho como no Owlbear: selecionar mostra a alça no canto (arrastar = `token:escalar`, voláteis no caminho e o final grava, de 0,25 a 10); pelo teclado, −/+ no quadro do token selecionado. Módulo `modules/montaria`.
 
 ### Tempo real
 - Rolagem de dados: evento em tempo real, **não persiste** no banco — apenas o resultado mais recente em memória.
@@ -92,7 +93,7 @@ Isso significa: estados de erro, estados de carregamento e confirmação em aç�
 - `turno:encerrar` manda `indiceAtivo`/`rodada` esperados: clique duplo simultâneo (jogador + mestre) não pula turno — o segundo recebe `409`.
 - **Detecção de reinício:** cada processo gera um `INSTANCIA_SERVIDOR`. Se o cliente tinha combate e, ao reconectar, a instância mudou e não há combate → aviso "Sessão reiniciada — reinicie o combate." e o estado local é limpo.
 - Heartbeat do socket: `pingInterval` 10s + `pingTimeout` 5s; backoff de reconexão do cliente máx. 5s → queda detectada e recuperada bem dentro dos 30s.
-- **Etapa 10 acrescentou:** `token:mover` (cliente → servidor; posições intermediárias voláteis, só a final grava no banco; permissão cacheada por conexão) → `token:movido` (pra sala, exceto quem arrastou); `mapa:ativo`, `token:criado`, `token:removido` (vindos do REST); presença de vídeo `video:entrar`/`video:sair`/`video:pedirReconexao` → `video:participantes`/`video:reconexaoPedida`.
+- **Etapa 10 acrescentou:** `token:mover` (cliente → servidor; posições intermediárias voláteis, só a final grava no banco; permissão cacheada por conexão) → `token:movido` (pra sala, exceto quem arrastou); `mapa:ativo`, `token:criado`, `token:removido` (vindos do REST); `token:escalar` → `token:escalado` (tamanho da montaria, mesmo esquema do mover — 22/10/2026) e `montaria:criada`/`montaria:removida` (do REST); presença de vídeo `video:entrar`/`video:sair`/`video:pedirReconexao` → `video:participantes`/`video:reconexaoPedida`.
 
 ### Mapa, tokens e vídeo — como está implementado (Etapa 10)
 - **Mapa ativo por sala** (`Sala.mapaAtivoId`, persistido). Lista de mapas é só do mestre (material de preparo, pode ter spoiler); jogador só vê o ativo.
@@ -179,6 +180,7 @@ rpg-online/
 │       │   ├── npc/
 │       │   ├── pasta/
 │       │   ├── mapa/       ← mapas e tokens
+│       │   ├── montaria/   ← biblioteca de montarias e o token delas no mapa
 │       │   ├── mensagem/   ← sem routes.ts: histórico via /salas/:id/mensagens, envio pelo socket
 │       │   └── rtc/        ← só rtc.routes.ts: configuração ICE (STUN/TURN) para o vídeo
 │       ├── engine/
@@ -215,6 +217,7 @@ rpg-online/
 │       ├── components/
 │       │   ├── FichaOrdemParanormal/
 │       │   ├── MapaToken/      ← AreaMapa, useViewport (zoom/pan), TokenNoMapa, AdicionarToken, GerenciarMapas
+│       │   ├── Montaria/       ← PainelMontarias (aba Montarias)
 │       │   ├── Video/          ← FaixaVideo
 │       │   ├── Biblioteca/
 │       │   ├── Chat/
@@ -258,10 +261,10 @@ Cada módulo em `modules/` tem `<modulo>.controller.ts`, `<modulo>.service.ts`, 
 - **Convite não é entidade própria** (não está nas 16) — vive como `conviteToken`/`conviteExpiraEm` direto em `Sala` (um convite ativo por vez, sobrescrito ao gerar outro). Se precisar de histórico de convites no futuro, aí sim vira tabela.
 - **Nomenclatura de campos:** `Ficha` usa os nomes citados literalmente neste arquivo (`usuario_id`, `pv_atual`/`pv_maximo_cache`, etc. em snake_case); `Token` usa `fichaId`/`npcId` em camelCase (citado assim no checklist da Etapa 2). Os demais campos seguem camelCase padrão do Prisma.
 
-### Entidades (18)
-`Usuario`, `Sala`, `MembroSala`, `Banimento`, `Sessao`, `Ficha`, `FichaOP2`, `ClasseFormula`, `ProgressaoClasse`, `Pericia`, `FichaPericia`, `FichaEntrada`, `Npc`, `Pasta`, `Documento`, `Mapa`, `Token`, `Mensagem`
+### Entidades (19)
+`Usuario`, `Sala`, `MembroSala`, `Banimento`, `Sessao`, `Ficha`, `FichaOP2`, `ClasseFormula`, `ProgressaoClasse`, `Pericia`, `FichaPericia`, `FichaEntrada`, `Npc`, `Pasta`, `Documento`, `Mapa`, `Token`, `Mensagem`, `Montaria`
 
-> Eram 16 na Etapa 2 (só OP1). `FichaOP2` e `ClasseFormula` entraram em 22/09/2026 com o suporte a dois sistemas. Em 23/09/2026 `Ritual` + `FichaRitual` (catálogo) saíram e `FichaEntrada` entrou. Em 29/09/2026 entrou `Banimento` (expulsar/banir).
+> Eram 16 na Etapa 2 (só OP1). `FichaOP2` e `ClasseFormula` entraram em 22/09/2026 com o suporte a dois sistemas. Em 23/09/2026 `Ritual` + `FichaRitual` (catálogo) saíram e `FichaEntrada` entrou. Em 29/09/2026 entrou `Banimento` (expulsar/banir). Em 22/10/2026 entrou `Montaria` (e `Token` ganhou `montariaId` e `escala`).
 
 ---
 
@@ -310,7 +313,7 @@ Referência visual: `preview.webp` (no Project do Claude). Estrutura-alvo:
 └────┴────────────────────────────────────────┴────────────────┘
 ```
 
-- **Barras laterais = pasta de folhas (29/09/2026, `ui/PastaDeFolhas.tsx`):** uma pasta vetorial em pé; cada item é uma folha que desliza para fora no hover/foco mostrando nome + ícone. À esquerda, só para o mestre: **Mesa / Mapas**. À direita, com o painel recolhido: **Ficha / Chat / NPCs** (NPCs só para o mestre). Biblioteca e Notas **saíram** até ganharem tela. (Fichas já tinha saído em 23/09/2026.)
+- **Barras laterais = pasta de folhas (29/09/2026, `ui/PastaDeFolhas.tsx`):** uma pasta vetorial em pé; cada item é uma folha que desliza para fora no hover/foco mostrando nome + ícone. À esquerda, só para o mestre: **Mesa / Mapas**. À direita, com o painel recolhido: **Ficha / Chat / Montarias / NPCs / Membros** (NPCs só para o mestre, Membros só para o dono). Aberto, as abas têm ícone + nome; com 4 ou 5 abas o nome não cabe todo em 380px, então, abaixo do limite de cada quantidade, a ativa fica escrita e as outras só com o ícone (container query; limites medidos, ver `ROTULO_POR_QUANTIDADE` em `Sala.tsx`). Biblioteca e Notas **saíram** até ganharem tela. (Fichas já tinha saído em 23/09/2026.)
 - **Régua inferior (29/09/2026):** vídeo (fotos com borda de papel) e turno numa faixa só embaixo do mapa, liberando o topo para o mapa.
 - **Layout ajustável (30/09/2026):** alça na borda do painel direito (320–560px, padrão 380; limitada para o centro nunca ficar abaixo de 828px — em 1280px, no máximo 380) e no topo da régua (96–300px; fotos crescem em 16:9). A régua recolhe numa faixa que mostra de quem é a vez; recolhida, só sai da vista (desmontar cortaria o áudio). Tamanhos e estados ficam no `localStorage` (`hooks/usePreferencia.ts`). Na régua o turno tem prioridade de largura sobre as fotos. **Câmera/microfone ficam no cabeçalho** — na régua, em 1280px e em combate, não sobrava espaço para uma foto.
 - **Armadilha resolvida (21/10/2026) — a mesa deslizava:** um elemento `absolute` (ex.: rótulo `sr-only`) dentro de uma área rolável que não é `relative` se ancora fora dela, escapa do corte e vira sobra de rolagem na mesa — a rodinha no fim da ficha arrastava a mesa inteira para cima (506px nas Perícias), e com o painel recolhido as folhas da pasta davam 136px de sobra lateral. O bloco da mesa (`Sala.tsx`) é `relative overflow-clip`: nada lá dentro cria rolagem, e `clip` (não `hidden`) nem vira área rolável por foco/`scrollIntoView`.
@@ -391,7 +394,7 @@ Ao fechar uma etapa: `chore: etapa N concluída — critérios verificados`.
 - [x] `SELECT COUNT(*) FROM "Pericia"` retorna **28** (AGI 7, FOR 2, INT 9, PRE 9, VIG 1 — conferido por `GROUP BY` contra a Tabela 2.1 do livro; o critério antigo dizia 26, contagem errada)
 - [x] `SELECT COUNT(*) FROM "ProgressaoClasse"` retorna ≥ 1 linha por classe × tier de NEX — **60** (20 por classe, NEX 5–99), conferido por `GROUP BY` e rodando o seed duas vezes (idempotente). Dados das Tabelas 1.3/1.4/1.5 do livro em `engine/progressaoOP1.ts` (fonte única do seed), com teste
 - [x] FKs opcionais (`pastaId` em Npc/Mapa/Documento, `fichaId`/`npcId` em `Token`) aceitam NULL — testado com insert real via Prisma Client
-- [x] **Novo:** `Token` tem CHECK constraint (`token_ficha_xor_npc`) impedindo `fichaId` e `npcId` preenchidos ao mesmo tempo — testado, insert violando a regra é rejeitado pelo Postgres
+- [x] **Novo:** `Token` tem CHECK constraint (`token_ficha_xor_npc`) impedindo `fichaId` e `npcId` preenchidos ao mesmo tempo — testado, insert violando a regra é rejeitado pelo Postgres. *(Em 22/10/2026 virou `token_um_vinculo`: no máximo um entre ficha, NPC e montaria — testado do mesmo jeito.)*
 
 > **Bloqueio resolvido (29/09/2026):** fórmula de PV/PE/San, os 20 tiers de NEX, as 28 perícias e as habilidades por NEX das três classes (Tabelas 1.3/1.4/1.5) confirmados direto no livro (v1.3) e em seed. Toda ficha que sai da API/socket traz `habilidadesDesbloqueadas` (acumuladas até o NEX atual, calculadas no backend com a tabela do banco); a divisória Habilidades mostra essa lista "da classe", só de leitura, acima das que o jogador cadastra.
 

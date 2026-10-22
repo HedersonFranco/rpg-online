@@ -1,4 +1,4 @@
-import { useRef, useState, type PointerEvent } from 'react'
+import { useEffect, useRef, useState, type PointerEvent } from 'react'
 import { useRecurso } from '../../hooks/useRecurso'
 import { useAoResincronizar, useEventoSocket, useSalaSocket } from '../../hooks/useSocket'
 import { api, BASE_URL, mensagemDeErro } from '../../services/api'
@@ -6,7 +6,7 @@ import type { EstadoMapa, Ficha, Token } from '../../services/tipos'
 import { Alerta, Carregando } from '../ui/Feedback'
 import { Icone, type NomeIcone } from '../ui/Icone'
 import { AdicionarToken } from './AdicionarToken'
-import { TokenNoMapa } from './TokenNoMapa'
+import { TAMANHO_MONTARIA, TokenNoMapa } from './TokenNoMapa'
 import { nomeDoToken, tipoDoToken } from './token'
 import { useViewport } from './useViewport'
 import { useConfirmar } from '../ui/confirmacaoContext'
@@ -22,8 +22,21 @@ type Arraste = {
   atual: { x: number; y: number }
   ultimoEnvio: number
 }
+// Alça de tamanho da montaria: o canto segue o ponteiro, com o centro do token parado.
+type Redimensiona = {
+  tokenId: string
+  pointerId: number
+  centro: { x: number; y: number }
+  original: number
+  atual: number
+  ultimoEnvio: number
+}
 
 const INTERVALO_ENVIO_MS = 33 // ~30 atualizações/s durante o arrasto
+// Mesmos limites do servidor (mapa.service.ts, escalaValida).
+const ESCALA_MINIMA = 0.25
+const ESCALA_MAXIMA = 10
+const limitarEscala = (valor: number) => Math.min(ESCALA_MAXIMA, Math.max(ESCALA_MINIMA, Math.round(valor * 100) / 100))
 
 function BotaoBarra({ icone, rotulo, onClick, ativo = false, desabilitado = false }: {
   icone: NomeIcone; rotulo: string; onClick?: () => void; ativo?: boolean; desabilitado?: boolean
@@ -36,7 +49,14 @@ function BotaoBarra({ icone, rotulo, onClick, ativo = false, desabilitado = fals
   )
 }
 
-export function AreaMapa({ salaId, usuarioId, souMestre }: { salaId: string; usuarioId: string; souMestre: boolean }) {
+// `aoRegistrarCentro`: entrega à mesa um jeito de saber onde pôr um token novo (o ponto livre no centro
+// da vista) — a aba Montarias usa no "Pôr no mapa".
+export function AreaMapa({ salaId, usuarioId, souMestre, aoRegistrarCentro }: {
+  salaId: string
+  usuarioId: string
+  souMestre: boolean
+  aoRegistrarCentro?: (centro: (() => { x: number; y: number }) | null) => void
+}) {
   const { estado, recarregar, revalidar, atualizar } = useRecurso<EstadoMapa>(`/salas/${salaId}/mapa-ativo`)
   const { socket, emitir } = useSalaSocket()
   const confirmar = useConfirmar()
@@ -49,9 +69,12 @@ export function AreaMapa({ salaId, usuarioId, souMestre }: { salaId: string; usu
   const [tamanho, setTamanho] = useState<{ largura: number; altura: number } | null>(null)
   const [arrastandoId, setArrastandoId] = useState<string | null>(null)
   const arraste = useRef<Arraste | null>(null)
+  const redimensiona = useRef<Redimensiona | null>(null)
 
   const moverLocal = (tokenId: string, x: number, y: number) =>
     atualizar((e) => ({ ...e, tokens: e.tokens.map((t) => (t.id === tokenId ? { ...t, x, y } : t)) }))
+  const escalarLocal = (tokenId: string, escala: number) =>
+    atualizar((e) => ({ ...e, tokens: e.tokens.map((t) => (t.id === tokenId ? { ...t, escala } : t)) }))
 
   useAoResincronizar(revalidar)
   useEventoSocket<EstadoMapa>('mapa:ativo', (novo) => {
@@ -69,6 +92,10 @@ export function AreaMapa({ salaId, usuarioId, souMestre }: { salaId: string; usu
     if (arraste.current?.tokenId === tokenId) return // quem arrasta manda na posição local
     moverLocal(tokenId, x, y)
   })
+  useEventoSocket<{ tokenId: string; escala: number }>('token:escalado', ({ tokenId, escala }) => {
+    if (redimensiona.current?.tokenId === tokenId) return
+    escalarLocal(tokenId, escala)
+  })
   // Token de ficha mostra dados vivos da ficha (PV muda no painel → muda no mapa).
   useEventoSocket<{ ficha: Ficha }>('ficha:atualizada', ({ ficha }) =>
     atualizar((e) => ({
@@ -81,9 +108,10 @@ export function AreaMapa({ salaId, usuarioId, souMestre }: { salaId: string; usu
     })),
   )
 
-  const podeMover = (token: Token) => souMestre || token.ficha?.usuario_id === usuarioId
+  // Montaria: qualquer membro move, redimensiona e tira do mapa.
+  const podeMover = (token: Token) => souMestre || token.ficha?.usuario_id === usuarioId || !!token.montaria
 
-  function aoPressionarToken(e: PointerEvent<HTMLButtonElement>, token: Token) {
+  function aoPressionarToken(e: PointerEvent<HTMLElement>, token: Token) {
     if (ferramenta === 'mover') return // deixa o evento subir: arrastar o mapa por cima do token
     e.stopPropagation()
     setSelecionado(token.id)
@@ -100,7 +128,7 @@ export function AreaMapa({ salaId, usuarioId, souMestre }: { salaId: string; usu
     setArrastandoId(token.id)
   }
 
-  function aoMoverToken(e: PointerEvent<HTMLButtonElement>) {
+  function aoMoverToken(e: PointerEvent<HTMLElement>) {
     const a = arraste.current
     if (!a || a.pointerId !== e.pointerId) return
     const p = relativo(e.clientX, e.clientY)
@@ -116,7 +144,7 @@ export function AreaMapa({ salaId, usuarioId, souMestre }: { salaId: string; usu
     }
   }
 
-  function aoSoltarToken(e: PointerEvent<HTMLButtonElement>) {
+  function aoSoltarToken(e: PointerEvent<HTMLElement>) {
     const a = arraste.current
     if (!a || a.pointerId !== e.pointerId) return
     arraste.current = null
@@ -126,6 +154,48 @@ export function AreaMapa({ salaId, usuarioId, souMestre }: { salaId: string; usu
       setErro(mensagemDeErro(erroEnvio))
       moverLocal(a.tokenId, a.origem.x, a.origem.y)
     })
+  }
+
+  // Tamanho da montaria: grava (final) e, se o servidor recusar, volta ao que era.
+  function gravarEscala(tokenId: string, escala: number, original: number) {
+    emitir('token:escalar', { tokenId, escala, final: true }).catch((erroEnvio: unknown) => {
+      setErro(mensagemDeErro(erroEnvio))
+      escalarLocal(tokenId, original)
+    })
+  }
+
+  function aoPressionarAlca(e: PointerEvent<HTMLElement>, token: Token) {
+    e.stopPropagation()
+    e.currentTarget.setPointerCapture(e.pointerId)
+    redimensiona.current = { tokenId: token.id, pointerId: e.pointerId, centro: { x: token.x, y: token.y }, original: token.escala, atual: token.escala, ultimoEnvio: 0 }
+  }
+
+  function aoMoverAlca(e: PointerEvent<HTMLElement>) {
+    const r = redimensiona.current
+    if (!r || r.pointerId !== e.pointerId) return
+    const p = telaParaMapa(relativo(e.clientX, e.clientY))
+    // O canto vai até o ponteiro: metade do lado = maior distância do centro em x ou y.
+    r.atual = limitarEscala((2 * Math.max(Math.abs(p.x - r.centro.x), Math.abs(p.y - r.centro.y))) / TAMANHO_MONTARIA)
+    escalarLocal(r.tokenId, r.atual)
+    const agora = performance.now()
+    if (agora - r.ultimoEnvio >= INTERVALO_ENVIO_MS) {
+      r.ultimoEnvio = agora
+      socket.volatile.emit('token:escalar', { tokenId: r.tokenId, escala: r.atual, final: false })
+    }
+  }
+
+  function aoSoltarAlca(e: PointerEvent<HTMLElement>) {
+    const r = redimensiona.current
+    if (!r || r.pointerId !== e.pointerId) return
+    redimensiona.current = null
+    if (r.atual !== r.original) gravarEscala(r.tokenId, r.atual, r.original)
+  }
+
+  function mudarEscala(token: Token, passo: number) {
+    const nova = limitarEscala(token.escala + passo)
+    if (nova === token.escala) return
+    escalarLocal(token.id, nova)
+    gravarEscala(token.id, nova, token.escala)
   }
 
   async function removerToken(token: Token) {
@@ -154,18 +224,26 @@ export function AreaMapa({ salaId, usuarioId, souMestre }: { salaId: string; usu
 
   const mapa = estado.tipo === 'ok' ? estado.dados.mapa : null
   const tokens = estado.tipo === 'ok' ? estado.dados.tokens : []
+  // Montarias primeiro: desenhadas antes, ficam sempre por baixo dos outros tokens.
+  const emCamadas = [...tokens].sort((a, b) => Number(!!b.montaria) - Number(!!a.montaria))
   const tokenSelecionado = tokens.find((t) => t.id === selecionado)
   // Chamado no clique (não no render): o token novo nasce no centro do que está
   // visível — deslocado pro lado se já houver token ali, pra não nascer escondido embaixo de outro.
-  function alternarAdicionar() {
-    if (novoTokenEm) return setNovoTokenEm(null)
+  function posicaoLivre() {
     const r = container.current?.getBoundingClientRect()
     const posicao = telaParaMapa({ x: (r?.width ?? 0) / 2, y: (r?.height ?? 0) / 2 })
     // Em pixels de TELA: o que importa é não nascer visualmente em cima de outro no zoom atual.
     const ocupado = (p: { x: number; y: number }) => tokens.some((t) => Math.hypot(t.x - p.x, t.y - p.y) * visao.escala < 90)
     for (let tentativa = 0; tentativa < 20 && ocupado(posicao); tentativa++) posicao.x += 110 / visao.escala
-    setNovoTokenEm(posicao)
+    return posicao
   }
+  function alternarAdicionar() {
+    if (novoTokenEm) return setNovoTokenEm(null)
+    setNovoTokenEm(posicaoLivre())
+  }
+  // A cada render (posicaoLivre usa os tokens e a visão atuais); ao desmontar, a mesa fica sem centro.
+  useEffect(() => { aoRegistrarCentro?.(posicaoLivre) })
+  useEffect(() => () => aoRegistrarCentro?.(null), [aoRegistrarCentro])
   const pararPropagacao = { onPointerDown: (e: PointerEvent) => e.stopPropagation() }
 
   return (
@@ -195,7 +273,7 @@ export function AreaMapa({ salaId, usuarioId, souMestre }: { salaId: string; usu
             className="pointer-events-none block max-w-none shadow-[0_18px_40px_-18px_rgb(0_0_0/0.95)]"
             style={{ width: tamanho ? tamanho.largura * visao.escala : undefined }}
           />
-          {tokens.map((token) => (
+          {emCamadas.map((token) => (
             <TokenNoMapa
               key={token.id}
               token={token}
@@ -206,6 +284,9 @@ export function AreaMapa({ salaId, usuarioId, souMestre }: { salaId: string; usu
               onPointerDown={(e) => aoPressionarToken(e, token)}
               onPointerMove={aoMoverToken}
               onPointerUp={aoSoltarToken}
+              onAlcaPointerDown={token.montaria ? (e) => aoPressionarAlca(e, token) : undefined}
+              onAlcaPointerMove={aoMoverAlca}
+              onAlcaPointerUp={aoSoltarAlca}
             />
           ))}
         </div>
@@ -248,7 +329,21 @@ export function AreaMapa({ salaId, usuarioId, souMestre }: { salaId: string; usu
             {tokenSelecionado.ficha && (
               <p className="font-datilo text-sm">PV {tokenSelecionado.ficha.pv_atual}/{tokenSelecionado.ficha.pv_maximo_cache}</p>
             )}
-            {souMestre && (
+            {tokenSelecionado.montaria && (
+              // Tamanho pelo teclado; com o ponteiro, a alça no canto da montaria faz o mesmo.
+              <div role="group" aria-label="Tamanho da montaria" className="flex items-center gap-1">
+                <button type="button" onClick={() => mudarEscala(tokenSelecionado, -0.25)} aria-label="Diminuir montaria" title="Diminuir"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-sm text-tinta-700 hover:bg-tinta-900/10 hover:text-tinta-900 focus-visible:outline-2 focus-visible:outline-tinta-900">
+                  <Icone nome="menos" className="h-4 w-4" />
+                </button>
+                <span className="w-12 text-center font-datilo text-sm" aria-live="polite">{tokenSelecionado.escala.toLocaleString('pt-BR')}×</span>
+                <button type="button" onClick={() => mudarEscala(tokenSelecionado, 0.25)} aria-label="Aumentar montaria" title="Aumentar"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-sm text-tinta-700 hover:bg-tinta-900/10 hover:text-tinta-900 focus-visible:outline-2 focus-visible:outline-tinta-900">
+                  <Icone nome="mais" className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+            {(souMestre || tokenSelecionado.montaria) && (
               <button type="button" onClick={() => removerToken(tokenSelecionado)} aria-label="Remover token" title="Remover token"
                 className="inline-flex h-10 w-10 items-center justify-center rounded-sm text-tinta-700 hover:bg-tinta-900/10 hover:text-tinta-900 focus-visible:outline-2 focus-visible:outline-tinta-900">
                 <Icone nome="lixeira" className="h-4 w-4" />

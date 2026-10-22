@@ -10,6 +10,7 @@ import { fichaRoutes } from "./modules/ficha/ficha.routes.js";
 import { npcRoutes } from "./modules/npc/npc.routes.js";
 import { pastaRoutes } from "./modules/pasta/pasta.routes.js";
 import { mapaRoutes, tokenRoutes } from "./modules/mapa/mapa.routes.js";
+import { montariaRoutes } from "./modules/montaria/montaria.routes.js";
 import { rtcRoutes } from "./modules/rtc/rtc.routes.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 import { iniciarSocket } from "./sockets/io.js";
@@ -58,6 +59,7 @@ app.use("/npcs", npcRoutes);
 app.use("/pastas", pastaRoutes);
 app.use("/mapas", mapaRoutes);
 app.use("/tokens", tokenRoutes);
+app.use("/montarias", montariaRoutes);
 app.use("/rtc", rtcRoutes);
 
 app.use(errorHandler);

@@ -102,6 +102,7 @@ model Usuario {
   fichas       Ficha[]
   fichasOP2    FichaOP2[]
   mensagens    Mensagem[]
+  montarias    Montaria[]
 }
 
 model Sala {
@@ -129,6 +130,7 @@ model Sala {
   documentos Documento[]
   mapas      Mapa[]       @relation("MapasDaSala")
   mensagens  Mensagem[]
+  montarias  Montaria[]
 }
 
 model MembroSala {
@@ -361,19 +363,39 @@ model Mapa {
 // mesmo tempo)" é reforçada por CHECK constraint adicionada manualmente na
 // migration (fichaId e npcId não podem estar preenchidos simultaneamente).
 model Token {
-  id        String   @id @default(uuid())
-  mapaId    String
-  fichaId   String?
-  npcId     String?
-  nome      String?
-  x         Float
-  y         Float
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id @default(uuid())
+  mapaId     String
+  fichaId    String?
+  npcId      String?
+  montariaId String?
+  nome       String?
+  x          Float
+  y          Float
+  // Tamanho em relação ao padrão; por enquanto só montaria muda (alça no canto, como no Owlbear).
+  escala     Float    @default(1)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  mapa  Mapa   @relation(fields: [mapaId], references: [id], onDelete: Cascade)
-  ficha Ficha? @relation(fields: [fichaId], references: [id], onDelete: SetNull)
-  npc   Npc?   @relation(fields: [npcId], references: [id], onDelete: SetNull)
+  mapa     Mapa      @relation(fields: [mapaId], references: [id], onDelete: Cascade)
+  ficha    Ficha?    @relation(fields: [fichaId], references: [id], onDelete: SetNull)
+  npc      Npc?      @relation(fields: [npcId], references: [id], onDelete: SetNull)
+  // Montaria apagada da biblioteca leva os tokens dela junto (sem a imagem, não sobra o que mostrar).
+  montaria Montaria? @relation(fields: [montariaId], references: [id], onDelete: Cascade)
+}
+
+// Montaria (carro, cavalo, skate...): imagem que qualquer membro salva e põe no mapa; o token dela fica
+// sempre por baixo dos outros. Apaga quem salvou ou o mestre.
+model Montaria {
+  id        String   @id @default(uuid())
+  salaId    String
+  usuarioId String
+  nome      String
+  imagemUrl String
+  createdAt DateTime @default(now())
+
+  sala    Sala    @relation(fields: [salaId], references: [id], onDelete: Cascade)
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  tokens  Token[]
 }
 
 model Mensagem {

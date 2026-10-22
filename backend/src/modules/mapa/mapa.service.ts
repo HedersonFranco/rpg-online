@@ -10,12 +10,20 @@ import { emitirParaSala } from '../../sockets/emissor.js'
 export const INCLUIR_DADOS_TOKEN = {
   ficha: { select: { id: true, nome: true, usuario_id: true, avatarUrl: true, pv_atual: true, pv_maximo_cache: true } },
   npc: { select: { id: true, nome: true, avatarUrl: true } },
+  montaria: { select: { id: true, nome: true, imagemUrl: true } },
 } as const
 
 const LIMITE_COORDENADA = 100_000
+// Tamanho da montaria em relação ao padrão: de um quarto (skate de longe) a dez vezes (caminhão).
+const ESCALA_MINIMA = 0.25
+const ESCALA_MAXIMA = 10
 
 export function coordenadaValida(valor: unknown): valor is number {
   return typeof valor === 'number' && Number.isFinite(valor) && Math.abs(valor) <= LIMITE_COORDENADA
+}
+
+export function escalaValida(valor: unknown): valor is number {
+  return typeof valor === 'number' && Number.isFinite(valor) && valor >= ESCALA_MINIMA && valor <= ESCALA_MAXIMA
 }
 
 async function buscarMapaComoMestre(mapaId: string, usuarioId: string) {
@@ -113,12 +121,14 @@ export async function criarToken(
 export async function deletarToken(usuarioId: string, tokenId: string) {
   const token = await prisma.token.findUnique({ where: { id: tokenId }, include: { mapa: { select: { salaId: true } } } })
   if (!token) throw new AppError('Token não encontrado', 404)
-  await garantirMestre(token.mapa.salaId, usuarioId)
+  // Montaria qualquer membro põe e tira do mapa; os outros tokens, só o mestre.
+  if (token.montariaId) await buscarSalaOuFalhar(token.mapa.salaId, usuarioId)
+  else await garantirMestre(token.mapa.salaId, usuarioId)
   await prisma.token.delete({ where: { id: tokenId } })
   emitirParaSala(token.mapa.salaId, 'token:removido', { tokenId })
 }
 
-// Mestre move qualquer token; jogador só o token da própria ficha.
+// Mestre move qualquer token; jogador, o token da própria ficha e qualquer montaria.
 export async function podeMoverToken(usuarioId: string, salaId: string, tokenId: string) {
   const token = await prisma.token.findUnique({
     where: { id: tokenId },
@@ -127,8 +137,20 @@ export async function podeMoverToken(usuarioId: string, salaId: string, tokenId:
   if (!token || token.mapa.salaId !== salaId) return false
   const membro = await prisma.membroSala.findUnique({ where: { usuarioId_salaId: { usuarioId, salaId } } })
   if (!membro) return false // quem saiu (ou foi removido) da mesa não move nada, nem o token da própria ficha
-  if (membro.papel === 'MESTRE') return true
+  if (membro.papel === 'MESTRE' || token.montariaId) return true
   return token.ficha?.usuario_id === usuarioId
+}
+
+// Só montaria muda de tamanho, e qualquer membro da mesa pode mudar.
+export async function podeEscalarToken(usuarioId: string, salaId: string, tokenId: string) {
+  const token = await prisma.token.findUnique({ where: { id: tokenId }, include: { mapa: { select: { salaId: true } } } })
+  if (!token || token.mapa.salaId !== salaId || !token.montariaId) return false
+  return (await prisma.membroSala.findUnique({ where: { usuarioId_salaId: { usuarioId, salaId } } })) !== null
+}
+
+export async function salvarEscalaToken(tokenId: string, escala: unknown) {
+  if (!escalaValida(escala)) throw new AppError(`Tamanho deve ser de ${ESCALA_MINIMA} a ${ESCALA_MAXIMA}`, 400)
+  await prisma.token.updateMany({ where: { id: tokenId }, data: { escala } })
 }
 
 // updateMany: se o mestre apagou o token no meio do arrasto, soltar não vira erro 500.

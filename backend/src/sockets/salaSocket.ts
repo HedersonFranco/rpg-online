@@ -8,7 +8,7 @@ import { avancarTurno, criarCombate, podeEncerrarTurno } from '../engine/combate
 import type { PedidoDeTeste } from '../engine/calculoFicha.js'
 import { PedidoRolagemInvalido, rolar, rolarExpressao, type ResultadoExpressao, type ResultadoRolagem } from '../engine/rolagem.js'
 import { montarIniciativas, montarTesteDaFicha } from '../modules/ficha/ficha.service.js'
-import { coordenadaValida, podeMoverToken, salvarPosicaoToken } from '../modules/mapa/mapa.service.js'
+import { coordenadaValida, escalaValida, podeEscalarToken, podeMoverToken, salvarEscalaToken, salvarPosicaoToken } from '../modules/mapa/mapa.service.js'
 import { combates, estadoDaSala, nomeSalaSocket, ultimasRolagens, type Rolagem } from './estado.js'
 
 type Ack = (resposta: Record<string, unknown>) => void
@@ -71,6 +71,7 @@ export function registrarEventosDaSala(socket: Socket) {
 
   // Arrastar gera ~30 eventos/s: a permissão por token é consultada uma vez e guardada.
   const permissaoToken = new Map<string, boolean>()
+  const permissaoEscala = new Map<string, boolean>()
 
   async function transmitirParticipantesVideo(salaId: string) {
     const sockets = await socket.nsp.in(nomeSalaSocket(salaId)).fetchSockets()
@@ -94,6 +95,7 @@ export function registrarEventosDaSala(socket: Socket) {
     await socket.join(nomeSalaSocket(salaId))
     socket.data.salaId = salaId
     permissaoToken.clear()
+    permissaoEscala.clear()
     socket.data.nome = sala.membros.find((m) => m.usuarioId === usuarioId)?.usuario.nome ?? 'Alguém'
 
     return estadoDaSala(salaId)
@@ -260,6 +262,22 @@ export function registrarEventosDaSala(socket: Socket) {
 
     socket.to(nomeSalaSocket(salaId)).emit('token:movido', { tokenId, x, y })
     if (final === true) await salvarPosicaoToken(tokenId, x, y)
+  }))
+
+  // Tamanho da montaria (alça no canto, como no Owlbear): qualquer membro muda. Mesmo esquema do
+  // token:mover — durante o arrasto só distribui; ao soltar (final) grava.
+  socket.on('token:escalar', tratar(async ({ tokenId, escala, final }) => {
+    const salaId = salaAtual()
+    if (typeof tokenId !== 'string' || !escalaValida(escala)) throw new AppError('Tamanho inválido', 400)
+    let pode = permissaoEscala.get(tokenId)
+    if (pode === undefined) {
+      pode = await podeEscalarToken(usuarioId, salaId, tokenId)
+      permissaoEscala.set(tokenId, pode)
+    }
+    if (!pode) throw new AppError('Só montarias mudam de tamanho', 403)
+
+    socket.to(nomeSalaSocket(salaId)).emit('token:escalado', { tokenId, escala })
+    if (final === true) await salvarEscalaToken(tokenId, escala)
   }))
 
   // Presença de vídeo: cada aba anuncia seu id de peer (aleatório — o mesmo

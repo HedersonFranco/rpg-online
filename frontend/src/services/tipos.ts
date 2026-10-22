@@ -170,6 +170,21 @@ export type Token = {
   npcId: string | null
   ficha: { id: string; nome: string; usuario_id: string; avatarUrl: string | null; pv_atual: number; pv_maximo_cache: number } | null
   npc: { id: string; nome: string; avatarUrl: string | null } | null
+  montariaId: string | null
+  montaria: { id: string; nome: string; imagemUrl: string } | null
+  // Tamanho em relação ao padrão (só montaria muda).
+  escala: number
+}
+
+// Montaria da biblioteca da mesa: qualquer membro salva, põe no mapa e move; apaga quem salvou ou o mestre.
+export type Montaria = {
+  id: string
+  salaId: string
+  usuarioId: string
+  nome: string
+  imagemUrl: string
+  createdAt: string
+  usuario: { id: string; nome: string }
 }
 
 export type EstadoMapa = { mapa: Mapa | null; tokens: Token[] }

@@ -4,7 +4,7 @@ Mesas (salas), seus membros, convites e banimentos. Também exporta `buscarSalaO
 
 ## Rotas
 
-Montado em `/salas` (`server.ts`); todas exigem autenticação. `sala.routes.ts` também monta rotas de outros módulos (fichas, NPCs, mensagens, mapas, pastas) — elas estão documentadas no README do módulo dono.
+Montado em `/salas` (`server.ts`); todas exigem autenticação. `sala.routes.ts` também monta rotas de outros módulos (fichas, NPCs, mensagens, mapas, montarias, pastas) — elas estão documentadas no README do módulo dono.
 
 | Método | Caminho | Quem pode | O que faz |
 |---|---|---|---|
@@ -30,7 +30,7 @@ Montado em `/salas` (`server.ts`); todas exigem autenticação. `sala.routes.ts`
 - Entrar com convite de quem já é membro não duplica nem altera o papel; só uma entrada nova emite `sala:membros`.
 - O dono não pode ser removido. Remover apaga só o `MembroSala`; as fichas da pessoa ficam na sala. Banir faz upsert em `Banimento` na mesma transação.
 - Desbanir só apaga o banimento; a pessoa não volta à mesa sozinha.
-- Deletar sala: o banco cascateia as tabelas filhas; as imagens dos mapas são removidas do disco depois (`removerArquivo`).
+- Deletar sala: o banco cascateia as tabelas filhas; as imagens dos mapas e das montarias são removidas do disco depois (`removerArquivo`).
 - Tempo real:
   - `emitirParaSala(salaId, 'sala:membros', { membros })` ao entrar (membro novo), trocar papel e remover.
   - `expulsarDaSala(salaId, usuarioId, 'expulso' | 'banido')` ao remover: as abas do alvo recebem `sala:removido`, saem da sala de socket e do vídeo; o resto recebe `video:participantes`.

@@ -4,33 +4,39 @@ import type { Token } from '../../services/tipos'
 import { nomeDoToken, tipoDoToken } from './token'
 
 // Borda pelo tipo: agente (papel), NPC (carimbo — classificação de ameaça), objeto (grafite).
-const BORDA = { Ficha: 'border-papel-50', NPC: 'border-carimbo-300', Objeto: 'border-grafite-400' } as const
+// Montaria não tem círculo nem borda: é a própria imagem (ver TokenMontaria).
+const BORDA = { Ficha: 'border-papel-50', NPC: 'border-carimbo-300', Montaria: 'border-kraft-400', Objeto: 'border-grafite-400' } as const
 const TAMANHO_TOKEN = 56
+// Montaria com escala 1: o dobro do token comum, para caber o cavaleiro em cima.
+export const TAMANHO_MONTARIA = 2 * TAMANHO_TOKEN
 // Pisos no zoom baixo: o token continua clicável e a letra legível.
 const DIAMETRO_MINIMO = 28
 const FONTE_MINIMA = 12
 
-// Só o círculo é clicável: nome e barra de PV não encolhem com o zoom e, se
-// fossem clicáveis, cobririam tokens vizinhos em zoom baixo.
-export function TokenNoMapa({
-  token,
-  escala,
-  selecionado,
-  podeMover,
-  arrastando,
-  onPointerDown,
-  onPointerMove,
-  onPointerUp,
-}: {
+type ManipuladoresPonteiro = {
+  onPointerDown: (e: PointerEvent<HTMLElement>) => void
+  onPointerMove: (e: PointerEvent<HTMLElement>) => void
+  onPointerUp: (e: PointerEvent<HTMLElement>) => void
+}
+
+type PropsToken = ManipuladoresPonteiro & {
   token: Token
   escala: number
   selecionado: boolean
   podeMover: boolean
   arrastando: boolean
-  onPointerDown: (e: PointerEvent<HTMLButtonElement>) => void
-  onPointerMove: (e: PointerEvent<HTMLButtonElement>) => void
-  onPointerUp: (e: PointerEvent<HTMLButtonElement>) => void
-}) {
+  // Só montaria: a alça do canto muda o tamanho (como no Owlbear). Props `on…` soltas, não um objeto:
+  // assim o compilador do React sabe que são eventos, não algo chamado durante o render.
+  onAlcaPointerDown?: (e: PointerEvent<HTMLElement>) => void
+  onAlcaPointerMove?: (e: PointerEvent<HTMLElement>) => void
+  onAlcaPointerUp?: (e: PointerEvent<HTMLElement>) => void
+}
+
+// Só o círculo é clicável: nome e barra de PV não encolhem com o zoom e, se
+// fossem clicáveis, cobririam tokens vizinhos em zoom baixo.
+export function TokenNoMapa(props: PropsToken) {
+  const { token, escala, selecionado, podeMover, arrastando, onPointerDown, onPointerMove, onPointerUp } = props
+  if (token.montaria) return <TokenMontaria {...props} imagemUrl={token.montaria.imagemUrl} />
   const nome = nomeDoToken(token)
   const tipo = tipoDoToken(token)
   const avatar = token.ficha?.avatarUrl ?? token.npc?.avatarUrl
@@ -71,6 +77,36 @@ export function TokenNoMapa({
           className="mt-0.5 h-1.5 w-12 overflow-hidden rounded-[1px] bg-arquivo-800 ring-1 ring-arquivo-950">
           <span className="block h-1.5 bg-recurso-vida" style={{ width: `${pv.maximo > 0 ? Math.min(100, (pv.atual / pv.maximo) * 100) : 0}%` }} />
         </span>
+      )}
+    </div>
+  )
+}
+
+// Montaria: a imagem inteira (sem recorte em círculo), sempre na camada de baixo (z 0, e o AreaMapa a
+// desenha antes dos outros) — o token de quem monta fica por cima. Sem nome no mapa: ele aparece ao selecionar.
+function TokenMontaria({
+  token, escala, selecionado, arrastando, onPointerDown, onPointerMove, onPointerUp, onAlcaPointerDown, onAlcaPointerMove, onAlcaPointerUp, imagemUrl,
+}: PropsToken & { imagemUrl: string }) {
+  const lado = Math.max(DIAMETRO_MINIMO, TAMANHO_MONTARIA * token.escala * escala)
+  return (
+    <div data-token-id={token.id} className="pointer-events-none absolute"
+      style={{ left: token.x * escala, top: token.y * escala, width: lado, height: lado, transform: 'translate(-50%, -50%)', zIndex: 0 }}>
+      <button
+        type="button"
+        aria-label={`Token ${nomeDoToken(token)} (Montaria)`}
+        aria-pressed={selecionado}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+        className={`pointer-events-auto block h-full w-full touch-none rounded-[3px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-kraft-300 ${selecionado ? 'outline-2 outline-offset-2 outline-kraft-300' : ''} ${arrastando ? 'cursor-grabbing' : 'cursor-grab'}`}
+      >
+        <img src={BASE_URL + imagemUrl} alt="" draggable={false} className="h-full w-full object-contain drop-shadow-[0_6px_8px_rgb(0_0_0/0.85)]" />
+      </button>
+      {selecionado && onAlcaPointerDown && (
+        // Só ponteiro: pelo teclado, o tamanho muda nos botões −/+ do quadro do token selecionado.
+        <span aria-hidden="true" onPointerDown={onAlcaPointerDown} onPointerMove={onAlcaPointerMove} onPointerUp={onAlcaPointerUp} onPointerCancel={onAlcaPointerUp}
+          className="pointer-events-auto absolute -right-2 -bottom-2 h-4 w-4 cursor-nwse-resize touch-none rounded-[2px] border-2 border-kraft-300 bg-arquivo-900 shadow-[0_2px_6px_rgb(0_0_0/0.8)]" />
       )}
     </div>
   )

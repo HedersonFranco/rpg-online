@@ -71,6 +71,7 @@ visual em [`DESIGN.md`](../DESIGN.md), decisões e critérios por etapa em [`CLA
 | RF33 | Enviar mapas e escolher o mapa da mesa (só o mestre) | E | ✅ | Etapa 10 |
 | RF44 | Vídeo para a mesa: o mestre roda um vídeo para todos no lugar do mapa; ao terminar, ou se o mestre encerrar, o mapa volta como estava (tokens e zoom intactos). Quem entra ou reconecta no meio começa do ponto em que a mesa está | D | ⬜ | Proposto em 21/10/2026. A decidir: origem do vídeo (enviado ao sistema × link externo), limite de tamanho e formato, controles além de rodar/encerrar |
 | RF34 | Tokens de ficha, NPC ou objeto; arrastar ao vivo | E | ✅ | Etapa 10 |
+| RF48 | Montarias: biblioteca da mesa (qualquer membro salva nome + imagem até 2 MB); no mapa, o token fica sempre por baixo dos outros, qualquer membro move, muda o tamanho (alça no canto ou −/+) e tira; apaga quem salvou ou o mestre | I | ✅ | 22/10/2026 (API: 18 verificações; navegador com duas abas: 11) |
 | RF35 | Zoom e pan por mouse e por toque | E | ✅ | Etapa 10 |
 | RF36 | Vídeo e áudio entre os participantes (opcional) | E | 🔄 | Etapa 10 — falta teste entre redes diferentes (exige TURN) |
 | RF37 | NPCs: criar, editar, apagar; campos pelo sistema da mesa (só o mestre) | I | ✅ | Etapa 7 + tela NPCs |
