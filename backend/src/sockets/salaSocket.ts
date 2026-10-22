@@ -14,9 +14,10 @@ type Ack = (resposta: Record<string, unknown>) => void
 
 // Todo evento responde por ack: { ok: true, ...dados } ou { ok: false, erro }.
 // AppError vira mensagem pro usuário; qualquer outra coisa é logada e vira "erro interno".
-function tratar(fn: (dados: Record<string, unknown>) => Promise<Record<string, unknown> | void>) {
+export function tratar(fn: (dados: Record<string, unknown>) => Promise<Record<string, unknown> | void>) {
   return async (dadosOuAck: unknown, talvezAck?: unknown) => {
-    const ack = (typeof dadosOuAck === 'function' ? dadosOuAck : talvezAck) as Ack | undefined
+    // Só função vira ack: chamar outra coisa lançaria dentro do catch, e a rejeição solta derrubaria o processo.
+    const ack = [dadosOuAck, talvezAck].find((a) => typeof a === 'function') as Ack | undefined
     const dados = (typeof dadosOuAck === 'object' && dadosOuAck !== null ? dadosOuAck : {}) as Record<string, unknown>
     try {
       const resultado = await fn(dados)
