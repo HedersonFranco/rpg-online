@@ -397,6 +397,7 @@ type DadosEntrada = {
   preRequisito?: unknown
   categoria?: unknown
   espacos?: unknown
+  favorito?: unknown
 }
 
 function inteiroEntre(valor: unknown, min: number, max: number) {
@@ -419,6 +420,9 @@ function validarEntrada(tipo: string, dados: DadosEntrada) {
   }
   if (typeof dados.descricao !== 'string' || dados.descricao.length > LIMITE_DESCRICAO) {
     throw new AppError(`Descrição deve ter até ${LIMITE_DESCRICAO} caracteres`, 400)
+  }
+  if (dados.favorito !== undefined && typeof dados.favorito !== 'boolean') {
+    throw new AppError('Favorito deve ser true ou false', 400)
   }
   if (tipo === 'RITUAL') {
     if (!inteiroEntre(dados.circulo, 1, 4)) throw new AppError('Círculo do ritual deve ser de 1 a 4', 400)
@@ -446,6 +450,8 @@ function camposGravaveis(tipo: string, dados: DadosEntrada) {
     preRequisito: tipo === 'PODER' ? texto(dados.preRequisito) || null : null,
     categoria: tipo === 'EQUIPAMENTO' ? (dados.categoria as number) : null,
     espacos: tipo === 'EQUIPAMENTO' ? (dados.espacos as number) : null,
+    // Na edição, `dados` já vem mesclado com o gravado: sem `favorito` no pedido, fica como estava.
+    favorito: dados.favorito === true,
   }
 }
 

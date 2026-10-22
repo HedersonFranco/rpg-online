@@ -42,6 +42,7 @@ Criação e listagem ficam em `sala.routes.ts`; o resto em `/fichas` (`server.ts
   - Poder: `preRequisito` opcional até 200 caracteres.
   - Equipamento: `categoria` 0–4 e `espacos` 0–99.
   - O tipo não pode mudar depois de criado (`400`). Na edição, a validação vale para o estado final (gravado + enviado).
+  - `favorito` (qualquer tipo): `true`/`false`, senão `400`; ausente no PATCH = mantém. A aba Favoritos da ficha lista as marcadas.
 - Tempo real: criar/editar ficha, treinar perícia e criar/editar/apagar entrada emitem `emitirParaSala(salaId, 'ficha:atualizada', { ficha })` depois de gravar. Apagar a ficha emite `token:removido` (um por token dela) e `ficha:removida` `{ fichaId }`.
 
 ## Dependências

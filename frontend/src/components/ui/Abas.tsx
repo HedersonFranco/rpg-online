@@ -10,7 +10,7 @@ export function Abas<T extends string>({ abas, ativa, onTrocar, rotulo, idBase, 
   onTrocar: (chave: T) => void
   rotulo: string
   idBase: string
-  classeAba: (ativa: boolean) => string
+  classeAba: (ativa: boolean, chave: T) => string
   classeLista?: string
 }) {
   const refs = useRef<(HTMLButtonElement | null)[]>([])
@@ -30,7 +30,7 @@ export function Abas<T extends string>({ abas, ativa, onTrocar, rotulo, idBase, 
         <button key={chave} ref={(el) => { refs.current[i] = el }} type="button" role="tab"
           id={`${idBase}-aba-${chave}`} aria-controls={`${idBase}-painel`} aria-selected={ativa === chave}
           tabIndex={ativa === chave ? 0 : -1} onClick={() => onTrocar(chave)} onKeyDown={(e) => teclar(e, i)}
-          className={classeAba(ativa === chave)}>
+          className={classeAba(ativa === chave, chave)}>
           {texto}
         </button>
       ))}

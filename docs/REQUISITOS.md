@@ -53,6 +53,7 @@ visual em [`DESIGN.md`](../DESIGN.md), decisões e critérios por etapa em [`CLA
 | RF25 | Habilidades de classe desbloqueadas até o NEX atual | I | ✅ | Etapa 2 (seed + testes) |
 | RF26 | Inventário em texto livre | I | ✅ | Etapa 6 |
 | RF27 | Ficha de Ordem Paranormal RPG II | I | ⬜ | Sem CRUD nem tela; o playtest não publicou criação de personagem |
+| RF47 | Aba Favoritos na ficha: estrela em rituais, habilidades, poderes e equipamentos; a aba, no topo das divisórias, lista os marcados por tipo | D | ✅ | 22/10/2026 (API: 400/403; navegador com duas abas, ao vivo) |
 | RF28 | Apagar ficha (agente), pelo dono ou pelo mestre, com confirmação; os tokens dela saem dos mapas | D | ✅ | 21/10/2026 (API: 403/401/204/404; navegador com duas abas, tempo real) |
 
 ### 1.4 Mesa em jogo

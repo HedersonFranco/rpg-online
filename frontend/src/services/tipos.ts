@@ -98,6 +98,7 @@ export type EntradaFicha = {
   preRequisito: string | null
   categoria: number | null
   espacos: number | null
+  favorito: boolean
 }
 
 export type Mensagem = {

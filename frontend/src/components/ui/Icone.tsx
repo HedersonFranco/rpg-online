@@ -6,7 +6,7 @@ export type NomeIcone =
   | 'cursor' | 'mover' | 'zoomMais' | 'zoomMenos' | 'telaCheia'
   | 'mais' | 'menos' | 'dados'
   | 'camera' | 'cameraDesligada' | 'microfone' | 'lixeira' | 'ajustar'
-  | 'chat' | 'recolher' | 'membros' | 'certo' | 'errado'
+  | 'chat' | 'recolher' | 'membros' | 'certo' | 'errado' | 'estrela' | 'estrelaCheia'
 
 const caminhos: Record<NomeIcone, ReactNode> = {
   mesa: (<><rect x="3" y="3" width="7" height="9" rx="1" /><rect x="14" y="3" width="7" height="5" rx="1" /><rect x="14" y="12" width="7" height="9" rx="1" /><rect x="3" y="16" width="7" height="5" rx="1" /></>),
@@ -38,6 +38,8 @@ const caminhos: Record<NomeIcone, ReactNode> = {
   ajustar: (<><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M8 12h8M12 8v8" /></>),
   certo: <path d="M20 6 9 17l-5-5" />,
   errado: <path d="M18 6 6 18M6 6l12 12" />,
+  estrela: <path d="M12 2.5l2.9 5.9 6.6 1-4.75 4.6 1.1 6.5L12 17.4l-5.85 3.1 1.1-6.5L2.5 9.4l6.6-1z" />,
+  estrelaCheia: <path d="M12 2.5l2.9 5.9 6.6 1-4.75 4.6 1.1 6.5L12 17.4l-5.85 3.1 1.1-6.5L2.5 9.4l6.6-1z" fill="currentColor" />,
 }
 
 export function Icone({ nome, className = 'h-5 w-5' }: { nome: NomeIcone; className?: string }) {

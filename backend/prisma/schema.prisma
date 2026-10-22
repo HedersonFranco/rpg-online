@@ -402,6 +402,9 @@ model FichaEntrada {
   categoria    Int? // EQUIPAMENTO: 0 a 4 (0, I, II, III, IV)
   espacos      Int? // EQUIPAMENTO
 
+  // Aba Favoritos da ficha: atalho para o que o jogador mais usa (vale para todos os tipos).
+  favorito Boolean @default(false)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
