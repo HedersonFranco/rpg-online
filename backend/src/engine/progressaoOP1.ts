@@ -80,5 +80,6 @@ const TABELAS: Record<ClasseOrdemParanormal, string[]> = {
 }
 
 export const PROGRESSAO_OP1: ProgressaoClasseEntry[] = (Object.keys(TABELAS) as ClasseOrdemParanormal[]).flatMap((classe) =>
-  TABELAS[classe].map((habilidades, i) => ({ classe, nex: NEX_TIERS[i], habilidades })),
+  // `!`: cada tabela tem exatamente os 20 degraus de NEX_TIERS (conferido em progressaoOP1.test.ts).
+  TABELAS[classe].map((habilidades, i) => ({ classe, nex: NEX_TIERS[i]!, habilidades })),
 )

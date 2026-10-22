@@ -206,7 +206,8 @@ export function registrarEventosDaSala(socket: Socket) {
 
     const novos = lista.map((p) => {
       const refId = p.refId as string
-      const origem = p.tipo === 'FICHA' ? fichas.find((f) => f.id === refId) : npcs.find((n) => n.id === refId)
+      const ficha = p.tipo === 'FICHA' ? fichas.find((f) => f.id === refId) : undefined
+      const origem = ficha ?? (p.tipo === 'NPC' ? npcs.find((n) => n.id === refId) : undefined)
       if (!origem) throw new AppError('Participante não encontrado nesta sala', 400)
       const n = (repeticoes.get(refId) ?? 0) + 1
       repeticoes.set(refId, n)
@@ -216,7 +217,7 @@ export function registrarEventosDaSala(socket: Socket) {
         iniciativa: p.iniciativa as number,
         tipo: p.tipo as 'FICHA' | 'NPC',
         refId,
-        usuarioId: 'usuario_id' in origem ? origem.usuario_id : null,
+        usuarioId: ficha?.usuario_id ?? null,
       }
     })
 
