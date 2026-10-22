@@ -112,6 +112,8 @@ export type Rolagem = {
   autor: { id: string; nome: string }
   // O que foi rolado, quando vem da ficha: "Fortitude · Helena Duarte".
   rotulo?: string
+  // Resumo da rolagem da ficha para o bilhete compacto ("FRT (VIG) · Helena" ⬡2 +5); d20 = -1 quando o atributo é 0.
+  teste?: { sigla: string; atributo: string | null; ficha: string; d20: number; bonus: number }
   expressao: string
   dados: number[]
   // Dados de cada grupo + modificador, formatados no servidor: "[3, 5] + [7] + 3".

@@ -64,6 +64,7 @@ visual em [`DESIGN.md`](../DESIGN.md), decisões e critérios por etapa em [`CLA
 | RF41 | Rolar teste de perícia e de atributo direto da ficha; dados e bônus montados no servidor a partir da ficha (dono ou mestre) | I | ✅ | 01/10/2026 (motor 4 testes; socket 19/19; tela 13/13) |
 | RF42 | Rolagem de dano por expressão livre ("2d6+1d8+3") | I | ✅ | 01/10/2026 (motor 5 testes; socket; tela) |
 | RF43 | Iniciativa das fichas rolada pelo servidor no "Iniciar combate" (mestre), visível no chat e editável antes de iniciar | I | ✅ | 01/10/2026 (socket; tela) |
+| RF45 | Bilhete de rolagem compacto: "INV (INT) · Franco" com o d20 em hexágono e a quantidade de dados (atributo 0 = ⬡-1); nome por extenso no título | D | ✅ | 22/10/2026 (motor: sigla e atributo no teste; navegador: ficha e chat do mestre) |
 | RF32 | Combate: iniciativa informada pelo mestre (ou rolada pelo servidor para fichas, RF43), vez de quem, fila, encerrar turno | E | ✅ | Etapa 9 |
 | RF33 | Enviar mapas e escolher o mapa da mesa (só o mestre) | E | ✅ | Etapa 10 |
 | RF44 | Vídeo para a mesa: o mestre roda um vídeo para todos no lugar do mapa; ao terminar, ou se o mestre encerrar, o mapa volta como estava (tokens e zoom intactos). Quem entra ou reconecta no meio começa do ponto em que a mesa está | D | ⬜ | Proposto em 21/10/2026. A decidir: origem do vídeo (enviado ao sistema × link externo), limite de tamanho e formato, controles além de rodar/encerrar |

@@ -5,6 +5,7 @@ import { AppError } from '../errors/AppError.js'
 import { buscarSalaOuFalhar, garantirMestre } from '../modules/sala/sala.service.js'
 import { criarMensagem } from '../modules/mensagem/mensagem.service.js'
 import { avancarTurno, criarCombate, podeEncerrarTurno } from '../engine/combate.js'
+import type { PedidoDeTeste } from '../engine/calculoFicha.js'
 import { PedidoRolagemInvalido, rolar, rolarExpressao, type ResultadoExpressao, type ResultadoRolagem } from '../engine/rolagem.js'
 import { montarIniciativas, montarTesteDaFicha } from '../modules/ficha/ficha.service.js'
 import { coordenadaValida, podeMoverToken, salvarPosicaoToken } from '../modules/mapa/mapa.service.js'
@@ -34,6 +35,15 @@ export function tratar(fn: (dados: Record<string, unknown>) => Promise<Record<st
 }
 
 type ResultadoRolagemBase = ResultadoRolagem | ResultadoExpressao
+
+// Rolagem da ficha: o rótulo por extenso ("Investigação · Franco", para o título e o leitor de tela) e o
+// resumo do bilhete compacto. d20 = quantos dados; -1 quando o atributo é 0 (rola dois e fica com o pior).
+function daFicha(pedido: PedidoDeTeste, ficha: string): Pick<Rolagem, 'rotulo' | 'teste'> {
+  return {
+    rotulo: `${pedido.nomeTeste} · ${ficha}`,
+    teste: { sigla: pedido.sigla, atributo: pedido.atributo, ficha, d20: pedido.modo === 'menor' ? -1 : pedido.quantidade, bonus: pedido.modificador },
+  }
+}
 
 type NovoParticipante ={ tipo?: unknown; refId?: unknown; iniciativa?: unknown }
 
@@ -90,8 +100,8 @@ export function registrarEventosDaSala(socket: Socket) {
   }))
 
   // O servidor rola (ninguém escolhe o próprio resultado). Não persiste — só a última fica em memória.
-  // `rotulo` diz o que foi rolado quando vem da ficha ("Fortitude · Helena Duarte").
-  function publicarRolagem(salaId: string, rolarAgora: () => ResultadoRolagemBase, rotulo?: string) {
+  // `origem` diz o que foi rolado quando vem da ficha (ver daFicha).
+  function publicarRolagem(salaId: string, rolarAgora: () => ResultadoRolagemBase, origem?: Pick<Rolagem, 'rotulo' | 'teste'>) {
     let resultado
     try {
       resultado = rolarAgora()
@@ -101,7 +111,7 @@ export function registrarEventosDaSala(socket: Socket) {
     }
     const rolagem: Rolagem = {
       ...resultado,
-      ...(rotulo ? { rotulo } : {}),
+      ...origem,
       id: randomUUID(),
       autor: { id: usuarioId, nome: socket.data.nome as string },
       criadoEm: new Date().toISOString(),
@@ -123,7 +133,7 @@ export function registrarEventosDaSala(socket: Socket) {
   socket.on('rolagem:teste', tratar(async (dados) => {
     const salaId = salaAtual()
     const { pedido, fichaNome } = await montarTesteDaFicha(salaId, usuarioId, dados)
-    return { rolagem: publicarRolagem(salaId, () => rolar(pedido), `${pedido.nomeTeste} · ${fichaNome}`) }
+    return { rolagem: publicarRolagem(salaId, () => rolar(pedido), daFicha(pedido, fichaNome)) }
   }))
 
   // Mestre: rola a Iniciativa das fichas escolhidas. Cada rolagem vai pra mesa (transparência);
@@ -133,7 +143,7 @@ export function registrarEventosDaSala(socket: Socket) {
     await garantirMestre(salaId, usuarioId)
     const iniciativas: Record<string, number> = {}
     for (const { fichaId, fichaNome, pedido } of await montarIniciativas(salaId, fichaIds)) {
-      iniciativas[fichaId] = publicarRolagem(salaId, () => rolar(pedido), `Iniciativa · ${fichaNome}`).total
+      iniciativas[fichaId] = publicarRolagem(salaId, () => rolar(pedido), daFicha(pedido, fichaNome)).total
     }
     return { iniciativas }
   }))
