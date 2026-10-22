@@ -114,6 +114,8 @@ export type Rolagem = {
   rotulo?: string
   // Resumo da rolagem da ficha para o bilhete compacto ("FRT (VIG) · Helena" ⬡2 +5); d20 = -1 quando o atributo é 0.
   teste?: { sigla: string; atributo: string | null; ficha: string; d20: number; bonus: number }
+  // Rolagem do mestre: só os mestres recebem (o servidor não manda para os jogadores).
+  secreta?: true
   expressao: string
   dados: number[]
   // Dados de cada grupo + modificador, formatados no servidor: "[3, 5] + [7] + 3".
@@ -122,6 +124,9 @@ export type Rolagem = {
   modo: 'soma' | 'maior' | 'menor'
   criadoEm: string
 }
+
+// O que o jogador recebe quando o mestre rola em segredo com o aviso ligado: só uma frase, sem resultado.
+export type AvisoRolagem = { id: string; frase: string; criadoEm: string }
 
 export type Participante = {
   id: string

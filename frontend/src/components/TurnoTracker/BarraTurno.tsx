@@ -93,7 +93,7 @@ export function BarraTurno({ salaId, usuarioId, souMestre }: { salaId: string; u
         <button type="button" onClick={() => setRolagemAberta((a) => !a)} aria-expanded={rolagemAberta} className={classeBotaoArquivo}>
           <Icone nome="dados" className="h-4 w-4" /> Rolagem
         </button>
-        {rolagemAberta && <PainelRolagem onFechar={() => setRolagemAberta(false)} />}
+        {rolagemAberta && <PainelRolagem souMestre={souMestre} onFechar={() => setRolagemAberta(false)} />}
       </div>
       <ModalIniciarCombate salaId={salaId} aberto={modalAberto} onFechar={() => setModalAberto(false)} />
     </section>

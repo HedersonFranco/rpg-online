@@ -24,6 +24,13 @@ export function BilheteRolagem({ rolagem, onFechar }: { rolagem: Rolagem; onFech
   const fechar = onFechar && (
     <button type="button" onClick={onFechar} aria-label="Dispensar rolagem" className="-mr-1 shrink-0 rounded-[2px] px-1 text-tinta-700 hover:text-tinta-900">×</button>
   )
+  // Carimbo de estado (não de ação): os jogadores não receberam esta rolagem.
+  const segredo = rolagem.secreta && (
+    <span title="Só os mestres veem esta rolagem"
+      className={`shrink-0 rounded-[2px] border border-carimbo-800 px-1 text-xs leading-tight font-bold tracking-[0.12em] text-carimbo-800 uppercase ${condensado}`}>
+      Segredo
+    </span>
+  )
   return (
     <div className="textura-fibra rounded-[2px] bg-papel-100 px-3 py-2 text-tinta-900 shadow-[0_6px_14px_-8px_rgb(0_0_0/0.9)]">
       {teste ? (
@@ -52,7 +59,10 @@ export function BilheteRolagem({ rolagem, onFechar }: { rolagem: Rolagem; onFech
       )}
       <p className="mt-1 flex items-baseline justify-between gap-3">
         <span className="min-w-0 font-datilo text-sm break-words text-tinta-700">{rolagem.detalhe}</span>
-        <strong className={`shrink-0 text-3xl leading-none font-extrabold ${condensado}`}>{rolagem.total}</strong>
+        <span className="flex shrink-0 items-baseline gap-2">
+          {segredo}
+          <strong className={`text-3xl leading-none font-extrabold ${condensado}`}>{rolagem.total}</strong>
+        </span>
       </p>
     </div>
   )

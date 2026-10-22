@@ -64,6 +64,7 @@ visual em [`DESIGN.md`](../DESIGN.md), decisões e critérios por etapa em [`CLA
 | RF41 | Rolar teste de perícia e de atributo direto da ficha; dados e bônus montados no servidor a partir da ficha (dono ou mestre) | I | ✅ | 01/10/2026 (motor 4 testes; socket 19/19; tela 13/13) |
 | RF42 | Rolagem de dano por expressão livre ("2d6+1d8+3") | I | ✅ | 01/10/2026 (motor 5 testes; socket; tela) |
 | RF43 | Iniciativa das fichas rolada pelo servidor no "Iniciar combate" (mestre), visível no chat e editável antes de iniciar | I | ✅ | 01/10/2026 (socket; tela) |
+| RF46 | Rolagem do mestre em segredo (RN14), com opção de avisar os jogadores por uma frase sem resultado | I | ✅ | 22/10/2026 (navegador com duas abas: 8 verificações, inclusive recarregar sem vazar segredo) |
 | RF45 | Bilhete de rolagem compacto: "INV (INT) · Franco" com o d20 em hexágono e a quantidade de dados (atributo 0 = ⬡-1); nome por extenso no título | D | ✅ | 22/10/2026 (motor: sigla e atributo no teste; navegador: ficha e chat do mestre) |
 | RF32 | Combate: iniciativa informada pelo mestre (ou rolada pelo servidor para fichas, RF43), vez de quem, fila, encerrar turno | E | ✅ | Etapa 9 |
 | RF33 | Enviar mapas e escolher o mapa da mesa (só o mestre) | E | ✅ | Etapa 10 |
@@ -94,6 +95,7 @@ visual em [`DESIGN.md`](../DESIGN.md), decisões e critérios por etapa em [`CLA
 | RN11 | Só quem está na vez ou o mestre encerram o turno. O combate vive em memória: se o servidor reiniciar, a tela avisa. |
 | RN12 | A rolagem não é gravada; só a última de cada mesa fica em memória. O chat é gravado (até 1000 caracteres). |
 | RN13 | Toda ação destrutiva pede confirmação. |
+| RN14 | A rolagem do mestre é secreta: só os mestres a recebem (e ela não fica como a última da mesa). Com o aviso ligado, os jogadores veem só uma frase, sem resultado. As rolagens dos jogadores e a Iniciativa que o mestre rola para as fichas deles são abertas para todos. |
 
 ---
 

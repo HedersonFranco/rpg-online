@@ -45,6 +45,16 @@ function daFicha(pedido: PedidoDeTeste, ficha: string): Pick<Rolagem, 'rotulo' |
   }
 }
 
+// Frases do aviso de rolagem secreta do mestre, escritas pelo Hederson. Para ter mais, é só acrescentar aqui
+// — com texto próprio: a Licença da Comunidade não aceita texto gerado por IA em conteúdo comercial.
+const FRASES_ROLAGEM_SECRETA = ['O mestre rolou dados.', 'O mundo está testando a sorte.']
+const sortearFrase = () => FRASES_ROLAGEM_SECRETA[Math.floor(Math.random() * FRASES_ROLAGEM_SECRETA.length)]!
+
+async function idsDosMestres(salaId: string) {
+  const mestres = await prisma.membroSala.findMany({ where: { salaId, papel: 'MESTRE' }, select: { usuarioId: true } })
+  return new Set(mestres.map((m) => m.usuarioId))
+}
+
 type NovoParticipante ={ tipo?: unknown; refId?: unknown; iniciativa?: unknown }
 
 export function registrarEventosDaSala(socket: Socket) {
@@ -99,9 +109,15 @@ export function registrarEventosDaSala(socket: Socket) {
     return { mensagem }
   }))
 
-  // O servidor rola (ninguém escolhe o próprio resultado). Não persiste — só a última fica em memória.
-  // `origem` diz o que foi rolado quando vem da ficha (ver daFicha).
-  function publicarRolagem(salaId: string, rolarAgora: () => ResultadoRolagemBase, origem?: Pick<Rolagem, 'rotulo' | 'teste'>) {
+  // O servidor rola (ninguém escolhe o próprio resultado). Não persiste — só a última rolagem aberta fica em
+  // memória. `origem` diz o que foi rolado quando vem da ficha (ver daFicha). Rolagem do mestre é segredo: só
+  // os mestres recebem o resultado e, com `avisar`, os jogadores recebem uma frase sem o número.
+  // `aberta` = vai para todos mesmo vindo do mestre (a Iniciativa das fichas dos jogadores).
+  async function publicarRolagem(
+    salaId: string,
+    rolarAgora: () => ResultadoRolagemBase,
+    { origem, avisar = false, aberta = false }: { origem?: Pick<Rolagem, 'rotulo' | 'teste'>; avisar?: boolean; aberta?: boolean } = {},
+  ) {
     let resultado
     try {
       resultado = rolarAgora()
@@ -109,23 +125,35 @@ export function registrarEventosDaSala(socket: Socket) {
       if (erro instanceof PedidoRolagemInvalido) throw new AppError(erro.message, 400)
       throw erro
     }
+    const mestres = aberta ? null : await idsDosMestres(salaId)
+    const secreta = mestres?.has(usuarioId) ?? false
     const rolagem: Rolagem = {
       ...resultado,
       ...origem,
+      ...(secreta ? { secreta: true as const } : {}),
       id: randomUUID(),
       autor: { id: usuarioId, nome: socket.data.nome as string },
       criadoEm: new Date().toISOString(),
     }
-    ultimasRolagens.set(salaId, rolagem)
-    emitir(salaId, 'rolagem:resultado', rolagem)
+    if (!secreta) {
+      ultimasRolagens.set(salaId, rolagem)
+      emitir(salaId, 'rolagem:resultado', rolagem)
+      return rolagem
+    }
+    const aviso = avisar ? { id: rolagem.id, frase: sortearFrase(), criadoEm: rolagem.criadoEm } : null
+    for (const s of await socket.nsp.in(nomeSalaSocket(salaId)).fetchSockets()) {
+      if (mestres!.has(s.data.usuarioId as string)) s.emit('rolagem:resultado', rolagem)
+      else if (aviso) s.emit('rolagem:aviso', aviso)
+    }
     return rolagem
   }
 
   // Painel de rolagem: N dados de um tipo (com modo) ou uma expressão livre de dano ("2d6+1d8+3").
   socket.on('rolagem:rolar', tratar(async (pedido) => {
     const salaId = salaAtual()
-    const rolagem = publicarRolagem(salaId, () =>
-      pedido.expressao !== undefined ? rolarExpressao(pedido.expressao) : rolar(pedido as Parameters<typeof rolar>[0]))
+    const rolagem = await publicarRolagem(salaId, () =>
+      pedido.expressao !== undefined ? rolarExpressao(pedido.expressao) : rolar(pedido as Parameters<typeof rolar>[0]),
+    { avisar: pedido.avisar === true })
     return { rolagem }
   }))
 
@@ -133,17 +161,18 @@ export function registrarEventosDaSala(socket: Socket) {
   socket.on('rolagem:teste', tratar(async (dados) => {
     const salaId = salaAtual()
     const { pedido, fichaNome } = await montarTesteDaFicha(salaId, usuarioId, dados)
-    return { rolagem: publicarRolagem(salaId, () => rolar(pedido), daFicha(pedido, fichaNome)) }
+    return { rolagem: await publicarRolagem(salaId, () => rolar(pedido), { origem: daFicha(pedido, fichaNome), avisar: dados.avisar === true }) }
   }))
 
-  // Mestre: rola a Iniciativa das fichas escolhidas. Cada rolagem vai pra mesa (transparência);
-  // os totais voltam no ack pra preencher o "Iniciar combate" — o mestre ainda pode ajustar.
+  // Mestre: rola a Iniciativa das fichas escolhidas. Cada rolagem vai pra mesa toda, mesmo vindo do mestre
+  // (transparência: são os personagens dos jogadores); os totais voltam no ack pra preencher o
+  // "Iniciar combate" — o mestre ainda pode ajustar.
   socket.on('turno:rolarIniciativa', tratar(async ({ fichaIds }) => {
     const salaId = salaAtual()
     await garantirMestre(salaId, usuarioId)
     const iniciativas: Record<string, number> = {}
     for (const { fichaId, fichaNome, pedido } of await montarIniciativas(salaId, fichaIds)) {
-      iniciativas[fichaId] = publicarRolagem(salaId, () => rolar(pedido), daFicha(pedido, fichaNome)).total
+      iniciativas[fichaId] = (await publicarRolagem(salaId, () => rolar(pedido), { origem: daFicha(pedido, fichaNome), aberta: true })).total
     }
     return { iniciativas }
   }))

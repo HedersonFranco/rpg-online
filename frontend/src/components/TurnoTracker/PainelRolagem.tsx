@@ -7,9 +7,10 @@ import { classeBotaoContorno, classeBotaoTinta, classeCampo, classeRotulo, class
 
 const FACES = [4, 6, 8, 10, 12, 20, 100]
 
-// Quem rola é o servidor; aqui só se monta o pedido. O resultado chega pra sala toda (chat).
-export function PainelRolagem({ onFechar }: { onFechar: () => void }) {
-  const { emitir } = useSalaSocket()
+// Quem rola é o servidor; aqui só se monta o pedido. O resultado chega pra sala toda (chat) — o do mestre,
+// só aos mestres; com o aviso ligado, os jogadores veem uma frase sem o resultado.
+export function PainelRolagem({ souMestre, onFechar }: { souMestre: boolean; onFechar: () => void }) {
+  const { emitir, avisarRolagem, setAvisarRolagem } = useSalaSocket()
   const [quantidade, setQuantidade] = useState('1')
   const [faces, setFaces] = useState(20)
   const [modificador, setModificador] = useState('0')
@@ -32,8 +33,8 @@ export function PainelRolagem({ onFechar }: { onFechar: () => void }) {
     setEnviando(true)
     try {
       await emitir('rolagem:rolar', tipo === 'expressao'
-        ? { expressao }
-        : { quantidade: Number(quantidade), faces, modificador: Number(modificador), modo })
+        ? { expressao, avisar: avisarRolagem }
+        : { quantidade: Number(quantidade), faces, modificador: Number(modificador), modo, avisar: avisarRolagem })
       onFechar()
     } catch (e) {
       setErro(mensagemDeErro(e))
@@ -87,6 +88,18 @@ export function PainelRolagem({ onFechar }: { onFechar: () => void }) {
                 </select>
               </div>
             </>
+          )}
+          {souMestre && (
+            <label className="flex items-start gap-2 text-sm text-tinta-900">
+              <input type="checkbox" checked={avisarRolagem} onChange={(e) => setAvisarRolagem(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 accent-tinta-900" aria-describedby="rolagem-aviso-dica" />
+              <span>
+                Avisar os jogadores quando eu rolar
+                <span id="rolagem-aviso-dica" className="mt-0.5 block text-xs text-tinta-700">
+                  Suas rolagens são secretas. Ligado, a mesa vê uma frase como "O mestre rolou dados.", sem o resultado.
+                </span>
+              </span>
+            </label>
           )}
           {erro && <Alerta tom="papel" mensagem={erro} />}
           <div className="flex flex-wrap justify-end gap-2">

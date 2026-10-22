@@ -9,7 +9,7 @@ export type AlvoTeste = { tipo: 'pericia'; nome: string } | { tipo: 'atributo'; 
 // ficha no banco e manda o resultado pra mesa inteira (chat). `ultima` é o bilhete que a ficha mostra,
 // porque o chat pode estar escondido atrás dela.
 export function useRolarTeste(fichaId: string) {
-  const { emitir } = useSalaSocket()
+  const { emitir, avisarRolagem } = useSalaSocket()
   const [rolando, setRolando] = useState<string | null>(null)
   const [ultima, setUltima] = useState<Rolagem | null>(null)
   const [erro, setErro] = useState<string | null>(null)
@@ -18,7 +18,7 @@ export function useRolarTeste(fichaId: string) {
     setErro(null)
     setRolando(`${alvo.tipo}:${alvo.nome}`)
     try {
-      const { rolagem } = await emitir<{ rolagem: Rolagem }>('rolagem:teste', { fichaId, ...alvo })
+      const { rolagem } = await emitir<{ rolagem: Rolagem }>('rolagem:teste', { fichaId, ...alvo, avisar: avisarRolagem })
       setUltima(rolagem)
     } catch (e) {
       setErro(mensagemDeErro(e))

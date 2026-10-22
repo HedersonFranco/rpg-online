@@ -2,19 +2,23 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useRecurso } from '../../hooks/useRecurso'
 import { useAoResincronizar, useEventoSocket, useSalaSocket } from '../../hooks/useSocket'
 import { mensagemDeErro } from '../../services/api'
-import type { Mensagem, Rolagem } from '../../services/tipos'
+import type { AvisoRolagem, Mensagem, Rolagem } from '../../services/tipos'
 import { Alerta, Carregando } from '../ui/Feedback'
 import { BilheteRolagem } from './BilheteRolagem'
 import { Folha } from '../ui/arquivo'
+import { Icone } from '../ui/Icone'
 import { classeBotaoTinta, classeCampo, condensado } from '../ui/estilosArquivo'
 
-type Item = { tipo: 'mensagem'; dado: Mensagem; quando: string } | { tipo: 'rolagem'; dado: Rolagem; quando: string }
+type Item =
+  | { tipo: 'mensagem'; dado: Mensagem; quando: string }
+  | { tipo: 'rolagem'; dado: Rolagem; quando: string }
+  | { tipo: 'aviso'; dado: AvisoRolagem; quando: string }
 
 const hora = (iso: string) => new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
 
 export function PainelChat({ salaId }: { salaId: string }) {
   const { estado, recarregar, revalidar, atualizar } = useRecurso<Mensagem[]>(`/salas/${salaId}/mensagens`)
-  const { rolagens, emitir } = useSalaSocket()
+  const { rolagens, avisosRolagem, emitir } = useSalaSocket()
   const [texto, setTexto] = useState('')
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
@@ -31,6 +35,7 @@ export function PainelChat({ salaId }: { salaId: string }) {
       ? [
           ...estado.dados.map((m): Item => ({ tipo: 'mensagem', dado: m, quando: m.createdAt })),
           ...rolagens.map((r): Item => ({ tipo: 'rolagem', dado: r, quando: r.criadoEm })),
+          ...avisosRolagem.map((a): Item => ({ tipo: 'aviso', dado: a, quando: a.criadoEm })),
         ].sort((a, b) => a.quando.localeCompare(b.quando))
       : []
 
@@ -70,8 +75,15 @@ export function PainelChat({ salaId }: { salaId: string }) {
               </p>
               <p className="mt-0.5 break-words whitespace-pre-wrap text-grafite-100">{item.dado.conteudo}</p>
             </div>
-          ) : (
+          ) : item.tipo === 'rolagem' ? (
             <BilheteRolagem key={item.dado.id} rolagem={item.dado} />
+          ) : (
+            // Rolagem secreta do mestre, com o aviso ligado: só a frase, sem resultado.
+            <p key={item.dado.id} className="flex items-center gap-2 text-sm text-grafite-300 italic">
+              <Icone nome="dados" className="h-4 w-4 shrink-0" />
+              <span className="min-w-0 flex-1">{item.dado.frase}</span>
+              <span className="font-datilo text-xs text-grafite-400 not-italic">{hora(item.dado.criadoEm)}</span>
+            </p>
           ),
         )}
         <div ref={fimDaLista} />
