@@ -327,6 +327,21 @@ export async function atualizarFicha(
   return { ficha: await emitirFicha(atualizado), habilidadesDesbloqueadas }
 }
 
+// Apagar agente: dono da ficha ou mestre. Perícias e entradas vão junto (cascata no banco) e os tokens
+// dele saem dos mapas — sem a ficha, o token viraria um objeto sem nome.
+export async function removerFicha(fichaId: string, usuarioId: string) {
+  const ficha = await fichaEditavel(fichaId, usuarioId)
+  const tokens = await prisma.token.findMany({ where: { fichaId }, select: { id: true } })
+  const [, apagadas] = await prisma.$transaction([
+    prisma.token.deleteMany({ where: { fichaId } }),
+    prisma.ficha.deleteMany({ where: { id: fichaId } }),
+  ])
+  // Dono e mestre apagando ao mesmo tempo: o segundo não acha mais a ficha.
+  if (apagadas.count === 0) throw new AppError('Ficha não encontrada', 404)
+  for (const { id } of tokens) emitirParaSala(ficha.salaId, 'token:removido', { tokenId: id })
+  emitirParaSala(ficha.salaId, 'ficha:removida', { fichaId })
+}
+
 export async function treinarPericia(
   fichaId: string,
   usuarioId: string,

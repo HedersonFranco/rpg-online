@@ -53,7 +53,7 @@ visual em [`DESIGN.md`](../DESIGN.md), decisões e critérios por etapa em [`CLA
 | RF25 | Habilidades de classe desbloqueadas até o NEX atual | I | ✅ | Etapa 2 (seed + testes) |
 | RF26 | Inventário em texto livre | I | ✅ | Etapa 6 |
 | RF27 | Ficha de Ordem Paranormal RPG II | I | ⬜ | Sem CRUD nem tela; o playtest não publicou criação de personagem |
-| RF28 | Apagar ficha | D | ⬜ | Não existe rota; não foi pedido |
+| RF28 | Apagar ficha (agente), pelo dono ou pelo mestre, com confirmação; os tokens dela saem dos mapas | D | ✅ | 21/10/2026 (API: 403/401/204/404; navegador com duas abas, tempo real) |
 
 ### 1.4 Mesa em jogo
 
@@ -116,7 +116,7 @@ com 6 contas numa mesma mesa (1 mestre + 5 jogadores). Navegador: Microsoft Edge
 | RNF12 | Reconexão do vídeo | Automática; após 3 falhas, botão "Reconectar" | Verificado na Etapa 10 (queda simulada, os dois papéis) | ✅ |
 | RNF13 | Degradação sem câmera | Mesa funciona em texto + mapa | Verificado na Etapa 10 | ✅ |
 | RNF14 | Estados de erro e de carregamento | Nenhuma tela branca; carregamento após 300 ms | Verificado nas Etapas 8–11; erro geral capturado (`ErrorBoundary`) | ✅ |
-| RNF15 | Confirmação em ação destrutiva | Toda ação destrutiva confirma | Apagar mesa, expulsar, banir, remover mapa/token/NPC, apagar entrada da ficha, encerrar combate | ✅ |
+| RNF15 | Confirmação em ação destrutiva | Toda ação destrutiva confirma | Apagar mesa, expulsar, banir, remover mapa/token/NPC, apagar agente, apagar entrada da ficha, encerrar combate | ✅ |
 | RNF16 | Texto do usuário seguro (XSS) | Todo texto sanitizado | Nenhum HTML cru no frontend (React escapa); chat com `<b>` aparece como texto | ✅ |
 | RNF17 | Acessibilidade | WCAG AA como régua | Contraste AA, foco visível, abas por teclado, diálogos com foco preso, texto ≥ 12 px | 🔄 Sem auditoria formal com leitor de tela |
 | RNF18 | Fluxo principal sem erro no console | Login → mesa → ficha → combate → mapa | Zero erros no console no build de produção | ✅ |
@@ -156,5 +156,5 @@ motor de cálculo para NPCs; outros sistemas além de Ordem Paranormal; ferramen
 3. **Firefox e Safari**: testar o fluxo principal nos dois (RNF05).
 4. **Conferir uma ficha contra o C.R.I.S.** (Etapa 6), manualmente.
 5. **Ficha de RPG II** (RF27), quando o playtest publicar a criação de personagem.
-6. Decidir sobre **upload de avatar** (RNF10) e **apagar ficha** (RF28).
+6. Decidir sobre **upload de avatar** (RNF10).
 7. Produção: restringir o CORS (hoje aceita qualquer origem) e publicar política de privacidade (LGPD).

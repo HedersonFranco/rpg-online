@@ -21,6 +21,11 @@ export async function atualizarController(req: Request, res: Response) {
   res.json(resultado)
 }
 
+export async function removerController(req: Request, res: Response) {
+  await fichaService.removerFicha(req.params.id!, req.usuarioId!)
+  res.status(204).send()
+}
+
 export async function treinarPericiaController(req: Request, res: Response) {
   const { nome, nivel } = req.body ?? {}
   res.json(await fichaService.treinarPericia(req.params.id!, req.usuarioId!, nome, nivel))
