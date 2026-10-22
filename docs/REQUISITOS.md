@@ -66,6 +66,7 @@ visual em [`DESIGN.md`](../DESIGN.md), decisões e critérios por etapa em [`CLA
 | RF43 | Iniciativa das fichas rolada pelo servidor no "Iniciar combate" (mestre), visível no chat e editável antes de iniciar | I | ✅ | 01/10/2026 (socket; tela) |
 | RF32 | Combate: iniciativa informada pelo mestre (ou rolada pelo servidor para fichas, RF43), vez de quem, fila, encerrar turno | E | ✅ | Etapa 9 |
 | RF33 | Enviar mapas e escolher o mapa da mesa (só o mestre) | E | ✅ | Etapa 10 |
+| RF44 | Vídeo para a mesa: o mestre roda um vídeo para todos no lugar do mapa; ao terminar, ou se o mestre encerrar, o mapa volta como estava (tokens e zoom intactos). Quem entra ou reconecta no meio começa do ponto em que a mesa está | D | ⬜ | Proposto em 21/10/2026. A decidir: origem do vídeo (enviado ao sistema × link externo), limite de tamanho e formato, controles além de rodar/encerrar |
 | RF34 | Tokens de ficha, NPC ou objeto; arrastar ao vivo | E | ✅ | Etapa 10 |
 | RF35 | Zoom e pan por mouse e por toque | E | ✅ | Etapa 10 |
 | RF36 | Vídeo e áudio entre os participantes (opcional) | E | 🔄 | Etapa 10 — falta teste entre redes diferentes (exige TURN) |
