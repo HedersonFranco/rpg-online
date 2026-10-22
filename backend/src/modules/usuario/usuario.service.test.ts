@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { cadastrar, normalizarEmail, NOME_MAX, EMAIL_MAX, SENHA_MIN, SENHA_MAX_BYTES } from './usuario.service.js'
+import { cadastrar, faltasNaSenha, normalizarEmail, NOME_MAX, EMAIL_MAX, SENHA_MIN, SENHA_MAX_BYTES } from './usuario.service.js'
 
 describe('normalizarEmail', () => {
   it('tira espaços e passa para minúsculas', () => {
@@ -43,5 +43,29 @@ describe('cadastrar — validação de entrada', () => {
   it(`senha acima de ${SENHA_MAX_BYTES} bytes → 400 (acento conta 2)`, async () => {
     await expect(cadastrar('Nome', email, 'a'.repeat(SENHA_MAX_BYTES + 1))).rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('no máximo') })
     await expect(cadastrar('Nome', email, 'é'.repeat(37))).rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('no máximo') })
+  })
+
+  it('senha fora do checklist → 400 dizendo o que falta', async () => {
+    await expect(cadastrar('Nome', email, 'abcdefgh')).rejects.toMatchObject({
+      statusCode: 400,
+      message: 'A senha precisa de uma letra maiúscula, um número e um símbolo',
+    })
+  })
+})
+
+describe('faltasNaSenha — checklist clássico', () => {
+  it('senha que atende a tudo não deixa falta (acento é letra, espaço é símbolo)', () => {
+    expect(faltasNaSenha('Teste#2026')).toEqual([])
+    expect(faltasNaSenha('Ação 2026 é')).toEqual([])
+  })
+
+  it('lista o que falta, na ordem do checklist', () => {
+    expect(faltasNaSenha('abcdefgh')).toEqual(['uma letra maiúscula', 'um número', 'um símbolo'])
+    expect(faltasNaSenha('ABCDEFG1!')).toEqual(['uma letra minúscula'])
+    expect(faltasNaSenha('Abcdefgh1')).toEqual(['um símbolo'])
+  })
+
+  it('acento digitado separado da letra não conta como símbolo', () => {
+    expect(faltasNaSenha('Café2026')).toEqual(['um símbolo'])
   })
 })

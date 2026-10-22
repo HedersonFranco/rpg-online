@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { useAuth, useUsuarioLogado } from '../../hooks/useAuth'
 import { useRecurso } from '../../hooks/useRecurso'
@@ -26,6 +26,7 @@ import { PainelFicha, type VisaoPainelFicha } from '../../components/FichaOrdemP
 import { PainelChat } from '../../components/Chat/PainelChat'
 import { PainelNpcs } from '../../components/Npc/PainelNpcs'
 import { PainelMembros } from '../../components/Membros/PainelMembros'
+import { PainelMontarias } from '../../components/Montaria/PainelMontarias'
 import { SalaSocketProvider } from '../../hooks/SalaSocketProvider'
 import { useEventoSocket, useSalaSocket } from '../../hooks/useSocket'
 import { BotaoConvite } from './BotaoConvite'
@@ -47,11 +48,14 @@ function IndicadorConexao() {
   )
 }
 
-type AbaPainel = 'ficha' | 'chat' | 'npcs' | 'membros'
+type AbaPainel = 'ficha' | 'chat' | 'montarias' | 'npcs' | 'membros'
+
+type CentroDoMapa = () => { x: number; y: number } | null
 
 const ABAS_PAINEL: (Aba<AbaPainel> & { icone: NomeIcone; texto: string })[] = [
   { chave: 'ficha', rotulo: 'Ficha', texto: 'Ficha', icone: 'fichas' },
   { chave: 'chat', rotulo: 'Chat', texto: 'Chat', icone: 'chat' },
+  { chave: 'montarias', rotulo: 'Montarias', texto: 'Montarias', icone: 'montaria' },
   { chave: 'npcs', rotulo: 'NPCs', texto: 'NPCs', icone: 'npcs' },
   { chave: 'membros', rotulo: 'Membros', texto: 'Membros', icone: 'membros' },
 ]
@@ -59,6 +63,17 @@ const ABAS_PAINEL: (Aba<AbaPainel> & { icone: NomeIcone; texto: string })[] = [
 // NPCs são ferramenta do mestre; Membros (expulsar/banir/papel) é só do dono.
 const abasDoPainel = (souMestre: boolean, souDono: boolean) =>
   ABAS_PAINEL.filter((a) => (a.chave !== 'npcs' || souMestre) && (a.chave !== 'membros' || souDono))
+
+// Nome da aba conforme a largura do painel (container query na linha das abas): com tudo escrito não
+// cabe em 380px a partir de 4 abas. Abaixo do limite de cada quantidade, a ativa fica com o nome e as
+// outras só com o ícone; com 5 e o painel bem estreito, todas só com o ícone. O nome continua para o
+// leitor de tela (sr-only) e no title. Limites medidos no navegador (área interna da linha, sem os 16px
+// de margem): tudo escrito pede 333px com 3 abas, 414px com 4 e 530px com 5; a ativa escrita com 5, 319px.
+const ROTULO_POR_QUANTIDADE: Record<number, string> = {
+  3: 'sr-only group-aria-selected:not-sr-only @min-[21.25rem]:not-sr-only',
+  4: 'sr-only group-aria-selected:not-sr-only @min-[26.25rem]:not-sr-only',
+  5: 'sr-only @min-[20.25rem]:group-aria-selected:not-sr-only @min-[33.5rem]:not-sr-only',
+}
 
 // Tamanhos ajustáveis (px). O mínimo da régua é o tamanho de sempre; para sumir com ela há o botão de recolher.
 const PAINEL = { min: 320, max: 560, padrao: 380 }
@@ -82,7 +97,7 @@ function useLarguraMaxPainel() {
 }
 
 // Coluna direita: uma pasta aberta com abas. Recolhida, sobra uma faixa com os atalhos.
-function PainelDireito({ sala, usuario, souMestre, aberto, aba, onAbrir, onRecolher, visaoFicha, onVisaoFicha }: {
+function PainelDireito({ sala, usuario, souMestre, aberto, aba, onAbrir, onRecolher, visaoFicha, onVisaoFicha, centroDoMapa }: {
   sala: SalaDetalhe
   souMestre: boolean
   usuario: Usuario
@@ -92,6 +107,7 @@ function PainelDireito({ sala, usuario, souMestre, aberto, aba, onAbrir, onRecol
   onRecolher: () => void
   visaoFicha: VisaoPainelFicha
   onVisaoFicha: (visao: VisaoPainelFicha) => void
+  centroDoMapa: CentroDoMapa
 }) {
   const [larguraSalva, setLargura] = usePreferencia('mesa:larguraPainel', preferenciaNumero(PAINEL.padrao, PAINEL.min, PAINEL.max))
   // A preferência fica guardada inteira; numa tela menor ela só é limitada na exibição.
@@ -105,19 +121,34 @@ function PainelDireito({ sala, usuario, souMestre, aberto, aba, onAbrir, onRecol
   }
   const abas = abasDoPainel(souMestre, sala.donoId === usuario.id)
   const abaAtiva = abas.find((a) => a.chave === aba) ?? abas[0]
+  const classeRotulo = ROTULO_POR_QUANTIDADE[abas.length] ?? ''
+  const abasComIcone = abas.map(({ chave, texto, icone }) => ({
+    chave,
+    titulo: texto,
+    rotulo: (
+      <span className="inline-flex items-center gap-1.5">
+        <Icone nome={icone} className="h-4 w-4 shrink-0" />
+        <span className={classeRotulo}>{texto}</span>
+      </span>
+    ),
+  }))
   return (
     <aside aria-label="Painel lateral" style={{ width: largura }} className="relative flex shrink-0 flex-col border-l border-arquivo-700 bg-arquivo-850">
       <AlcaRedimensionar eixo="x" rotulo="Largura do painel" valor={largura} onMudar={setLargura} {...PAINEL} max={max} />
-      <div className="flex shrink-0 items-end gap-1 border-b-2 border-kraft-500 px-2 pt-2">
+      <div className="@container flex shrink-0 items-end gap-1 border-b-2 border-kraft-500 px-2 pt-2">
         <button type="button" onClick={onRecolher} aria-label="Recolher painel" title="Recolher painel"
           className="mb-1 flex h-8 w-8 items-center justify-center rounded-[3px] text-grafite-300 hover:bg-arquivo-800 hover:text-kraft-300 focus-visible:outline-2 focus-visible:outline-kraft-400">
           <Icone nome="recolher" className="h-4 w-4" />
         </button>
-        <Abas abas={abas} ativa={abaAtiva.chave} onTrocar={onAbrir} rotulo="Painel lateral" idBase="painel" classeAba={classeAbaPasta} />
+        <Abas abas={abasComIcone} ativa={abaAtiva.chave} onTrocar={onAbrir} rotulo="Painel lateral" idBase="painel"
+          classeAba={(ativa) => `group ${classeAbaPasta(ativa)}`} />
       </div>
       <div role="tabpanel" id="painel-painel" aria-labelledby={`painel-aba-${abaAtiva.chave}`} className="min-h-0 flex-1 overflow-y-auto p-4">
         {abaAtiva.chave === 'ficha' && <PainelFicha sala={sala} usuario={usuario} visao={visaoFicha} onVisao={onVisaoFicha} />}
         {abaAtiva.chave === 'chat' && <PainelChat salaId={sala.id} />}
+        {abaAtiva.chave === 'montarias' && (
+          <PainelMontarias salaId={sala.id} usuarioId={usuario.id} souMestre={souMestre} centroDoMapa={centroDoMapa} />
+        )}
         {abaAtiva.chave === 'npcs' && <PainelNpcs salaId={sala.id} sistema={sala.sistema} />}
         {abaAtiva.chave === 'membros' && <PainelMembros sala={sala} usuario={usuario} />}
       </div>
@@ -209,6 +240,10 @@ function Mesa({ sala: salaInicial }: { sala: SalaDetalhe }) {
   const [alturaRegua, setAlturaRegua] = usePreferencia('mesa:alturaRegua', preferenciaNumero(REGUA.padrao, REGUA.min, REGUA.max))
   const [abaPainel, setAbaPainel] = useState<AbaPainel>('ficha')
   const [visaoFicha, setVisaoFicha] = useState<VisaoPainelFicha>(null)
+  // O mapa diz onde fica o ponto livre no centro da vista; a aba Montarias usa no "Pôr no mapa".
+  const centroDoMapa = useRef<CentroDoMapa | null>(null)
+  const registrarCentro = useCallback((centro: CentroDoMapa | null) => { centroDoMapa.current = centro }, [])
+  const lerCentroDoMapa = useCallback(() => centroDoMapa.current?.() ?? null, [])
 
   function abrirPainel(aba: AbaPainel) {
     setAbaPainel(aba)
@@ -228,7 +263,9 @@ function Mesa({ sala: salaInicial }: { sala: SalaDetalhe }) {
         A mesa foi feita para telas a partir de 1280px de largura. Em telas menores, role para os lados.
       </p>
       <div className="min-h-0 flex-1 overflow-x-auto">
-        <div className="flex h-full min-w-[1280px] flex-col">
+        {/* relative + overflow-clip: nada aqui dentro cria sobra de rolagem (um rótulo sr-only do painel escapava
+            para baixo da tela e a rodinha no fim da ficha arrastava a mesa inteira). clip, não hidden: nem foco rola. */}
+        <div className="relative flex h-full min-w-[1280px] flex-col overflow-clip">
           <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-arquivo-700 bg-arquivo-950 px-4">
             <div className="flex min-w-0 items-center gap-3">
               <Link to="/salas" className={`inline-flex shrink-0 items-center gap-1 text-sm ${classeLinkArquivo} no-underline`}>
@@ -258,7 +295,7 @@ function Mesa({ sala: salaInicial }: { sala: SalaDetalhe }) {
             <div className="flex min-w-0 flex-1 flex-col">
               <main className="flex min-h-0 flex-1 flex-col" aria-label={vistaEfetiva === 'mesa' ? 'Mapa da mesa' : 'Mapas'}>
                 {vistaEfetiva === 'mesa' ? (
-                  <AreaMapa salaId={sala.id} usuarioId={usuario.id} souMestre={souMestre} />
+                  <AreaMapa salaId={sala.id} usuarioId={usuario.id} souMestre={souMestre} aoRegistrarCentro={registrarCentro} />
                 ) : (
                   <GerenciarMapas salaId={sala.id} souMestre={souMestre} onMostrado={() => setVista('mesa')} />
                 )}
@@ -287,7 +324,8 @@ function Mesa({ sala: salaInicial }: { sala: SalaDetalhe }) {
             </div>
 
             <PainelDireito sala={sala} usuario={usuario} souMestre={souMestre} aberto={painelAberto} aba={abaPainel}
-              onAbrir={abrirPainel} onRecolher={recolherPainel} visaoFicha={visaoFicha} onVisaoFicha={setVisaoFicha} />
+              onAbrir={abrirPainel} onRecolher={recolherPainel} visaoFicha={visaoFicha} onVisaoFicha={setVisaoFicha}
+              centroDoMapa={lerCentroDoMapa} />
           </div>
         </div>
       </div>

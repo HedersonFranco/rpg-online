@@ -7,7 +7,8 @@ import { autenticar } from '../../middlewares/auth.js'
 export const rtcRoutes = Router()
 
 rtcRoutes.get('/config', autenticar, (_req, res) => {
-  const iceServers: { urls: string; username?: string; credential?: string }[] = [
+  // `| undefined`: usuário e senha do TURN podem faltar no .env (o JSON simplesmente não os leva).
+  const iceServers: { urls: string; username?: string | undefined; credential?: string | undefined }[] = [
     { urls: 'stun:stun.l.google.com:19302' },
   ]
   if (process.env.TURN_URL) {

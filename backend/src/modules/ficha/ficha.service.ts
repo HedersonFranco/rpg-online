@@ -327,6 +327,21 @@ export async function atualizarFicha(
   return { ficha: await emitirFicha(atualizado), habilidadesDesbloqueadas }
 }
 
+// Apagar agente: dono da ficha ou mestre. Perícias e entradas vão junto (cascata no banco) e os tokens
+// dele saem dos mapas — sem a ficha, o token viraria um objeto sem nome.
+export async function removerFicha(fichaId: string, usuarioId: string) {
+  const ficha = await fichaEditavel(fichaId, usuarioId)
+  const tokens = await prisma.token.findMany({ where: { fichaId }, select: { id: true } })
+  const [, apagadas] = await prisma.$transaction([
+    prisma.token.deleteMany({ where: { fichaId } }),
+    prisma.ficha.deleteMany({ where: { id: fichaId } }),
+  ])
+  // Dono e mestre apagando ao mesmo tempo: o segundo não acha mais a ficha.
+  if (apagadas.count === 0) throw new AppError('Ficha não encontrada', 404)
+  for (const { id } of tokens) emitirParaSala(ficha.salaId, 'token:removido', { tokenId: id })
+  emitirParaSala(ficha.salaId, 'ficha:removida', { fichaId })
+}
+
 export async function treinarPericia(
   fichaId: string,
   usuarioId: string,
@@ -382,6 +397,7 @@ type DadosEntrada = {
   preRequisito?: unknown
   categoria?: unknown
   espacos?: unknown
+  favorito?: unknown
 }
 
 function inteiroEntre(valor: unknown, min: number, max: number) {
@@ -404,6 +420,9 @@ function validarEntrada(tipo: string, dados: DadosEntrada) {
   }
   if (typeof dados.descricao !== 'string' || dados.descricao.length > LIMITE_DESCRICAO) {
     throw new AppError(`Descrição deve ter até ${LIMITE_DESCRICAO} caracteres`, 400)
+  }
+  if (dados.favorito !== undefined && typeof dados.favorito !== 'boolean') {
+    throw new AppError('Favorito deve ser true ou false', 400)
   }
   if (tipo === 'RITUAL') {
     if (!inteiroEntre(dados.circulo, 1, 4)) throw new AppError('Círculo do ritual deve ser de 1 a 4', 400)
@@ -431,6 +450,8 @@ function camposGravaveis(tipo: string, dados: DadosEntrada) {
     preRequisito: tipo === 'PODER' ? texto(dados.preRequisito) || null : null,
     categoria: tipo === 'EQUIPAMENTO' ? (dados.categoria as number) : null,
     espacos: tipo === 'EQUIPAMENTO' ? (dados.espacos as number) : null,
+    // Na edição, `dados` já vem mesclado com o gravado: sem `favorito` no pedido, fica como estava.
+    favorito: dados.favorito === true,
   }
 }
 

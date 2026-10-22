@@ -8,13 +8,14 @@ Montado em `/auth` (`server.ts`).
 
 | Método | Caminho | Quem pode | O que faz |
 |---|---|---|---|
-| POST | `/auth/cadastro` | qualquer um (rate limit) | Cria usuário e devolve `{ usuario, token }` (201). `400` para nome vazio ou longo demais, email inválido, senha curta ou email já cadastrado. |
+| POST | `/auth/cadastro` | qualquer um (rate limit) | Cria usuário e devolve `{ usuario, token }` (201). `400` para nome vazio ou longo demais, email inválido, senha curta ou fora do checklist, ou email já cadastrado. |
 | POST | `/auth/login` | qualquer um (rate limit) | Devolve `{ usuario, token }`. `401` para email ou senha inválidos. |
 | GET | `/auth/me` | autenticado | Devolve `{ id, nome, email }` do dono do token. `404` se o usuário não existe mais. |
 
 ## Regras
 
 - Nome obrigatório (após `trim`), no máximo 60 caracteres; email validado por regex simples, no máximo 254; senha com 8 a 72 bytes (acima disso o bcrypt ignoraria o final da senha). Senha ou campo de tipo errado → 400, nunca 500.
+- Checklist clássico da senha (`faltasNaSenha`): uma letra maiúscula, uma minúscula, um número e um símbolo — símbolo é qualquer caractere fora de letra, acento combinado ou número (espaço conta). O `400` diz o que falta ("A senha precisa de uma letra maiúscula e um número"). Escolhido em 21/10/2026 no lugar da linha NIST/OWASP (só tamanho + bloquear senhas comuns). Vale só para senha nova: o login não confere o checklist, e contas antigas seguem entrando. O cadastro (`Cadastro.tsx`) mostra as mesmas regras enquanto a pessoa digita.
 - Email é guardado e buscado em minúsculas, sem espaços (`normalizarEmail`) — no cadastro e no login. `Joao@x.com` e `joao@x.com` são a mesma conta.
 - Email duplicado (em qualquer caixa) é rejeitado com `400` ("Email já cadastrado").
 - Senha guardada só como hash bcrypt (`bcryptjs`, 10 rounds) em `senha_hash`.
@@ -35,4 +36,4 @@ Montado em `/auth` (`server.ts`).
 
 ## Testes
 
-Sem testes automatizados.
+`usuario.service.test.ts`: `normalizarEmail`, as rejeições do cadastro que acontecem antes do banco (tamanhos, tipos, 72 bytes, checklist) e `faltasNaSenha`.

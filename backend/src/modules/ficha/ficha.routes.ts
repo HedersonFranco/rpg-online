@@ -5,6 +5,7 @@ import {
   atualizarEntradaController,
   buscarController,
   criarEntradaController,
+  removerController,
   removerEntradaController,
   treinarPericiaController,
 } from './ficha.controller.js'
@@ -17,6 +18,7 @@ fichaRoutes.use(autenticar)
 
 fichaRoutes.get('/:id', buscarController)
 fichaRoutes.patch('/:id', atualizarController)
+fichaRoutes.delete('/:id', removerController)
 fichaRoutes.post('/:id/pericias', treinarPericiaController)
 fichaRoutes.post('/:id/entradas', criarEntradaController)
 fichaRoutes.patch('/:id/entradas/:entradaId', atualizarEntradaController)

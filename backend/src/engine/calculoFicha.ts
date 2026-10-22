@@ -6,6 +6,7 @@ import {
   type ProgressaoClasseEntry,
   type ClasseFormulaEntry,
 } from './progressaoClasse.js'
+import { PERICIAS_OP1 } from './pericias.js'
 
 export type AtributosOP1 = {
   for: number
@@ -79,7 +80,18 @@ export const NOME_ATRIBUTO: Record<keyof AtributosOP1, string> = {
   for: 'Força', agi: 'Agilidade', int: 'Intelecto', vig: 'Vigor', pre: 'Presença',
 }
 
-export type PedidoDeTeste = { quantidade: number; faces: 20; modificador: number; modo: 'maior' | 'menor'; nomeTeste: string }
+const SIGLA_PERICIA = new Map(PERICIAS_OP1.map((p) => [p.nome, p.sigla]))
+
+// `sigla` e `atributo` são para o bilhete compacto: perícia → "INV" + "INT"; atributo puro → "FOR" + null.
+export type PedidoDeTeste = {
+  quantidade: number
+  faces: 20
+  modificador: number
+  modo: 'maior' | 'menor'
+  nomeTeste: string
+  sigla: string
+  atributo: string | null
+}
 
 export function pedidoDeTeste(
   atributos: AtributosOP1,
@@ -88,12 +100,18 @@ export function pedidoDeTeste(
 ): PedidoDeTeste | null {
   if (alvo.tipo === 'pericia') {
     const t = testes.find((x) => x.nome === alvo.nome)
-    return t ? { quantidade: t.dados, faces: 20, modificador: t.bonus, modo: t.modo, nomeTeste: t.nome } : null
+    return t ? {
+      quantidade: t.dados, faces: 20, modificador: t.bonus, modo: t.modo, nomeTeste: t.nome,
+      sigla: SIGLA_PERICIA.get(t.nome) ?? t.nome.slice(0, 3).toUpperCase(), atributo: t.atributoBase.toUpperCase(),
+    } : null
   }
   if (!Object.hasOwn(NOME_ATRIBUTO, alvo.nome)) return null // `in` aceitaria "toString" (protótipo)
   const chave = alvo.nome as keyof AtributosOP1
   const valor = atributos[chave]
-  return { quantidade: valor > 0 ? valor : 2, faces: 20, modificador: 0, modo: valor > 0 ? 'maior' : 'menor', nomeTeste: NOME_ATRIBUTO[chave] }
+  return {
+    quantidade: valor > 0 ? valor : 2, faces: 20, modificador: 0, modo: valor > 0 ? 'maior' : 'menor', nomeTeste: NOME_ATRIBUTO[chave],
+    sigla: chave.toUpperCase(), atributo: null,
+  }
 }
 
 // Defesa e reações de defesa — livro v1.3, p. 42 ("Defesa") e p. 87 ("Ações Especiais de Defesa"):

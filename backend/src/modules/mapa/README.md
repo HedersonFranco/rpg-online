@@ -13,8 +13,8 @@ Upload, listagem e mapa ativo ficam em `sala.routes.ts`; o resto em `/mapas` e `
 | GET | `/salas/:id/mapa-ativo` | membro da sala | `{ mapa, tokens }` do mapa ativo, ou `{ mapa: null, tokens: [] }`. |
 | PUT | `/salas/:id/mapa-ativo` | mestre | Define `{ mapaId }` (ou `null`) como ativo. `400` se o mapa não é desta sala. |
 | DELETE | `/mapas/:id` | mestre | Apaga o mapa e a imagem (204). `404` mapa inexistente. |
-| POST | `/mapas/:id/tokens` | mestre | Cria token de ficha, NPC ou objeto em `x`,`y` (201). `400` em dados inválidos. |
-| DELETE | `/tokens/:id` | mestre | Remove o token (204). `404` token inexistente. |
+| POST | `/mapas/:id/tokens` | mestre | Cria token de ficha, NPC ou objeto em `x`,`y` (201). `400` em dados inválidos. Token de montaria se cria por `POST /montarias/:id/token` (módulo montaria). |
+| DELETE | `/tokens/:id` | mestre; montaria, qualquer membro | Remove o token (204). `404` token inexistente. |
 
 Quem não é mestre recebe `403`; não-membro, `404` (via `garantirMestre`/`buscarSalaOuFalhar`).
 
@@ -24,9 +24,10 @@ Quem não é mestre recebe `403`; não-membro, `404` (via `garantirMestre`/`busc
 - A lista completa de mapas é só do mestre; o jogador só vê o ativo.
 - `mapaId` do mapa ativo deve ser string de um mapa da mesma sala, ou `null`.
 - Apagar mapa remove o arquivo do armazenamento; os tokens caem por cascade (`onDelete: Cascade` em `Token.mapa`) e `Sala.mapaAtivoId` vira `null` (`SetNull`).
-- Token: `x`/`y` números finitos com |valor| ≤ 100.000. Não pode ter `fichaId` e `npcId` juntos. Ficha/NPC precisam ser da mesma sala do mapa. Sem ficha nem NPC, `nome` é obrigatório.
-- Dados expostos no token (`INCLUIR_DADOS_TOKEN`): da ficha, `id`, `nome`, `usuario_id`, `avatarUrl`, `pv_atual`, `pv_maximo_cache`; do NPC, só `id`, `nome`, `avatarUrl`.
-- Movimento (usado por `sockets/salaSocket.ts`, evento `token:mover`): `podeMoverToken` permite ao mestre qualquer token e ao jogador só o da própria ficha; quem não é mais membro não move nada. `salvarPosicaoToken` usa `updateMany`, então soltar um token já apagado não gera erro.
+- Token: `x`/`y` números finitos com |valor| ≤ 100.000. No máximo um vínculo — ficha, NPC ou montaria (CHECK `token_um_vinculo` no banco, desde 22/10/2026; antes era `token_ficha_xor_npc`). Ficha/NPC precisam ser da mesma sala do mapa. Sem vínculo, `nome` é obrigatório.
+- Dados expostos no token (`INCLUIR_DADOS_TOKEN`): da ficha, `id`, `nome`, `usuario_id`, `avatarUrl`, `pv_atual`, `pv_maximo_cache`; do NPC, só `id`, `nome`, `avatarUrl`; da montaria, `id`, `nome`, `imagemUrl`. Todo token traz `escala` (tamanho em relação ao padrão).
+- Movimento (usado por `sockets/salaSocket.ts`, evento `token:mover`): `podeMoverToken` permite ao mestre qualquer token, e ao jogador o da própria ficha e qualquer montaria; quem não é mais membro não move nada. `salvarPosicaoToken` usa `updateMany`, então soltar um token já apagado não gera erro.
+- Tamanho (evento `token:escalar`): só token de montaria muda (`podeEscalarToken`, qualquer membro); `escalaValida` aceita de 0,25 a 10; `salvarEscalaToken` grava com `updateMany`.
 - Tempo real (`emitirParaSala`):
   - `mapa:ativo` com `{ mapa, tokens }` ao definir o ativo, e com `{ mapa: null, tokens: [] }` ao apagar o mapa que estava ativo.
   - `token:criado` com `{ token }`.
@@ -40,7 +41,7 @@ Quem não é mestre recebe `403`; não-membro, `404` (via `garantirMestre`/`busc
 - `modules/sala/sala.service.ts` — `buscarSalaOuFalhar` e `garantirMestre`.
 - `sockets/emissor.ts` — `emitirParaSala`.
 - `middlewares/auth.ts` — `autenticar`; `middlewares/upload.ts` — `uploadMapa` (em `sala.routes.ts`).
-- Usado por: `sockets/salaSocket.ts` (`coordenadaValida`, `podeMoverToken`, `salvarPosicaoToken`).
+- Usado por: `sockets/salaSocket.ts` (`coordenadaValida`, `podeMoverToken`, `salvarPosicaoToken`, `escalaValida`, `podeEscalarToken`, `salvarEscalaToken`) e `modules/montaria` (`coordenadaValida`, `INCLUIR_DADOS_TOKEN`).
 
 ## Testes
 

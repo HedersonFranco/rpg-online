@@ -22,7 +22,7 @@ visual em [`DESIGN.md`](../DESIGN.md), decisões e critérios por etapa em [`CLA
 
 | ID | Requisito | Prior. | Status | Verificação |
 |---|---|---|---|---|
-| RF01 | Cadastrar conta com nome, e-mail e senha | E | ✅ | Etapa 3 |
+| RF01 | Cadastrar conta com nome, e-mail e senha (checklist: 8+ caracteres, maiúscula, minúscula, número e símbolo, conferido no servidor e mostrado ao vivo no cadastro) | E | ✅ | Etapa 3; checklist em 21/10/2026 (testes do serviço + navegador em 375 px) |
 | RF02 | Entrar com e-mail e senha; sessão por token JWT | E | ✅ | Etapa 3 |
 | RF03 | Manter a sessão ao recarregar a página | E | ✅ | Etapa 8 |
 | RF04 | Sair da conta | E | ✅ | Etapa 8 |
@@ -53,7 +53,8 @@ visual em [`DESIGN.md`](../DESIGN.md), decisões e critérios por etapa em [`CLA
 | RF25 | Habilidades de classe desbloqueadas até o NEX atual | I | ✅ | Etapa 2 (seed + testes) |
 | RF26 | Inventário em texto livre | I | ✅ | Etapa 6 |
 | RF27 | Ficha de Ordem Paranormal RPG II | I | ⬜ | Sem CRUD nem tela; o playtest não publicou criação de personagem |
-| RF28 | Apagar ficha | D | ⬜ | Não existe rota; não foi pedido |
+| RF47 | Aba Favoritos na ficha: estrela em rituais, habilidades, poderes e equipamentos; a aba, no topo das divisórias, lista os marcados por tipo | D | ✅ | 22/10/2026 (API: 400/403; navegador com duas abas, ao vivo) |
+| RF28 | Apagar ficha (agente), pelo dono ou pelo mestre, com confirmação; os tokens dela saem dos mapas | D | ✅ | 21/10/2026 (API: 403/401/204/404; navegador com duas abas, tempo real) |
 
 ### 1.4 Mesa em jogo
 
@@ -64,9 +65,13 @@ visual em [`DESIGN.md`](../DESIGN.md), decisões e critérios por etapa em [`CLA
 | RF41 | Rolar teste de perícia e de atributo direto da ficha; dados e bônus montados no servidor a partir da ficha (dono ou mestre) | I | ✅ | 01/10/2026 (motor 4 testes; socket 19/19; tela 13/13) |
 | RF42 | Rolagem de dano por expressão livre ("2d6+1d8+3") | I | ✅ | 01/10/2026 (motor 5 testes; socket; tela) |
 | RF43 | Iniciativa das fichas rolada pelo servidor no "Iniciar combate" (mestre), visível no chat e editável antes de iniciar | I | ✅ | 01/10/2026 (socket; tela) |
+| RF46 | Rolagem do mestre em segredo (RN14), com opção de avisar os jogadores por uma frase sem resultado | I | ✅ | 22/10/2026 (navegador com duas abas: 8 verificações, inclusive recarregar sem vazar segredo) |
+| RF45 | Bilhete de rolagem compacto: "INV (INT) · Franco" com o d20 em hexágono e a quantidade de dados (atributo 0 = ⬡-1); nome por extenso no título | D | ✅ | 22/10/2026 (motor: sigla e atributo no teste; navegador: ficha e chat do mestre) |
 | RF32 | Combate: iniciativa informada pelo mestre (ou rolada pelo servidor para fichas, RF43), vez de quem, fila, encerrar turno | E | ✅ | Etapa 9 |
 | RF33 | Enviar mapas e escolher o mapa da mesa (só o mestre) | E | ✅ | Etapa 10 |
+| RF44 | Vídeo para a mesa: o mestre roda um vídeo para todos no lugar do mapa; ao terminar, ou se o mestre encerrar, o mapa volta como estava (tokens e zoom intactos). Quem entra ou reconecta no meio começa do ponto em que a mesa está | D | ⬜ | Proposto em 21/10/2026. A decidir: origem do vídeo (enviado ao sistema × link externo), limite de tamanho e formato, controles além de rodar/encerrar |
 | RF34 | Tokens de ficha, NPC ou objeto; arrastar ao vivo | E | ✅ | Etapa 10 |
+| RF48 | Montarias: biblioteca da mesa (qualquer membro salva nome + imagem até 2 MB); no mapa, o token fica sempre por baixo dos outros, qualquer membro move, muda o tamanho (alça no canto ou −/+) e tira; apaga quem salvou ou o mestre | I | ✅ | 22/10/2026 (API: 18 verificações; navegador com duas abas: 11) |
 | RF35 | Zoom e pan por mouse e por toque | E | ✅ | Etapa 10 |
 | RF36 | Vídeo e áudio entre os participantes (opcional) | E | 🔄 | Etapa 10 — falta teste entre redes diferentes (exige TURN) |
 | RF37 | NPCs: criar, editar, apagar; campos pelo sistema da mesa (só o mestre) | I | ✅ | Etapa 7 + tela NPCs |
@@ -92,6 +97,7 @@ visual em [`DESIGN.md`](../DESIGN.md), decisões e critérios por etapa em [`CLA
 | RN11 | Só quem está na vez ou o mestre encerram o turno. O combate vive em memória: se o servidor reiniciar, a tela avisa. |
 | RN12 | A rolagem não é gravada; só a última de cada mesa fica em memória. O chat é gravado (até 1000 caracteres). |
 | RN13 | Toda ação destrutiva pede confirmação. |
+| RN14 | A rolagem do mestre é secreta: só os mestres a recebem (e ela não fica como a última da mesa). Com o aviso ligado, os jogadores veem só uma frase, sem resultado. As rolagens dos jogadores e a Iniciativa que o mestre rola para as fichas deles são abertas para todos. |
 
 ---
 
@@ -116,7 +122,7 @@ com 6 contas numa mesma mesa (1 mestre + 5 jogadores). Navegador: Microsoft Edge
 | RNF12 | Reconexão do vídeo | Automática; após 3 falhas, botão "Reconectar" | Verificado na Etapa 10 (queda simulada, os dois papéis) | ✅ |
 | RNF13 | Degradação sem câmera | Mesa funciona em texto + mapa | Verificado na Etapa 10 | ✅ |
 | RNF14 | Estados de erro e de carregamento | Nenhuma tela branca; carregamento após 300 ms | Verificado nas Etapas 8–11; erro geral capturado (`ErrorBoundary`) | ✅ |
-| RNF15 | Confirmação em ação destrutiva | Toda ação destrutiva confirma | Apagar mesa, expulsar, banir, remover mapa/token/NPC, apagar entrada da ficha, encerrar combate | ✅ |
+| RNF15 | Confirmação em ação destrutiva | Toda ação destrutiva confirma | Apagar mesa, expulsar, banir, remover mapa/token/NPC, apagar agente, apagar entrada da ficha, encerrar combate | ✅ |
 | RNF16 | Texto do usuário seguro (XSS) | Todo texto sanitizado | Nenhum HTML cru no frontend (React escapa); chat com `<b>` aparece como texto | ✅ |
 | RNF17 | Acessibilidade | WCAG AA como régua | Contraste AA, foco visível, abas por teclado, diálogos com foco preso, texto ≥ 12 px | 🔄 Sem auditoria formal com leitor de tela |
 | RNF18 | Fluxo principal sem erro no console | Login → mesa → ficha → combate → mapa | Zero erros no console no build de produção | ✅ |
@@ -156,5 +162,5 @@ motor de cálculo para NPCs; outros sistemas além de Ordem Paranormal; ferramen
 3. **Firefox e Safari**: testar o fluxo principal nos dois (RNF05).
 4. **Conferir uma ficha contra o C.R.I.S.** (Etapa 6), manualmente.
 5. **Ficha de RPG II** (RF27), quando o playtest publicar a criação de personagem.
-6. Decidir sobre **upload de avatar** (RNF10) e **apagar ficha** (RF28).
+6. Decidir sobre **upload de avatar** (RNF10).
 7. Produção: restringir o CORS (hoje aceita qualquer origem) e publicar política de privacidade (LGPD).

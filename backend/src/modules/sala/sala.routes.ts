@@ -27,7 +27,12 @@ import {
   definirAtivoController,
   listarController as listarMapasController,
 } from '../mapa/mapa.controller.js'
-import { uploadMapa } from '../../middlewares/upload.js'
+import {
+  criarController as criarMontariaController,
+  exigirMembro,
+  listarController as listarMontariasController,
+} from '../montaria/montaria.controller.js'
+import { uploadImagemMontaria, uploadMapa } from '../../middlewares/upload.js'
 import {
   criarController as criarPastaController,
   listarBibliotecaController,
@@ -57,5 +62,8 @@ salaRoutes.post('/:id/mapas', uploadMapa, criarMapaController)
 salaRoutes.get('/:id/mapas', listarMapasController)
 salaRoutes.get('/:id/mapa-ativo', buscarAtivoController)
 salaRoutes.put('/:id/mapa-ativo', definirAtivoController)
+// exigirMembro antes do upload: quem não é da mesa nem chega a mandar o arquivo.
+salaRoutes.post('/:id/montarias', exigirMembro, uploadImagemMontaria, criarMontariaController)
+salaRoutes.get('/:id/montarias', listarMontariasController)
 salaRoutes.post('/:id/pastas', criarPastaController)
 salaRoutes.get('/:id/biblioteca', listarBibliotecaController)

@@ -8,6 +8,10 @@ export const INSTANCIA_SERVIDOR = randomUUID()
 
 export type Rolagem = (ResultadoRolagem | ResultadoExpressao) & {
   rotulo?: string
+  // Rolagem da ficha, para o bilhete compacto ("INV (INT) · Franco" ⬡3 +5); d20 = -1 quando o atributo é 0.
+  teste?: { sigla: string; atributo: string | null; ficha: string; d20: number; bonus: number }
+  // Rolagem do mestre: só os mestres a recebem (e ela não fica como "última rolagem" da sala).
+  secreta?: true
   id: string
   autor: { id: string; nome: string }
   criadoEm: string

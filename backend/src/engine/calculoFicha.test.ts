@@ -189,7 +189,15 @@ describe('pedidoDeTeste (rolar da ficha)', () => {
 
   it('perícia: (atributo-base)d20 + treino — Vigor 2 + Fortitude treinado = 2d20+5', () => {
     expect(pedidoDeTeste(atributos, testes, { tipo: 'pericia', nome: 'Fortitude' }))
-      .toEqual({ quantidade: 2, faces: 20, modificador: 5, modo: 'maior', nomeTeste: 'Fortitude' })
+      .toEqual({ quantidade: 2, faces: 20, modificador: 5, modo: 'maior', nomeTeste: 'Fortitude', sigla: 'FRT', atributo: 'VIG' })
+  })
+
+  it('siglas do bilhete compacto: 28, únicas, 3 letras e nenhuma igual a um atributo', () => {
+    const siglas = PERICIAS_OP1.map((p) => p.sigla)
+    expect(new Set(siglas).size).toBe(28)
+    expect(siglas.every((s) => /^[A-Z]{3}$/.test(s))).toBe(true)
+    expect(siglas.filter((s) => ['AGI', 'FOR', 'INT', 'PRE', 'VIG'].includes(s))).toEqual([])
+    expect(pedidoDeTeste(atributos, testes, { tipo: 'pericia', nome: 'Investigação' })).toMatchObject({ sigla: 'INV', atributo: 'INT' })
   })
 
   it('perícia de atributo 0 rola 2d20 e fica com o pior (Atletismo, Força 0)', () => {
@@ -197,7 +205,8 @@ describe('pedidoDeTeste (rolar da ficha)', () => {
   })
 
   it('atributo puro: Agilidade 3 → 3d20 sem bônus; Força 0 → 2d20 pior', () => {
-    expect(pedidoDeTeste(atributos, testes, { tipo: 'atributo', nome: 'agi' })).toEqual({ quantidade: 3, faces: 20, modificador: 0, modo: 'maior', nomeTeste: 'Agilidade' })
+    expect(pedidoDeTeste(atributos, testes, { tipo: 'atributo', nome: 'agi' }))
+      .toEqual({ quantidade: 3, faces: 20, modificador: 0, modo: 'maior', nomeTeste: 'Agilidade', sigla: 'AGI', atributo: null })
     expect(pedidoDeTeste(atributos, testes, { tipo: 'atributo', nome: 'for' })).toMatchObject({ quantidade: 2, modo: 'menor', nomeTeste: 'Força' })
   })
 

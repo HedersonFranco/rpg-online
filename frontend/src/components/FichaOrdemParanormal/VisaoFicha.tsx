@@ -9,7 +9,7 @@ import { BilheteRolagem } from '../Chat/BilheteRolagem'
 import { Folha } from '../ui/arquivo'
 import { Icone } from '../ui/Icone'
 import { classeAbaFolha, classeBotaoIconeFolha, classeRotulo, classeSelect, condensado } from '../ui/estilosArquivo'
-import { AbaEntradas } from './AbaEntradas'
+import { AbaEntradas, AbaFavoritos } from './AbaEntradas'
 import { AbaInventario } from './AbaInventario'
 import { AbaPericias } from './AbaPericias'
 import { DefesaFicha } from './DefesaFicha'
@@ -31,6 +31,7 @@ const RECURSOS: { chave: Recurso; rotulo: string; cor: string; passaDoMaximo: bo
 ]
 
 const ABAS: Aba<AbaFicha>[] = [
+  { chave: 'favoritos', rotulo: <span className="inline-flex items-center gap-1.5"><Icone nome="estrela" className="h-3.5 w-3.5" />Favoritos</span> },
   { chave: 'pericias', rotulo: 'Perícias' },
   { chave: 'RITUAL', rotulo: 'Rituais' },
   { chave: 'HABILIDADE', rotulo: 'Habilidades' },
@@ -39,7 +40,7 @@ const ABAS: Aba<AbaFicha>[] = [
   { chave: 'inventario', rotulo: 'Inventário' },
 ]
 
-type AbaFicha = 'pericias' | TipoEntrada | 'inventario'
+type AbaFicha = 'favoritos' | 'pericias' | TipoEntrada | 'inventario'
 
 const TIPOS_ENTRADA: readonly string[] = ['RITUAL', 'HABILIDADE', 'PODER', 'EQUIPAMENTO'] satisfies TipoEntrada[]
 
@@ -194,8 +195,11 @@ export function VisaoFicha({
 
       <div>
         <Abas abas={ABAS} ativa={aba} onTrocar={setAba} rotulo="Seções da ficha" idBase={`ficha-${ficha.id}`}
-          classeAba={classeAbaFolha} classeLista="grid grid-cols-2 gap-1.5 @min-[18.5rem]:grid-cols-3" />
+          // Favoritos ocupa a linha de cima inteira: é o atalho; as seis divisórias seguem em 3×2 embaixo.
+          classeAba={(ativa, chave) => `${classeAbaFolha(ativa)}${chave === 'favoritos' ? ' col-span-full' : ''}`}
+          classeLista="grid grid-cols-2 gap-1.5 @min-[18.5rem]:grid-cols-3" />
         <div role="tabpanel" id={`ficha-${ficha.id}-painel`} aria-labelledby={`ficha-${ficha.id}-aba-${aba}`} className="pt-4 text-sm">
+          {aba === 'favoritos' && <AbaFavoritos ficha={ficha} podeEditar={podeEditar} onAtualizada={onAtualizada} />}
           {aba === 'pericias' && <AbaPericias ficha={ficha} podeEditar={podeEditar} onAtualizada={onAtualizada}
             onRolar={rolar && ((nome) => rolar({ tipo: 'pericia', nome }))} rolando={teste.rolando} />}
           {aba === 'HABILIDADE' && <HabilidadesDeClasse ficha={ficha} />}

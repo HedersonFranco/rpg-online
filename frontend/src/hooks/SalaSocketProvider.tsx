@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { io } from 'socket.io-client'
 import { BASE_URL, lerToken } from '../services/api'
-import type { Combate, Rolagem } from '../services/tipos'
+import type { AvisoRolagem, Combate, Rolagem } from '../services/tipos'
 import { useAuth } from './useAuth'
+import { preferenciaBooleana, usePreferencia } from './usePreferencia'
 import { SalaSocketContext, type StatusConexao } from './salaSocketContext'
 
 type Resposta = { ok: boolean; erro?: string } & Record<string, unknown>
@@ -25,6 +26,9 @@ export function SalaSocketProvider({ salaId, children }: { salaId: string; child
   const [combate, setCombate] = useState<Combate | null>(null)
   const [aviso, setAviso] = useState<string | null>(null)
   const [rolagens, setRolagens] = useState<Rolagem[]>([])
+  const [avisosRolagem, setAvisosRolagem] = useState<AvisoRolagem[]>([])
+  // Aqui, e não em cada tela que rola: a ficha e o painel de rolagem leem o mesmo valor.
+  const [avisarRolagem, setAvisarRolagem] = usePreferencia('mesa:avisarRolagem', preferenciaBooleana(false))
   const combateRef = useRef<Combate | null>(null)
   const instanciaRef = useRef<string | null>(null)
 
@@ -50,6 +54,7 @@ export function SalaSocketProvider({ salaId, children }: { salaId: string; child
     function adicionarRolagem(rolagem: Rolagem) {
       setRolagens((atuais) => (atuais.some((r) => r.id === rolagem.id) ? atuais : [...atuais.slice(-49), rolagem]))
     }
+    const adicionarAviso = (aviso: AvisoRolagem) => setAvisosRolagem((atuais) => [...atuais.slice(-49), aviso])
 
     async function aoConectar() {
       setStatus('conectado')
@@ -83,6 +88,7 @@ export function SalaSocketProvider({ salaId, children }: { salaId: string; child
     socket.on('connect_error', aoErroConexao)
     socket.on('turno:estado', aoEstadoTurno)
     socket.on('rolagem:resultado', adicionarRolagem)
+    socket.on('rolagem:aviso', adicionarAviso)
     socket.connect()
 
     return () => {
@@ -91,6 +97,7 @@ export function SalaSocketProvider({ salaId, children }: { salaId: string; child
       socket.off('connect_error', aoErroConexao)
       socket.off('turno:estado', aoEstadoTurno)
       socket.off('rolagem:resultado', adicionarRolagem)
+      socket.off('rolagem:aviso', adicionarAviso)
       socket.disconnect()
     }
   }, [socket, salaId, sair, emitir])
@@ -98,8 +105,8 @@ export function SalaSocketProvider({ salaId, children }: { salaId: string; child
   const limparAviso = useCallback(() => setAviso(null), [])
 
   const valor = useMemo(
-    () => ({ socket, status, sincronia, combate, aviso, limparAviso, rolagens, emitir }),
-    [socket, status, sincronia, combate, aviso, limparAviso, rolagens, emitir],
+    () => ({ socket, status, sincronia, combate, aviso, limparAviso, rolagens, avisosRolagem, avisarRolagem, setAvisarRolagem, emitir }),
+    [socket, status, sincronia, combate, aviso, limparAviso, rolagens, avisosRolagem, avisarRolagem, setAvisarRolagem, emitir],
   )
 
   return <SalaSocketContext.Provider value={valor}>{children}</SalaSocketContext.Provider>

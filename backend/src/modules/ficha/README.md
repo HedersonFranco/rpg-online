@@ -12,6 +12,7 @@ Criação e listagem ficam em `sala.routes.ts`; o resto em `/fichas` (`server.ts
 | GET | `/salas/:id/fichas` | membro da sala | Lista todas as fichas da sala. |
 | GET | `/fichas/:id` | membro da sala da ficha | Uma ficha. `404` se não existe ou não é membro. |
 | PATCH | `/fichas/:id` | dono da ficha ou mestre | Altera campos; recalcula máximos se mudou NEX, classe ou atributo. `400` validação; `403`. |
+| DELETE | `/fichas/:id` | dono da ficha ou mestre | Apaga o agente (204): perícias e entradas vão em cascata e os tokens dele saem dos mapas. `403`; `404` se não existe, não é membro ou já foi apagado. |
 | POST | `/fichas/:id/pericias` | dono da ficha ou mestre | Define o grau `{ nome, nivel }` de uma perícia (upsert). `400` nível inválido; `403`; `404` perícia inexistente. |
 | POST | `/fichas/:id/entradas` | dono da ficha ou mestre | Cria entrada (201), devolve `{ ficha }`. `400`; `403`. |
 | PATCH | `/fichas/:id/entradas/:entradaId` | dono da ficha ou mestre | Edita entrada, devolve `{ ficha }`. `400`; `403`; `404` entrada não é desta ficha. |
@@ -24,6 +25,7 @@ Criação e listagem ficam em `sala.routes.ts`; o resto em `/fichas` (`server.ts
 - `classe` precisa ser COMBATENTE, ESPECIALISTA ou OCULTISTA e `nex` um dos 20 degraus (5, 10, …, 95, 99) — senão `400` com o motivo (`motivoClasseNexInvalidos()` em `engine/progressaoClasse.ts`), na criação e no PATCH que recalcula.
 - Qualquer membro da sala lê qualquer ficha dela; não-membro recebe `404`.
 - Edição: permitida se `ficha.usuario_id` é o usuário, ou se ele tem papel `MESTRE` na sala; senão `403`.
+- Apagar (`removerFicha`): mesma permissão de editar. Os tokens da ficha são apagados na mesma transação — o schema tem `onDelete: SetNull`, e sem isso o token ficaria sem nome nem vínculo. Se o agente estiver num combate em andamento, ele segue na fila até o mestre encerrar (o combate é efêmero e guarda o nome). Dono e mestre apagando ao mesmo tempo: o segundo recebe `404`, não `500`.
 - `pv_atual` e `san_atual`: inteiros de 0 a 999 — **podem passar do máximo** (há habilidades que concedem isso; decisão de 30/09/2026). `pe_atual`: inteiro de 0 ao máximo (já recalculado). Fora disso, `400`.
 - Se o PE máximo cair (NEX/atributo menor) e o PATCH não mandar `pe_atual`, o atual desce para o novo máximo (antes, baixar o NEX com PE cheio dava `400`).
 - Rolagem a partir da ficha (usada pelo socket): `montarTesteDaFicha()` (perícia/atributo; dono ou mestre, `400` para teste inexistente) e `montarIniciativas()` (perícia Iniciativa de cada ficha pedida, só desta sala). Quem rola de fato é `engine/rolagem.ts`.
@@ -40,11 +42,12 @@ Criação e listagem ficam em `sala.routes.ts`; o resto em `/fichas` (`server.ts
   - Poder: `preRequisito` opcional até 200 caracteres.
   - Equipamento: `categoria` 0–4 e `espacos` 0–99.
   - O tipo não pode mudar depois de criado (`400`). Na edição, a validação vale para o estado final (gravado + enviado).
-- Tempo real: criar/editar ficha, treinar perícia e criar/editar/apagar entrada emitem `emitirParaSala(salaId, 'ficha:atualizada', { ficha })` depois de gravar.
+  - `favorito` (qualquer tipo): `true`/`false`, senão `400`; ausente no PATCH = mantém. A aba Favoritos da ficha lista as marcadas.
+- Tempo real: criar/editar ficha, treinar perícia e criar/editar/apagar entrada emitem `emitirParaSala(salaId, 'ficha:atualizada', { ficha })` depois de gravar. Apagar a ficha emite `token:removido` (um por token dela) e `ficha:removida` `{ fichaId }`.
 
 ## Dependências
 
-- `lib/prisma.ts` — `Ficha`, `FichaPericia`, `FichaEntrada`, `Pericia`, `ClasseFormula`, `ProgressaoClasse`, `MembroSala`.
+- `lib/prisma.ts` — `Ficha`, `FichaPericia`, `FichaEntrada`, `Pericia`, `ClasseFormula`, `ProgressaoClasse`, `MembroSala`, `Token` (ao apagar a ficha).
 - `errors/AppError.ts` — erros com status HTTP.
 - `modules/sala/sala.service.ts` — `buscarSalaOuFalhar` (acesso de membro e sistema da sala).
 - `engine/calculoFicha.ts` — `calcularFicha` (PV/PE/San máximos) e `montarTestesPericias`.
@@ -55,4 +58,4 @@ Criação e listagem ficam em `sala.routes.ts`; o resto em `/fichas` (`server.ts
 
 ## Testes
 
-Sem testes automatizados próprios; o motor que ele usa é coberto por `engine/calculoFicha.test.ts` (`calcularFicha`) e `engine/progressaoOP1.test.ts` (`habilidadesAcumuladas` sobre a progressão do seed).
+Sem testes automatizados próprios; o motor que ele usa é coberto por `engine/calculoFicha.test.ts` (`calcularFicha`) e `engine/progressaoOP1.test.ts` (`habilidadesAcumuladas` sobre a progressão do seed). O `DELETE` foi conferido em 21/10/2026 pela API (`403` do jogador na ficha do mestre, `401`, `204`, `404` ao repetir, token do agente apagado e o de outro objeto mantido, cascata de perícias/entradas) e no navegador com duas abas (card e token somem da outra aba ao vivo).

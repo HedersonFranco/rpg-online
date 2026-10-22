@@ -54,7 +54,7 @@ export const classeBotaoIconeArquivo =
 
 // Aba de pasta suspensa numa lista de abas sobre o arquivo (painel lateral, alternador Mesa/Mapas).
 export function classeAbaPasta(ativa: boolean) {
-  return `h-9 rounded-t-[5px] px-4 text-xs font-bold tracking-[0.12em] uppercase ${condensado} ` +
+  return `h-9 rounded-t-[5px] px-3 text-xs font-bold tracking-[0.12em] uppercase ${condensado} ` +
     'focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-kraft-300 ' +
     (ativa ? 'textura-fibra bg-kraft-500 text-tinta-900' : 'text-grafite-300 hover:bg-arquivo-800 hover:text-grafite-100')
 }

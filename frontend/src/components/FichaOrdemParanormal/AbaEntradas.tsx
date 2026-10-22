@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useState, type FormEvent, type ReactNode } from 'react'
 import { useAtrasado } from '../../hooks/useAtrasado'
 import { api, mensagemDeErro } from '../../services/api'
 import {
@@ -250,39 +250,126 @@ export function AbaEntradas({
               </li>
             ) : (
               <li key={entrada.id} className="py-3">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className={`text-base leading-tight font-extrabold break-words ${condensado}`}>{entrada.nome}</p>
-                    {detalhes(entrada) && (
-                      <p className="mt-1 flex items-center gap-1.5 text-xs text-tinta-700">
-                        {entrada.elemento && (
-                          <span aria-hidden="true" className={`h-3 w-3 shrink-0 rounded-[2px] ring-1 ring-tinta-900/40 ${COR_ELEMENTO[entrada.elemento]}`} />
-                        )}
-                        {detalhes(entrada)}
-                      </p>
-                    )}
-                  </div>
-                  {podeEditar && (
-                    <div className="flex shrink-0 gap-1">
-                      <button type="button" onClick={() => setEditando(entrada.id)} disabled={removendo !== null}
-                        aria-label={`Editar ${singular} ${entrada.nome}`} title="Editar"
-                        className="inline-flex h-10 w-10 items-center justify-center rounded-sm text-tinta-700 hover:bg-tinta-900/10 hover:text-tinta-900 focus-visible:outline-2 focus-visible:outline-tinta-900 disabled:opacity-40">
-                        <Icone nome="notas" className="h-4 w-4" />
-                      </button>
-                      <button type="button" onClick={() => remover(entrada)} disabled={removendo !== null}
-                        aria-label={`Apagar ${singular} ${entrada.nome}`} title="Apagar"
-                        className="inline-flex h-10 w-10 items-center justify-center rounded-sm text-tinta-700 hover:bg-tinta-900/10 hover:text-tinta-900 focus-visible:outline-2 focus-visible:outline-tinta-900 disabled:opacity-40">
-                        {removendo === entrada.id && mostrarSpinner ? <Spinner tamanho="sm" /> : <Icone nome="lixeira" className="h-4 w-4" />}
-                      </button>
-                    </div>
-                  )}
-                </div>
-                {entrada.descricao && <p className="mt-2 whitespace-pre-wrap break-words text-sm text-tinta-900">{entrada.descricao}</p>}
+                <CartaoEntrada entrada={entrada} acoes={podeEditar && (
+                  <>
+                    <BotaoFavorito fichaId={ficha.id} entrada={entrada} onAtualizada={onAtualizada} onErro={setErro} />
+                    <button type="button" onClick={() => setEditando(entrada.id)} disabled={removendo !== null}
+                      aria-label={`Editar ${singular} ${entrada.nome}`} title="Editar" className={classeAcaoEntrada}>
+                      <Icone nome="notas" className="h-4 w-4" />
+                    </button>
+                    <button type="button" onClick={() => remover(entrada)} disabled={removendo !== null}
+                      aria-label={`Apagar ${singular} ${entrada.nome}`} title="Apagar" className={classeAcaoEntrada}>
+                      {removendo === entrada.id && mostrarSpinner ? <Spinner tamanho="sm" /> : <Icone nome="lixeira" className="h-4 w-4" />}
+                    </button>
+                  </>
+                )} />
               </li>
             ),
           )}
         </ul>
       )}
+    </div>
+  )
+}
+
+const classeAcaoEntrada =
+  'inline-flex h-10 w-10 items-center justify-center rounded-sm text-tinta-700 hover:bg-tinta-900/10 hover:text-tinta-900 ' +
+  'focus-visible:outline-2 focus-visible:outline-tinta-900 disabled:opacity-40'
+
+// Uma entrada da ficha: nome, detalhes do tipo e descrição; `acoes` fica à direita do nome.
+function CartaoEntrada({ entrada, acoes }: { entrada: EntradaFicha; acoes?: ReactNode }) {
+  return (
+    <>
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className={`text-base leading-tight font-extrabold break-words ${condensado}`}>{entrada.nome}</p>
+          {detalhes(entrada) && (
+            <p className="mt-1 flex items-center gap-1.5 text-xs text-tinta-700">
+              {entrada.elemento && (
+                <span aria-hidden="true" className={`h-3 w-3 shrink-0 rounded-[2px] ring-1 ring-tinta-900/40 ${COR_ELEMENTO[entrada.elemento]}`} />
+              )}
+              {detalhes(entrada)}
+            </p>
+          )}
+        </div>
+        {acoes && <div className="flex shrink-0 gap-1">{acoes}</div>}
+      </div>
+      {entrada.descricao && <p className="mt-2 whitespace-pre-wrap break-words text-sm text-tinta-900">{entrada.descricao}</p>}
+    </>
+  )
+}
+
+// Estrela: põe ou tira a entrada da aba Favoritos (quem pode editar a ficha).
+function BotaoFavorito({ fichaId, entrada, onAtualizada, onErro }: {
+  fichaId: string
+  entrada: EntradaFicha
+  onAtualizada: (ficha: Ficha) => void
+  onErro: (erro: string | null) => void
+}) {
+  const [salvando, setSalvando] = useState(false)
+  const mostrarSpinner = useAtrasado(salvando)
+
+  async function alternar() {
+    onErro(null)
+    setSalvando(true)
+    try {
+      const { ficha } = await api<{ ficha: Ficha }>(`/fichas/${fichaId}/entradas/${entrada.id}`, { method: 'PATCH', body: { favorito: !entrada.favorito } })
+      onAtualizada(ficha)
+    } catch (e) {
+      onErro(mensagemDeErro(e))
+    } finally {
+      setSalvando(false)
+    }
+  }
+
+  return (
+    <button type="button" onClick={alternar} disabled={salvando} aria-pressed={entrada.favorito} aria-label={`Favorito: ${entrada.nome}`}
+      title={entrada.favorito ? 'Tirar dos favoritos' : 'Pôr nos favoritos'} className={classeAcaoEntrada}>
+      {mostrarSpinner ? <Spinner tamanho="sm" /> : <Icone nome={entrada.favorito ? 'estrelaCheia' : 'estrela'} className="h-4 w-4" />}
+    </button>
+  )
+}
+
+const TITULO_TIPO: Record<TipoEntrada, string> = { RITUAL: 'Rituais', HABILIDADE: 'Habilidades', PODER: 'Poderes', EQUIPAMENTO: 'Equipamentos' }
+
+// Aba Favoritos: o que o jogador marcou com a estrela, agrupado por tipo, sem precisar procurar nas abas.
+// Editar e apagar continuam na aba do tipo; aqui só se tira dos favoritos.
+export function AbaFavoritos({ ficha, podeEditar, onAtualizada }: {
+  ficha: Ficha
+  podeEditar: boolean
+  onAtualizada: (ficha: Ficha) => void
+}) {
+  const [erro, setErro] = useState<string | null>(null)
+  const favoritas = ficha.entradas.filter((e) => e.favorito)
+
+  if (favoritas.length === 0) {
+    return (
+      <p className="py-4 text-center text-tinta-700">
+        {podeEditar ? 'Nenhum favorito ainda. Marque a estrela de um ritual, habilidade, poder ou equipamento para ele aparecer aqui.' : 'Nenhum favorito nesta ficha.'}
+      </p>
+    )
+  }
+  return (
+    <div className="space-y-4">
+      {erro && <Alerta tom="papel" mensagem={erro} />}
+      {(Object.keys(TITULO_TIPO) as TipoEntrada[]).map((tipo) => {
+        const doTipo = favoritas.filter((e) => e.tipo === tipo)
+        if (doTipo.length === 0) return null
+        return (
+          <section key={tipo} aria-labelledby={`favoritos-${tipo}`}>
+            <h3 id={`favoritos-${tipo}`} className={`text-xs font-bold tracking-[0.12em] text-tinta-700 uppercase ${condensado}`}>{TITULO_TIPO[tipo]}</h3>
+            <ul className="divide-y divide-papel-300">
+              {doTipo.map((entrada) => (
+                <li key={entrada.id} className="py-3">
+                  <CartaoEntrada entrada={entrada} acoes={podeEditar && (
+                    <BotaoFavorito fichaId={ficha.id} entrada={entrada} onAtualizada={onAtualizada} onErro={setErro} />
+                  )} />
+                </li>
+              ))}
+            </ul>
+          </section>
+        )
+      })}
     </div>
   )
 }

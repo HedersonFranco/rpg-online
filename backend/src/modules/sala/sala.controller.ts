@@ -13,18 +13,18 @@ export async function listarController(req: Request, res: Response) {
   res.json(salas.map((sala) => ocultarConvite(sala, req.usuarioId!)))
 }
 
-export async function buscarController(req: Request, res: Response) {
-  const sala = await salaService.buscarSalaOuFalhar(req.params.id!, req.usuarioId!)
+export async function buscarController(req: Request<{ id: string }>, res: Response) {
+  const sala = await salaService.buscarSalaOuFalhar(req.params.id, req.usuarioId!)
   res.json(ocultarConvite(sala, req.usuarioId!))
 }
 
-export async function deletarController(req: Request, res: Response) {
-  await salaService.deletarSala(req.params.id!, req.usuarioId!)
+export async function deletarController(req: Request<{ id: string }>, res: Response) {
+  await salaService.deletarSala(req.params.id, req.usuarioId!)
   res.status(204).send()
 }
 
-export async function regenerarConviteController(req: Request, res: Response) {
-  const convite = await salaService.regenerarConvite(req.params.id!, req.usuarioId!)
+export async function regenerarConviteController(req: Request<{ id: string }>, res: Response) {
+  const convite = await salaService.regenerarConvite(req.params.id, req.usuarioId!)
   res.json(convite)
 }
 
@@ -34,11 +34,11 @@ export async function entrarController(req: Request, res: Response) {
   res.status(201).json({ ...resultado, sala: ocultarConvite(resultado.sala, req.usuarioId!) })
 }
 
-export async function promoverMembroController(req: Request, res: Response) {
+export async function promoverMembroController(req: Request<{ id: string; membroId: string }>, res: Response) {
   const { papel } = req.body ?? {}
   const membro = await salaService.promoverMembro(
-    req.params.id!,
-    req.params.membroId!,
+    req.params.id,
+    req.params.membroId,
     req.usuarioId!,
     papel,
   )
@@ -46,17 +46,17 @@ export async function promoverMembroController(req: Request, res: Response) {
 }
 
 // DELETE /salas/:id/membros/:membroId?banir=1 — expulsar (ou banir, com ?banir=1).
-export async function removerMembroController(req: Request, res: Response) {
+export async function removerMembroController(req: Request<{ id: string; membroId: string }>, res: Response) {
   const banir = req.query.banir === '1' || req.query.banir === 'true'
-  await salaService.removerMembro(req.params.id!, req.params.membroId!, req.usuarioId!, banir)
+  await salaService.removerMembro(req.params.id, req.params.membroId, req.usuarioId!, banir)
   res.status(204).send()
 }
 
-export async function listarBanidosController(req: Request, res: Response) {
-  res.json(await salaService.listarBanidos(req.params.id!, req.usuarioId!))
+export async function listarBanidosController(req: Request<{ id: string }>, res: Response) {
+  res.json(await salaService.listarBanidos(req.params.id, req.usuarioId!))
 }
 
-export async function desbanirController(req: Request, res: Response) {
-  await salaService.desbanir(req.params.id!, req.params.usuarioId!, req.usuarioId!)
+export async function desbanirController(req: Request<{ id: string; usuarioId: string }>, res: Response) {
+  await salaService.desbanir(req.params.id, req.params.usuarioId, req.usuarioId!)
   res.status(204).send()
 }
