@@ -67,15 +67,33 @@ VTT (mapa), nem para uma ferramenta de ficha.
 ## Brand Commitments
 
 - **Nome provisório.** "RPG Online" vai mudar; não construir identidade em cima dele.
-- **Licença da Comunidade de Ordem Paranormal (v1.0, 28/06/2026)** — https://ordemparanormal.com.br/licenca.
-  Permite vender material em aplicativos, incluindo VTTs. Exige: o aviso literal "Este é um conteúdo não
-  oficial, publicado sob a Licença da Comunidade de Ordem Paranormal" e o selo da licença (≥10% da largura
-  da "capa", 100% de opacidade; kit no Drive oficial). Proíbe: imagens e textos dos livros, logos e
-  identidade visual oficiais, nomes próprios do cânone (personagens, lugares, eventos, entidades,
-  organizações — salvo Ordo Realitas; ex.: Arthur, Dante, Santo Berço, Desconjuração), material gerado
-  por IA em conteúdo comercial, sugerir parceria/endosso, e vender ou compartilhar dados pessoais (LGPD).
-  Termos de regra (atributos, NEX, Sanidade, classes, trilhas, os cinco Elementos) são permitidos.
-  Dados de demonstração (screenshots, exemplos) também seguem isso: nada de nomes do cânone.
+- **Licença da Comunidade de Ordem Paranormal (v1.0, 28/06/2026)** — https://ordemparanormal.com.br/licenca
+  (o texto integral está na própria página; conferido em 22/10/2026). Licença limitada, condicional, não
+  exclusiva e revogável, concedida por Rafael "Cellbit" Lange; em dúvida ou ambiguidade, prevalece a decisão
+  dele. O que já foi publicado mantém os direitos da versão vigente na data da publicação.
+  - **Cobre o produto:** permite vender material em "aplicativos (incluindo plataformas VTT)". O texto não diz
+    "site" nem "web"; uma mesa virtual no navegador conta como plataforma VTT (leitura nossa).
+  - **Exige:** o selo da licença na "capa" — no site, a landing — com largura de pelo menos 10% da capa, 100%
+    de opacidade e destacado do fundo (kit de selos no Drive oficial). O aviso "Este é um conteúdo não
+    oficial, publicado sob a Licença da Comunidade de Ordem Paranormal" substitui o selo só em conteúdo
+    puramente textual; o site mostra os dois. Conteúdo sensível (violência, terror intenso) pede aviso.
+  - **IA:** conteúdo comercializado — qualquer cobrança: venda avulsa, assinatura, financiamento coletivo —
+    não pode conter material gerado por IA ("textos, imagens ou quaisquer outros"). Conteúdo gratuito pode,
+    com o aviso "Contém material gerado por inteligência artificial" junto ao selo. **Em aberto, perguntar
+    ao licenciante antes de cobrar:** se código escrito com IA conta como "material", e se anúncio ou doação
+    contam como cobrança num app.
+  - **Dados:** app e VTT seguem a LGPD e não podem vender, ceder nem compartilhar dados pessoais com
+    terceiros (pesa na escolha de ferramenta de análise ou de anúncio). Violar a LGPD encerra a licença.
+  - **Permite** (termos gerais do sistema e do universo): os cinco atributos, Pontos de Vida, Pontos de
+    Esforço, Sanidade, Determinação, nomes de origens, classes, trilhas, perícias, poderes e rituais, nomes de
+    itens não únicos, NEX, Membrana, **Outro Lado**, os cinco Elementos e Ordo Realitas. O conteúdo pode se
+    basear nas regras oficiais.
+  - **Proíbe:** reproduzir textos ou imagens dos livros; a marca "Ordem Paranormal", logos oficiais e a
+    identidade visual ou o projeto gráfico dos produtos; nomes próprios do cânone — personagem, organização
+    (salvo Ordo Realitas), entidade, lugar, evento ou obra (exemplos do texto: Agatha, Kian, Santo Berço,
+    Hexatombe); registrar marca, domínio ou perfil com "Ordem Paranormal" ou nome confundível (vale para o
+    nome definitivo do produto); sugerir parceria ou endosso; uso em apostas e jogos de azar.
+  - Dados de demonstração (screenshots, exemplos, seeds) seguem as mesmas regras: nada de nomes do cânone.
 - **Ferramenta de fã, sem vínculo oficial** com a Jambô ou com os criadores de Ordem Paranormal. Não pode
   usar logo, arte, ilustrações ou qualquer elemento que faça parecer produto oficial. Estrutura de regras e
   nomes de mecânicas (NEX, Sanidade, elementos) podem aparecer; arte protegida, não.
