@@ -216,7 +216,7 @@ Ao fechar uma etapa: `chore: etapa N concluída — critérios verificados`.
 | 8 | Frontend consumindo REST | ✅ Concluída (UI de ficha só OP1) |
 | 9 | Tempo real (Socket.IO) + turno + reconexão | ✅ Concluída |
 | 10 | Mapa, tokens e webcam | 🔄 6 de 7 — falta vídeo entre redes diferentes (exige TURN em produção + 2 dispositivos) |
-| 11 | Polimento e documentação formal | 🔄 5 de 6 + textos da landing — falta Firefox/Safari, avatar e auditoria de acessibilidade (RNF05/10/17) |
+| 11 | Polimento e documentação formal | 🔄 5 de 6 + textos da landing — falta vídeo no Firefox, Safari, avatar e auditoria de acessibilidade (RNF05/10/17) |
 
 Critérios das etapas já fechadas (1–5, 7–9): `docs/ETAPAS.md`. Quando uma etapa fechar, a seção dela vai para lá.
 
@@ -247,7 +247,7 @@ Critérios das etapas já fechadas (1–5, 7–9): `docs/ETAPAS.md`. Quando uma 
 - [x] **Todas** as ações destrutivas com confirmação — inventário rotas DELETE × telas: apagar entrada da ficha, remover token, remover mapa, apagar NPC, expulsar, banir, encerrar combate e **apagar mesa** (faltava tela; criada na aba Membros, avisa quem está na mesa e apaga as imagens dos mapas do disco). Apagar pasta não tem tela (Biblioteca fora da v1); apagar ficha ganhou rota e tela ("Apagar agente", com confirmação) em 21/10/2026
 - [x] 6 conexões WebSocket simultâneas numa sala sem degradação — 6/6 conectadas; chat p95 16 ms, rolagem p95 3 ms, token p95 9 ms (100 amostras cada)
 - [x] Fluxo principal (login → sala → ficha → combate → mapa) **sem erro no console** — pela interface, no build de produção: login, criar mesa, criar ficha, ajustar Vida, enviar mapa e mostrar, iniciar combate, encerrar turno, chat — zero erros
-- [ ] Tabela de requisitos não funcionais percorrida item a item — percorrida (RNF01–RNF18 em `docs/REQUISITOS.md`); **não fecha** porque RNF05 (Firefox/Safari não testados), RNF10 (não existe upload de avatar) e RNF17 (sem auditoria com leitor de tela) seguem abertos
+- [ ] Tabela de requisitos não funcionais percorrida item a item — percorrida (RNF01–RNF18 em `docs/REQUISITOS.md`); **não fecha** porque RNF05 (Firefox testado em 04/11/2026 sem o vídeo — nesta máquina o Firefox não reúne candidatos ICE nem numa página em branco; Safari não testado), RNF10 (não existe upload de avatar) e RNF17 (sem auditoria com leitor de tela) seguem abertos
 - [ ] **Hederson reescreve os textos da landing** (`frontend/src/pages/Apresentacao/Apresentacao.tsx`: título, etapas, "Por que existe", "Para quem", fechamento) com as próprias palavras — a primeira versão foi escrita por IA e a Licença da Comunidade proíbe material gerado por IA em conteúdo comercial. Adiado a pedido dele em 29/09/2026; **lembrar antes de qualquer lançamento.**
 
 ---

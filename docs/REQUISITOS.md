@@ -113,7 +113,7 @@ com 6 contas numa mesma mesa (1 mestre + 5 jogadores). Navegador: Microsoft Edge
 | RNF02 | Latência de evento em tempo real | < 150 ms percebida | 6 conexões: chat p95 16 ms, rolagem p95 3 ms, token p95 9 ms | ✅ |
 | RNF03 | Carregamento da tela de mesa | < 3 s em 10 Mbps | 1,47–1,80 s (rede limitada a 10 Mbps, 40 ms, sem cache; mapa de 659 KB) | ✅ |
 | RNF04 | Participantes por mesa | 6 (1 mestre + 5 jogadores) | 6 conexões simultâneas sem perda nem degradação | ✅ |
-| RNF05 | Navegadores | Chrome, Firefox, Edge 120+ e Safari 17+ | Verificado só em Edge/Chromium | 🔄 Firefox e Safari não testados |
+| RNF05 | Navegadores | Chrome, Firefox, Edge 120+ e Safari 17+ | Edge/Chromium completo. Firefox 159 (04/11/2026, build de produção, duas instâncias): fluxo principal sem o vídeo — 15 passos ok, de 375px a 1280px (cadastro, login, convite, mesa, ficha, Vida, mapa, token 30 ms, zoom, combate, chat, rolagem) | 🔄 Vídeo no Firefox não verificado: nesta máquina ele não reúne candidatos ICE nem numa página em branco (o Chromium, na mesma rede, conecta). Teclado no Firefox não verificável por automação (janela sem foco). Safari não testado (só em aparelho Apple) |
 | RNF06 | Tema | Escuro como padrão | Produto inteiro no tema escuro "Dossiê de caso" | ✅ |
 | RNF07 | Validade da sessão | JWT de 24 h, sem refresh token | 24 h (lido do token emitido) | ✅ |
 | RNF08 | Proteção de login | 10 tentativas/min por IP em `/auth`; a 11ª → 429 | 10 × 401 e a 11ª × 429 | ✅ |
@@ -160,7 +160,7 @@ motor de cálculo para NPCs; outros sistemas além de Ordem Paranormal; ferramen
 
 1. **Textos da página de apresentação** reescritos pelo autor (a primeira versão foi escrita com IA — RS03).
 2. **Vídeo entre redes diferentes**: configurar um servidor TURN de produção e testar com dois dispositivos (RF36).
-3. **Firefox e Safari**: testar o fluxo principal nos dois (RNF05).
+3. **Firefox e Safari** (RNF05): no Firefox falta só o vídeo, num computador em que ele reúna candidatos ICE; no Safari, o fluxo principal inteiro, num Mac ou iPhone.
 4. **Conferir uma ficha contra o C.R.I.S.** (Etapa 6), manualmente.
 5. **Ficha de RPG II** (RF27), quando o playtest publicar a criação de personagem.
 6. Decidir sobre **upload de avatar** (RNF10).
