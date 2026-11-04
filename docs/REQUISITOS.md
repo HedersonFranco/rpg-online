@@ -5,14 +5,15 @@ Versão 1.0 · 29/09/2026 · Autor: Hederson Franco
 Mesa virtual de RPG para **Ordem Paranormal** (edições v1.3 e RPG II playtest): vídeo, mapa com tokens,
 ficha calculada pelo servidor, chat, rolagem e turnos em tempo real, numa aba só. Produto para lançamento;
 código fechado (todos os direitos reservados). Contexto de produto em [`PRODUCT.md`](../PRODUCT.md), sistema
-visual em [`DESIGN.md`](../DESIGN.md), decisões e critérios por etapa em [`CLAUDE.md`](../CLAUDE.md).
+visual em [`DESIGN.md`](../DESIGN.md), decisões em [`CLAUDE.md`](../CLAUDE.md) (e nos de `backend/` e `frontend/`), critérios por etapa em
+[`ETAPAS.md`](ETAPAS.md) (as concluídas) e no `CLAUDE.md` (as em andamento).
 
 ## Como ler este documento
 
 - **ID**: `RF` = requisito funcional, `RNF` = não funcional, `RN` = regra de negócio, `RS` = restrição.
 - **Prioridade**: **E** essencial (sem isso não há lançamento) · **I** importante (lançamento fica pior sem) · **D** desejável.
 - **Status**: ✅ implementado e verificado · 🔄 parcial · ⬜ pendente · — fora do escopo da v1.
-- **Verificação**: onde o critério foi conferido (etapa do pipeline no `CLAUDE.md`, teste automatizado ou medição).
+- **Verificação**: onde o critério foi conferido (etapa do pipeline em `ETAPAS.md` ou no `CLAUDE.md`, teste automatizado ou medição).
 
 ---
 
