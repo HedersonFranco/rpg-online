@@ -140,6 +140,8 @@ model Sala {
   mapas      Mapa[]       @relation("MapasDaSala")
   mensagens  Mensagem[]
   montarias  Montaria[]
+
+  @@index([donoId])
 }
 
 model MembroSala {
@@ -214,6 +216,8 @@ model Ficha {
   pericias FichaPericia[]
   entradas FichaEntrada[]
   tokens   Token[]
+
+  @@index([salaId])
 }
 
 // Habilidades desbloqueadas por classe a cada tier de NEX (5%, 10%, ...,
@@ -323,6 +327,8 @@ model Npc {
   sala   Sala    @relation(fields: [salaId], references: [id], onDelete: Cascade)
   pasta  Pasta?  @relation(fields: [pastaId], references: [id], onDelete: SetNull)
   tokens Token[]
+
+  @@index([salaId])
 }
 
 model Pasta {
@@ -338,6 +344,8 @@ model Pasta {
   npcs       Npc[]
   documentos Documento[]
   mapas      Mapa[]
+
+  @@index([salaId])
 }
 
 model Documento {
@@ -366,6 +374,8 @@ model Mapa {
   pasta       Pasta?  @relation(fields: [pastaId], references: [id], onDelete: SetNull)
   tokens      Token[]
   salasAtivas Sala[]  @relation("MapaAtivo")
+
+  @@index([salaId])
 }
 
 // Regra "Token = Ficha, NPC ou objeto genérico (nunca os dois primeiros ao
@@ -390,6 +400,8 @@ model Token {
   npc      Npc?      @relation(fields: [npcId], references: [id], onDelete: SetNull)
   // Montaria apagada da biblioteca leva os tokens dela junto (sem a imagem, não sobra o que mostrar).
   montaria Montaria? @relation(fields: [montariaId], references: [id], onDelete: Cascade)
+
+  @@index([mapaId])
 }
 
 // Montaria (carro, cavalo, skate...): imagem que qualquer membro salva e põe no mapa; o token dela fica
@@ -405,6 +417,8 @@ model Montaria {
   sala    Sala    @relation(fields: [salaId], references: [id], onDelete: Cascade)
   usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   tokens  Token[]
+
+  @@index([salaId])
 }
 
 model Mensagem {
@@ -416,6 +430,9 @@ model Mensagem {
 
   sala    Sala    @relation(fields: [salaId], references: [id], onDelete: Cascade)
   usuario Usuario @relation(fields: [usuarioId], references: [id])
+
+  // Histórico do chat (as últimas da mesa): sem o índice, com 200 mil mensagens no banco, a leitura ia a 386 ms no p90.
+  @@index([salaId, createdAt])
 }
 
 // Ritual/habilidade/poder/equipamento da ficha. Colunas específicas de cada
