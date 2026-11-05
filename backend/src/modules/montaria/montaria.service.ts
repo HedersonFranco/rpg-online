@@ -2,16 +2,24 @@ import { prisma } from '../../lib/prisma.js'
 import { AppError } from '../../errors/AppError.js'
 import { detectarTipoImagem, removerArquivo, salvarArquivo } from '../../lib/armazenamento.js'
 import { buscarSalaOuFalhar } from '../sala/sala.service.js'
-import { coordenadaValida, INCLUIR_DADOS_TOKEN } from '../mapa/mapa.service.js'
+import { coordenadaValida, criarTokenNoMapa } from '../mapa/mapa.service.js'
 import { emitirParaSala } from '../../sockets/emissor.js'
+import { criarNoLimite, garantirVaga, LIMITES } from '../../lib/limites.js'
 
 const LIMITE_NOME = 60
+const LIMITE_MONTARIAS = `Esta mesa já tem ${LIMITES.montariasPorMesa} montarias, o máximo. Apague uma para salvar outra.`
 const COM_AUTOR = { usuario: { select: { id: true, nome: true } } } as const
 
 // A biblioteca de montarias é da mesa toda: qualquer membro vê.
 export async function listarMontarias(salaId: string, usuarioId: string) {
   await buscarSalaOuFalhar(salaId, usuarioId)
   return prisma.montaria.findMany({ where: { salaId }, include: COM_AUTOR, orderBy: { createdAt: 'asc' } })
+}
+
+// Antes do upload: só membro da mesa, e com a mesa abaixo do limite, chega a mandar o arquivo para a memória.
+export async function garantirPodeEnviarMontaria(usuarioId: string, salaId: string) {
+  await buscarSalaOuFalhar(salaId, usuarioId)
+  garantirVaga(await prisma.montaria.count({ where: { salaId } }), LIMITES.montariasPorMesa, LIMITE_MONTARIAS)
 }
 
 // Qualquer membro salva: nome + imagem (PNG/JPEG/WebP detectado pelos bytes, até 2MB — ver upload.ts).
@@ -24,8 +32,12 @@ export async function criarMontaria(usuarioId: string, salaId: string, nome: unk
   const tipo = detectarTipoImagem(arquivo.buffer)
   if (!tipo) throw new AppError('A imagem precisa ser PNG, JPEG ou WebP', 400)
 
-  const imagemUrl = await salvarArquivo(arquivo.buffer, tipo)
-  const montaria = await prisma.montaria.create({ data: { salaId, usuarioId, nome: nome.trim(), imagemUrl }, include: COM_AUTOR })
+  const montaria = await criarNoLimite(salaId, LIMITES.montariasPorMesa, LIMITE_MONTARIAS,
+    (tx) => tx.montaria.count({ where: { salaId } }),
+    async (tx) => tx.montaria.create({
+      data: { salaId, usuarioId, nome: nome.trim(), imagemUrl: await salvarArquivo(arquivo.buffer, tipo) },
+      include: COM_AUTOR,
+    }))
   emitirParaSala(salaId, 'montaria:criada', { montaria })
   return montaria
 }
@@ -57,10 +69,7 @@ export async function porMontariaNoMapa(usuarioId: string, montariaId: string, d
   if (!coordenadaValida(dados.x) || !coordenadaValida(dados.y)) throw new AppError('x e y devem ser números válidos', 400)
   if (!sala.mapaAtivoId) throw new AppError('Nenhum mapa na mesa — o mestre precisa mostrar um mapa antes', 400)
 
-  const token = await prisma.token.create({
-    data: { mapaId: sala.mapaAtivoId, montariaId, x: dados.x, y: dados.y },
-    include: INCLUIR_DADOS_TOKEN,
-  })
+  const token = await criarTokenNoMapa(sala.mapaAtivoId, { montariaId, x: dados.x, y: dados.y })
   emitirParaSala(sala.id, 'token:criado', { token })
   return token
 }

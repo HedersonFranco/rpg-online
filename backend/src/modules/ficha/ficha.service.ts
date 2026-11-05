@@ -3,9 +3,12 @@ import { AppError } from '../../errors/AppError.js'
 import { ehArquivoEnviado } from '../../lib/armazenamento.js'
 import { buscarSalaOuFalhar } from '../sala/sala.service.js'
 import { calcularDefesa, calcularFicha, montarTestesPericias, pedidoDeTeste, type AtributosOP1, type NivelTreinoPericia } from '../../engine/calculoFicha.js'
+import { calcularArma, TIPOS_ARMA, type DadosArma } from '../../engine/arma.js'
+import { lerExpressao, PedidoRolagemInvalido } from '../../engine/rolagem.js'
 import { PERICIAS_OP1 } from '../../engine/pericias.js'
 import { habilidadesAcumuladas, motivoClasseNexInvalidos, type ProgressaoClasseEntry } from '../../engine/progressaoClasse.js'
 import { emitirParaSala } from '../../sockets/emissor.js'
+import { criarNoLimite, LIMITES } from '../../lib/limites.js'
 
 type DadosFicha = {
   nome: string
@@ -54,10 +57,30 @@ function testesDa(ficha: FichaComRelacoes) {
   )
 }
 
+type CamposArma = Pick<FichaComRelacoes['entradas'][number], 'tipoArma' | 'dano' | 'danoExtra' | 'bonusAtaque' | 'margemAmeaca' | 'multiplicadorCritico'>
+
+// Equipamento que é arma, nos valores gravados (null = não é arma).
+function dadosArma(entrada: CamposArma): DadosArma | null {
+  if (!entrada.tipoArma || !entrada.dano) return null
+  return {
+    tipoArma: entrada.tipoArma,
+    dano: entrada.dano,
+    danoExtra: entrada.danoExtra,
+    bonusAtaque: entrada.bonusAtaque ?? 0,
+    margemAmeaca: entrada.margemAmeaca ?? 20,
+    multiplicadorCritico: entrada.multiplicadorCritico ?? 2,
+  }
+}
+
 function apresentar(ficha: FichaComRelacoes, progressao: ProgressaoClasseEntry[]) {
   const testesPericias = testesDa(ficha)
   return {
     ...ficha,
+    // Cada arma sai com ataque, dano e crítico já calculados (a tela só exibe e pede para rolar).
+    entradas: ficha.entradas.map((entrada) => {
+      const arma = dadosArma(entrada)
+      return { ...entrada, arma: arma && calcularArma(arma, ficha, testesPericias) }
+    }),
     testesPericias,
     habilidadesDesbloqueadas: habilidadesAcumuladas(progressao, ficha.classe, ficha.nex),
     defesa: calcularDefesa(ficha.agi, ficha.defesa_bonus, testesPericias),
@@ -148,7 +171,10 @@ export async function criarFicha(usuarioId: string, salaId: string, dados: Dados
   const { formulas, habilidades } = await carregarTabelasDeCalculo(dados.classe)
   const resultado = calcularFicha({ classe: dados.classe, nex, atributos }, habilidades, formulas)
 
-  const ficha = await prisma.ficha.create({
+  const ficha = await criarNoLimite(salaId, LIMITES.fichasPorMesa,
+    `Esta mesa já tem ${LIMITES.fichasPorMesa} agentes, o máximo. Apague um agente para criar outro.`,
+    (tx) => tx.ficha.count({ where: { salaId } }),
+    (tx) => tx.ficha.create({
     data: {
       usuario_id: usuarioId,
       salaId,
@@ -172,7 +198,7 @@ export async function criarFicha(usuarioId: string, salaId: string, dados: Dados
       avatarUrl: dados.avatarUrl ?? null,
     },
     include: INCLUIR_PERICIAS,
-  })
+  }))
 
   return { ficha: await emitirFicha(ficha), habilidadesDesbloqueadas: resultado.habilidadesDesbloqueadas }
 }
@@ -212,6 +238,30 @@ export async function montarTesteDaFicha(salaId: string, usuarioId: string, { fi
   const pedido = pedidoDeTeste(ficha, testesDa(ficha), { tipo, nome })
   if (!pedido) throw new AppError(tipo === 'pericia' ? `Perícia "${nome}" não existe` : `Atributo "${nome}" não existe`, 400)
   return { pedido, fichaNome: ficha.nome }
+}
+
+// Rolar uma arma da ficha: mesma regra do teste — o cliente diz só qual arma e qual botão; ataque, dano e
+// crítico saem do banco, calculados aqui. Rola quem pode editar a ficha.
+const ACOES_ARMA = ['ataque', 'dano', 'critico'] as const
+
+export async function montarRolagemDeArma(salaId: string, usuarioId: string, { fichaId, entradaId, tipo }: Record<string, unknown>) {
+  if (typeof fichaId !== 'string' || typeof entradaId !== 'string' || !ACOES_ARMA.includes(tipo as never)) {
+    throw new AppError('Informe fichaId, entradaId e tipo ("ataque", "dano" ou "critico")', 400)
+  }
+  const ficha = await buscarFichaInterna(fichaId, usuarioId)
+  if (ficha.salaId !== salaId) throw new AppError('Ficha não encontrada', 404)
+  await garantirAutorizacaoEdicao(ficha, usuarioId)
+  const entrada = ficha.entradas.find((e) => e.id === entradaId)
+  if (!entrada) throw new AppError('Entrada não encontrada nesta ficha', 404)
+  const dados = dadosArma(entrada)
+  if (!dados) throw new AppError(`"${entrada.nome}" não é uma arma`, 400)
+  return {
+    acao: tipo as (typeof ACOES_ARMA)[number],
+    arma: calcularArma(dados, ficha, testesDa(ficha)),
+    margem: dados.margemAmeaca,
+    armaNome: entrada.nome,
+    fichaNome: ficha.nome,
+  }
 }
 
 // Iniciativa automática: o teste da perícia Iniciativa de cada ficha pedida (só fichas desta sala).
@@ -381,12 +431,16 @@ const CAMPOS_POR_TIPO: Record<(typeof TIPOS_ENTRADA)[number], readonly string[]>
   RITUAL: ['circulo', 'elemento'],
   HABILIDADE: [],
   PODER: ['preRequisito'],
-  EQUIPAMENTO: ['categoria', 'espacos'],
+  EQUIPAMENTO: ['categoria', 'espacos', 'tipoArma', 'dano', 'danoExtra', 'bonusAtaque', 'margemAmeaca', 'multiplicadorCritico'],
 }
-const CAMPOS_ESPECIFICOS = ['circulo', 'elemento', 'preRequisito', 'categoria', 'espacos'] as const
+// Campos da arma além do tipo: só valem com `tipoArma` preenchido.
+const CAMPOS_ARMA = ['dano', 'danoExtra', 'bonusAtaque', 'margemAmeaca', 'multiplicadorCritico'] as const
+const CAMPOS_ESPECIFICOS = ['circulo', 'elemento', 'preRequisito', 'categoria', 'espacos', 'tipoArma', ...CAMPOS_ARMA] as const
 const LIMITE_NOME = 100
 const LIMITE_DESCRICAO = 4000
 const LIMITE_PRE_REQUISITO = 200
+const LIMITE_EXPRESSAO = 60
+const LIMITE_BONUS_ATAQUE = 50
 
 type DadosEntrada = {
   tipo?: string
@@ -398,6 +452,31 @@ type DadosEntrada = {
   categoria?: unknown
   espacos?: unknown
   favorito?: unknown
+  tipoArma?: unknown
+  dano?: unknown
+  danoExtra?: unknown
+  bonusAtaque?: unknown
+  margemAmeaca?: unknown
+  multiplicadorCritico?: unknown
+}
+
+const vazio = (valor: unknown) => valor === undefined || valor === null || valor === ''
+
+// Dano da arma: expressão de dados que o painel de rolagem aceitaria (mesmos limites).
+function validarExpressao(rotulo: string, valor: unknown, obrigatoria: boolean) {
+  if (vazio(valor)) {
+    if (obrigatoria) throw new AppError(`${rotulo} da arma é obrigatório (ex.: 1d8)`, 400)
+    return
+  }
+  if (typeof valor !== 'string' || valor.trim().length > LIMITE_EXPRESSAO) {
+    throw new AppError(`${rotulo} deve ter até ${LIMITE_EXPRESSAO} caracteres`, 400)
+  }
+  try {
+    lerExpressao(valor)
+  } catch (erro) {
+    if (erro instanceof PedidoRolagemInvalido) throw new AppError(`${rotulo}: ${erro.message}`, 400)
+    throw erro
+  }
 }
 
 function inteiroEntre(valor: unknown, min: number, max: number) {
@@ -437,12 +516,59 @@ function validarEntrada(tipo: string, dados: DadosEntrada) {
   if (tipo === 'EQUIPAMENTO') {
     if (!inteiroEntre(dados.categoria, 0, 4)) throw new AppError('Categoria do equipamento deve ser de 0 a IV', 400)
     if (!inteiroEntre(dados.espacos, 0, 99)) throw new AppError('Espaços deve ser um inteiro de 0 a 99', 400)
+    validarArma(dados)
+  }
+}
+
+function validarArma(dados: DadosEntrada) {
+  if (vazio(dados.tipoArma)) {
+    const sobra = CAMPOS_ARMA.find((campo) => !vazio(dados[campo]))
+    if (sobra) throw new AppError(`Campo "${sobra}" só vale para arma — escolha o tipo de arma`, 400)
+    return
+  }
+  if (!TIPOS_ARMA.includes(dados.tipoArma as never)) {
+    throw new AppError(`Tipo de arma inválido — use um de: ${TIPOS_ARMA.join(', ')}`, 400)
+  }
+  validarExpressao('Dano', dados.dano, true)
+  validarExpressao('Dano extra', dados.danoExtra, false)
+  if (!vazio(dados.bonusAtaque) && !inteiroEntre(dados.bonusAtaque, -LIMITE_BONUS_ATAQUE, LIMITE_BONUS_ATAQUE)) {
+    throw new AppError(`Bônus de ataque deve ser um inteiro entre -${LIMITE_BONUS_ATAQUE} e ${LIMITE_BONUS_ATAQUE}`, 400)
+  }
+  if (!vazio(dados.margemAmeaca) && !inteiroEntre(dados.margemAmeaca, 2, 20)) {
+    throw new AppError('Margem de ameaça deve ser um inteiro de 2 a 20', 400)
+  }
+  if (!vazio(dados.multiplicadorCritico) && !inteiroEntre(dados.multiplicadorCritico, 2, 10)) {
+    throw new AppError('Multiplicador de crítico deve ser um inteiro de 2 a 10', 400)
+  }
+}
+
+// Com a Força atual, o dano e o crítico ainda cabem no que se pode rolar (até 50 dados, 10 termos)?
+function validarRolagensDaArma(ficha: FichaComRelacoes, gravaveis: CamposArma) {
+  const arma = dadosArma(gravaveis)
+  if (!arma) return
+  const calculada = calcularArma(arma, ficha, testesDa(ficha))
+  for (const [rotulo, expressao] of [['Dano', calculada.dano], ['Dano crítico', calculada.danoCritico]] as const) {
+    try {
+      lerExpressao(expressao)
+    } catch (erro) {
+      if (erro instanceof PedidoRolagemInvalido) throw new AppError(`${rotulo} (${expressao}): ${erro.message}`, 400)
+      throw erro
+    }
   }
 }
 
 function camposGravaveis(tipo: string, dados: DadosEntrada) {
   const texto = (v: unknown) => (typeof v === 'string' ? v.trim() : undefined)
+  const arma = tipo === 'EQUIPAMENTO' && !vazio(dados.tipoArma)
+  const numero = (v: unknown, padrao: number) => (arma ? (vazio(v) ? padrao : (v as number)) : null)
   return {
+    // Arma: os padrões do livro (margem 20, x2, sem bônus) quando o campo vem vazio.
+    tipoArma: arma ? (dados.tipoArma as (typeof TIPOS_ARMA)[number]) : null,
+    dano: arma ? texto(dados.dano)! : null,
+    danoExtra: arma ? texto(dados.danoExtra) || null : null,
+    bonusAtaque: numero(dados.bonusAtaque, 0),
+    margemAmeaca: numero(dados.margemAmeaca, 20),
+    multiplicadorCritico: numero(dados.multiplicadorCritico, 2),
     nome: texto(dados.nome)!,
     descricao: texto(dados.descricao) ?? '',
     circulo: tipo === 'RITUAL' ? (dados.circulo as number) : null,
@@ -468,25 +594,35 @@ async function entradaDaFicha(fichaId: string, entradaId: string) {
 }
 
 export async function criarEntrada(fichaId: string, usuarioId: string, dados: DadosEntrada) {
-  await fichaEditavel(fichaId, usuarioId)
+  const ficha = await fichaEditavel(fichaId, usuarioId)
   const tipo = String(dados.tipo ?? '')
   const completos = { ...dados, descricao: dados.descricao ?? '' }
   validarEntrada(tipo, completos)
-  await prisma.fichaEntrada.create({ data: { fichaId, tipo: tipo as never, ...camposGravaveis(tipo, completos) } })
+  const gravaveis = camposGravaveis(tipo, completos)
+  validarRolagensDaArma(ficha, gravaveis)
+  // A ficha inteira vai para a mesa a cada mudança: 100 entradas no tamanho máximo já são ~440 KB por clique.
+  await criarNoLimite(fichaId, LIMITES.entradasPorFicha,
+    `Esta ficha já tem ${LIMITES.entradasPorFicha} rituais, habilidades, poderes e equipamentos somados, o máximo. Apague um para cadastrar outro.`,
+    (tx) => tx.fichaEntrada.count({ where: { fichaId } }),
+    (tx) => tx.fichaEntrada.create({ data: { fichaId, tipo: tipo as never, ...gravaveis } }))
   return { ficha: await emitirFicha((await carregarFicha(fichaId))!) }
 }
 
 export async function atualizarEntrada(fichaId: string, entradaId: string, usuarioId: string, dados: DadosEntrada) {
-  await fichaEditavel(fichaId, usuarioId)
+  const ficha = await fichaEditavel(fichaId, usuarioId)
   const atual = await entradaDaFicha(fichaId, entradaId)
   if (dados.tipo !== undefined && dados.tipo !== atual.tipo) {
     throw new AppError('O tipo de uma entrada não pode ser trocado — apague e crie outra', 400)
   }
   // Campos ausentes mantêm o valor gravado (os de outro tipo estão null no banco);
   // campo do tipo errado enviado em `dados` sobrescreve o null e é rejeitado.
-  const mesclados: DadosEntrada = { ...atual, ...dados }
+  // Deixar de ser arma (`tipoArma: null`) limpa o resto da arma; mandar um campo de arma junto ainda é recusado.
+  const base = dados.tipoArma === null ? { ...atual, ...Object.fromEntries(CAMPOS_ARMA.map((campo) => [campo, null])) } : atual
+  const mesclados: DadosEntrada = { ...base, ...dados }
   validarEntrada(atual.tipo, mesclados)
-  await prisma.fichaEntrada.update({ where: { id: entradaId }, data: camposGravaveis(atual.tipo, mesclados) })
+  const gravaveis = camposGravaveis(atual.tipo, mesclados)
+  validarRolagensDaArma(ficha, gravaveis)
+  await prisma.fichaEntrada.update({ where: { id: entradaId }, data: gravaveis })
   return { ficha: await emitirFicha((await carregarFicha(fichaId))!) }
 }
 

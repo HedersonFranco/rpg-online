@@ -1,12 +1,16 @@
-import { useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { useAtrasado } from '../../hooks/useAtrasado'
+import { chaveDoAlvo, type AlvoTeste, type ResultadoNaArma } from '../../hooks/useRolarTeste'
+import { BilheteRolagem } from '../Chat/BilheteRolagem'
 import { api, mensagemDeErro } from '../../services/api'
 import {
   CATEGORIAS_EQUIPAMENTO,
   NOME_ELEMENTO,
+  NOME_TIPO_ARMA,
   type ElementoRitual,
   type EntradaFicha,
   type Ficha,
+  type TipoArma,
   type TipoEntrada,
 } from '../../services/tipos'
 import { Alerta, Spinner } from '../ui/Feedback'
@@ -38,6 +42,10 @@ const COR_ELEMENTO: Record<ElementoRitual, string> = {
 }
 
 const ROMANO = ['I', 'II', 'III', 'IV']
+const TIPOS_ARMA = Object.keys(NOME_TIPO_ARMA) as TipoArma[]
+// Campo numérico estreito (margem, multiplicador): sem as setinhas do navegador, que no Firefox cobriam o valor
+// em 320px. As setas do teclado continuam mudando o número.
+const semSetas = '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none'
 
 type Rascunho = {
   nome: string
@@ -47,6 +55,12 @@ type Rascunho = {
   preRequisito: string
   categoria: string
   espacos: string
+  tipoArma: TipoArma | ''
+  dano: string
+  danoExtra: string
+  bonusAtaque: string
+  margemAmeaca: string
+  multiplicadorCritico: string
 }
 
 function rascunhoDe(entrada?: EntradaFicha): Rascunho {
@@ -58,6 +72,12 @@ function rascunhoDe(entrada?: EntradaFicha): Rascunho {
     preRequisito: entrada?.preRequisito ?? '',
     categoria: String(entrada?.categoria ?? 0),
     espacos: String(entrada?.espacos ?? 1),
+    tipoArma: entrada?.tipoArma ?? '',
+    dano: entrada?.dano ?? '',
+    danoExtra: entrada?.danoExtra ?? '',
+    bonusAtaque: String(entrada?.bonusAtaque ?? 0),
+    margemAmeaca: String(entrada?.margemAmeaca ?? 20),
+    multiplicadorCritico: String(entrada?.multiplicadorCritico ?? 2),
   }
 }
 
@@ -66,7 +86,20 @@ function corpoDe(tipo: TipoEntrada, r: Rascunho) {
   const base = { nome: r.nome.trim(), descricao: r.descricao }
   if (tipo === 'RITUAL') return { ...base, circulo: Number(r.circulo), elemento: r.elemento }
   if (tipo === 'PODER') return { ...base, preRequisito: r.preRequisito.trim() || null }
-  if (tipo === 'EQUIPAMENTO') return { ...base, categoria: Number(r.categoria), espacos: Number(r.espacos) }
+  if (tipo === 'EQUIPAMENTO') {
+    const equipamento = { ...base, categoria: Number(r.categoria), espacos: Number(r.espacos) }
+    // tipoArma null: deixa de ser arma (o backend limpa o resto da arma).
+    if (!r.tipoArma) return { ...equipamento, tipoArma: null }
+    return {
+      ...equipamento,
+      tipoArma: r.tipoArma,
+      dano: r.dano.trim(),
+      danoExtra: r.danoExtra.trim() || null,
+      bonusAtaque: Number(r.bonusAtaque),
+      margemAmeaca: Number(r.margemAmeaca),
+      multiplicadorCritico: Number(r.multiplicadorCritico),
+    }
+  }
   return base
 }
 
@@ -77,7 +110,8 @@ function detalhes(entrada: EntradaFicha) {
   if (entrada.tipo === 'PODER' && entrada.preRequisito) return `Pré-requisito: ${entrada.preRequisito}`
   if (entrada.tipo === 'EQUIPAMENTO' && entrada.categoria !== null) {
     const espacos = entrada.espacos === 1 ? '1 espaço' : `${entrada.espacos} espaços`
-    return `Categoria ${CATEGORIAS_EQUIPAMENTO[entrada.categoria]} · ${espacos}`
+    const arma = entrada.tipoArma ? `${NOME_TIPO_ARMA[entrada.tipoArma]} · ` : ''
+    return `${arma}Categoria ${CATEGORIAS_EQUIPAMENTO[entrada.categoria]} · ${espacos}`
   }
   return null
 }
@@ -165,6 +199,56 @@ function FormEntrada({
         </div>
       )}
 
+      {tipo === 'EQUIPAMENTO' && (
+        <div>
+          <label htmlFor={id('tipo-arma')} className={classeRotulo}>Arma</label>
+          <select id={id('tipo-arma')} value={r.tipoArma} onChange={campo('tipoArma')} disabled={enviando} className={classeSelect(false)}>
+            <option value="">Não é arma</option>
+            {TIPOS_ARMA.map((t) => <option key={t} value={t}>{NOME_TIPO_ARMA[t]}</option>)}
+          </select>
+        </div>
+      )}
+
+      {tipo === 'EQUIPAMENTO' && r.tipoArma && (
+        <fieldset className="space-y-3">
+          <legend className="sr-only">Dados da arma</legend>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label htmlFor={id('dano')} className={classeRotulo}>Dano</label>
+              <input id={id('dano')} required maxLength={60} value={r.dano} onChange={campo('dano')} disabled={enviando}
+                autoComplete="off" spellCheck={false} placeholder="1d8" className={classeCampo} />
+            </div>
+            <div>
+              <label htmlFor={id('dano-extra')} className={classeRotulo}>Dano extra <span className="font-normal normal-case tracking-normal text-tinta-600">(opcional)</span></label>
+              <input id={id('dano-extra')} maxLength={60} value={r.danoExtra} onChange={campo('danoExtra')} disabled={enviando}
+                autoComplete="off" spellCheck={false} placeholder="1d6" className={classeCampo} />
+            </div>
+          </div>
+          {/* items-end: "Bônus de ataque" quebra em duas linhas em 320px; os campos ficam alinhados pelo pé. */}
+          <div className="grid grid-cols-2 items-end gap-3">
+            <div>
+              <label htmlFor={id('bonus-ataque')} className={classeRotulo}>Bônus de ataque</label>
+              <input id={id('bonus-ataque')} type="number" min={-50} max={50} required value={r.bonusAtaque} onChange={campo('bonusAtaque')}
+                disabled={enviando} className={`${classeCampo} ${semSetas}`} />
+            </div>
+            <fieldset>
+              <legend className={classeRotulo}>Crítico</legend>
+              <div className="flex items-center gap-1">
+                <input type="number" min={2} max={20} required value={r.margemAmeaca} onChange={campo('margemAmeaca')} disabled={enviando}
+                  aria-label="Margem de ameaça" className={`${classeCampo} ${semSetas} px-1 text-center`} />
+                <span aria-hidden="true" className="font-datilo text-sm">/x</span>
+                <input type="number" min={2} max={10} required value={r.multiplicadorCritico} onChange={campo('multiplicadorCritico')}
+                  disabled={enviando} aria-label="Multiplicador de crítico" className={`${classeCampo} ${semSetas} px-1 text-center`} />
+              </div>
+            </fieldset>
+          </div>
+          <p className="text-xs text-tinta-700">
+            A Força entra sozinha no dano de corpo a corpo e arremesso. O dano extra não multiplica no crítico.
+            Poder ou modificação que muda a margem, o multiplicador ou o bônus: ajuste aqui.
+          </p>
+        </fieldset>
+      )}
+
       <div>
         <label htmlFor={id('descricao')} className={classeRotulo}>{tipo === 'RITUAL' ? 'Descrição e condições' : 'Descrição'}</label>
         <textarea id={id('descricao')} rows={4} maxLength={4000} value={r.descricao} onChange={campo('descricao')} disabled={enviando}
@@ -188,11 +272,18 @@ export function AbaEntradas({
   tipo,
   podeEditar,
   onAtualizada,
+  onRolar,
+  rolando = null,
+  naArma = null,
 }: {
   ficha: Ficha
   tipo: TipoEntrada
   podeEditar: boolean
   onAtualizada: (ficha: Ficha) => void
+  // Sem onRolar (quem não pode editar a ficha), os valores da arma aparecem só como texto.
+  onRolar?: (alvo: AlvoTeste) => void
+  rolando?: string | null
+  naArma?: ResultadoNaArma | null
 }) {
   // 'nova' = formulário de criação aberto; id = editando aquela entrada.
   const [editando, setEditando] = useState<string | null>(null)
@@ -250,7 +341,7 @@ export function AbaEntradas({
               </li>
             ) : (
               <li key={entrada.id} className="py-3">
-                <CartaoEntrada entrada={entrada} acoes={podeEditar && (
+                <CartaoEntrada entrada={entrada} onRolar={onRolar} rolando={rolando} naArma={naArma} acoes={podeEditar && (
                   <>
                     <BotaoFavorito fichaId={ficha.id} entrada={entrada} onAtualizada={onAtualizada} onErro={setErro} />
                     <button type="button" onClick={() => setEditando(entrada.id)} disabled={removendo !== null}
@@ -276,8 +367,14 @@ const classeAcaoEntrada =
   'inline-flex h-10 w-10 items-center justify-center rounded-sm text-tinta-700 hover:bg-tinta-900/10 hover:text-tinta-900 ' +
   'focus-visible:outline-2 focus-visible:outline-tinta-900 disabled:opacity-40'
 
-// Uma entrada da ficha: nome, detalhes do tipo e descrição; `acoes` fica à direita do nome.
-function CartaoEntrada({ entrada, acoes }: { entrada: EntradaFicha; acoes?: ReactNode }) {
+// Uma entrada da ficha: nome, detalhes do tipo e descrição; `acoes` fica à direita do nome. Arma: os três botões.
+function CartaoEntrada({ entrada, acoes, onRolar, rolando, naArma }: {
+  entrada: EntradaFicha
+  acoes?: ReactNode
+  onRolar?: (alvo: AlvoTeste) => void
+  rolando: string | null
+  naArma: ResultadoNaArma | null
+}) {
   return (
     <>
       <div className="flex items-start justify-between gap-2">
@@ -294,8 +391,65 @@ function CartaoEntrada({ entrada, acoes }: { entrada: EntradaFicha; acoes?: Reac
         </div>
         {acoes && <div className="flex shrink-0 gap-1">{acoes}</div>}
       </div>
+      {entrada.arma && <BotoesArma entrada={entrada} onRolar={onRolar} rolando={rolando} />}
+      {/* Resultado da arma logo embaixo dos botões: no pé da ficha, ele cobria o Dano depois do Ataque. */}
+      {entrada.arma && naArma?.entradaId === entrada.id && (naArma.rolagem || naArma.erro) && <ResultadoDaArma resultado={naArma} />}
       {entrada.descricao && <p className="mt-2 whitespace-pre-wrap break-words text-sm text-tinta-900">{entrada.descricao}</p>}
     </>
+  )
+}
+
+// Cada resultado novo aparece inteiro: rola o painel só o necessário (block: 'nearest'), então os botões, logo
+// acima, continuam à vista. Só o painel rola — o bloco da mesa é overflow-clip (ver "a mesa deslizava").
+function ResultadoDaArma({ resultado }: { resultado: ResultadoNaArma }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const chave = resultado.rolagem?.id ?? resultado.erro
+  useEffect(() => { ref.current?.scrollIntoView({ block: 'nearest' }) }, [chave])
+  return (
+    <div ref={ref} className="mt-2" aria-live="polite">
+      {resultado.erro ? <Alerta tom="papel" mensagem={resultado.erro} /> : resultado.rolagem && <BilheteRolagem rolagem={resultado.rolagem} onFechar={resultado.dispensar} />}
+    </div>
+  )
+}
+
+// Ataque, dano e crítico da arma — os textos vêm prontos do servidor; o botão só pede a rolagem.
+function BotoesArma({ entrada, onRolar, rolando }: {
+  entrada: EntradaFicha
+  onRolar?: (alvo: AlvoTeste) => void
+  rolando: string | null
+}) {
+  const arma = entrada.arma!
+  const { quantidade, modificador, modo } = arma.ataque
+  const ataque = `${quantidade}d20${modificador > 0 ? `+${modificador}` : modificador < 0 ? modificador : ''}`
+  const botoes = [
+    { tipo: 'ataque', valor: ataque, nome: 'Ataque', leitor: `Rolar ataque com ${entrada.nome} (${arma.pericia}, ${ataque}${modo === 'menor' ? ', fica com o pior' : ''})` },
+    { tipo: 'dano', valor: arma.dano, nome: 'Dano', leitor: `Rolar dano de ${entrada.nome} (${arma.dano})` },
+    { tipo: 'critico', valor: arma.critico, nome: 'Crítico', leitor: `Rolar dano crítico de ${entrada.nome} (${arma.danoCritico})` },
+  ] as const
+  const titulo = (tipo: string) =>
+    tipo === 'ataque' ? `${arma.pericia}${modo === 'menor' ? ' — atributo 0: rola 2d20 e fica com o pior' : ''}` : tipo === 'critico' ? `Rola ${arma.danoCritico}` : undefined
+  const classe = 'flex min-w-0 flex-col items-start rounded-[2px] border border-tinta-900/40 px-2 py-1 text-left'
+  const conteudo = (b: (typeof botoes)[number]) => (
+    <>
+      <span className="flex max-w-full items-center gap-1 truncate font-datilo text-sm">
+        {rolando === chaveDoAlvo({ tipo: b.tipo, entradaId: entrada.id }) && <Spinner tamanho="sm" />}
+        {b.valor}
+      </span>
+      <span className={`text-xs font-bold tracking-[0.12em] text-tinta-700 uppercase ${condensado}`}>{b.nome}</span>
+    </>
+  )
+  return (
+    <div role="group" aria-label={`Rolagens de ${entrada.nome}`} className="mt-2 grid grid-cols-3 gap-1.5">
+      {botoes.map((b) => onRolar ? (
+        <button key={b.tipo} type="button" onClick={() => onRolar({ tipo: b.tipo, entradaId: entrada.id })} disabled={rolando !== null}
+          aria-label={b.leitor} title={titulo(b.tipo)}
+          className={`${classe} hover:bg-tinta-900/10 focus-visible:outline-2 focus-visible:outline-tinta-900 disabled:cursor-wait disabled:opacity-60`}>
+          {conteudo(b)}
+        </button>
+      ) : (
+        <div key={b.tipo} title={titulo(b.tipo)} className={classe}>{conteudo(b)}</div>
+      ))}
+    </div>
   )
 }
 
@@ -334,10 +488,13 @@ const TITULO_TIPO: Record<TipoEntrada, string> = { RITUAL: 'Rituais', HABILIDADE
 
 // Aba Favoritos: o que o jogador marcou com a estrela, agrupado por tipo, sem precisar procurar nas abas.
 // Editar e apagar continuam na aba do tipo; aqui só se tira dos favoritos.
-export function AbaFavoritos({ ficha, podeEditar, onAtualizada }: {
+export function AbaFavoritos({ ficha, podeEditar, onAtualizada, onRolar, rolando = null, naArma = null }: {
   ficha: Ficha
   podeEditar: boolean
   onAtualizada: (ficha: Ficha) => void
+  onRolar?: (alvo: AlvoTeste) => void
+  rolando?: string | null
+  naArma?: ResultadoNaArma | null
 }) {
   const [erro, setErro] = useState<string | null>(null)
   const favoritas = ficha.entradas.filter((e) => e.favorito)
@@ -361,7 +518,7 @@ export function AbaFavoritos({ ficha, podeEditar, onAtualizada }: {
             <ul className="divide-y divide-papel-300">
               {doTipo.map((entrada) => (
                 <li key={entrada.id} className="py-3">
-                  <CartaoEntrada entrada={entrada} acoes={podeEditar && (
+                  <CartaoEntrada entrada={entrada} onRolar={onRolar} rolando={rolando} naArma={naArma} acoes={podeEditar && (
                     <BotaoFavorito fichaId={ficha.id} entrada={entrada} onAtualizada={onAtualizada} onErro={setErro} />
                   )} />
                 </li>

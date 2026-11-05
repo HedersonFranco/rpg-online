@@ -17,6 +17,7 @@ Não-membro recebe `404` (via `buscarSalaOuFalhar`).
 
 ## Regras
 
+- **Limite (05/11/2026):** 20 montarias por mesa, conferido antes do upload (`antesDoUploadDeMontaria`) e de novo na transação com trava (`criarNoLimite`). O token da montaria conta nos 100 tokens do mapa (`criarTokenNoMapa`). Acima → `400`.
 - Upload: `exigirMembro` roda **antes** do `multer` — quem não é da mesa nem chega a mandar o arquivo para a memória. O `multer` (`uploadImagemMontaria`) limita a 2MB, 1 arquivo, 5 campos de até 1KB; acima de 2MB → `413` com mensagem de montaria.
 - Tipo da imagem pelos bytes (`detectarTipoImagem`): só PNG, JPEG ou WebP. Fundo transparente fica melhor embaixo do token.
 - Apagar: só quem salvou (`Montaria.usuarioId`) ou um mestre da mesa. `deleteMany` + contagem: dois pedidos ao mesmo tempo dão `404` ao segundo, não `500`.

@@ -6,8 +6,9 @@ import { buscarSalaOuFalhar, garantirMestre } from '../modules/sala/sala.service
 import { criarMensagem } from '../modules/mensagem/mensagem.service.js'
 import { avancarTurno, criarCombate, podeEncerrarTurno } from '../engine/combate.js'
 import type { PedidoDeTeste } from '../engine/calculoFicha.js'
+import { ameacaDeCritico } from '../engine/arma.js'
 import { PedidoRolagemInvalido, rolar, rolarExpressao, type ResultadoExpressao, type ResultadoRolagem } from '../engine/rolagem.js'
-import { montarIniciativas, montarTesteDaFicha } from '../modules/ficha/ficha.service.js'
+import { montarIniciativas, montarRolagemDeArma, montarTesteDaFicha } from '../modules/ficha/ficha.service.js'
 import { coordenadaValida, escalaValida, podeEscalarToken, podeMoverToken, salvarEscalaToken, salvarPosicaoToken } from '../modules/mapa/mapa.service.js'
 import { combates, estadoDaSala, nomeSalaSocket, ultimasRolagens, type Rolagem } from './estado.js'
 
@@ -34,7 +35,7 @@ export function tratar(fn: (dados: Record<string, unknown>) => Promise<Record<st
   }
 }
 
-type ResultadoRolagemBase = ResultadoRolagem | ResultadoExpressao
+type ResultadoRolagemBase = (ResultadoRolagem | ResultadoExpressao) & { ameacaCritico?: true }
 
 // Rolagem da ficha: o rótulo por extenso ("Investigação · Franco", para o título e o leitor de tela) e o
 // resumo do bilhete compacto. d20 = quantos dados; -1 quando o atributo é 0 (rola dois e fica com o pior).
@@ -159,9 +160,26 @@ export function registrarEventosDaSala(socket: Socket) {
     return { rolagem }
   }))
 
-  // Teste de perícia ou atributo, montado no servidor a partir da ficha.
+  // Arma da ficha: ataque (teste de Luta/Pontaria + bônus, com a ameaça de crítico), dano ou dano crítico.
+  async function rolarArma(salaId: string, dados: Record<string, unknown>) {
+    const { acao, arma, margem, armaNome, fichaNome } = await montarRolagemDeArma(salaId, usuarioId, dados)
+    const avisar = dados.avisar === true
+    if (acao === 'ataque') {
+      const origem = { ...daFicha(arma.ataque, `${armaNome} · ${fichaNome}`), rotulo: `Ataque com ${armaNome} (${arma.pericia}) · ${fichaNome}` }
+      return publicarRolagem(salaId, () => {
+        const resultado = rolar(arma.ataque)
+        return ameacaDeCritico(resultado, margem) ? { ...resultado, ameacaCritico: true as const } : resultado
+      }, { origem, avisar })
+    }
+    const critico = acao === 'critico'
+    return publicarRolagem(salaId, () => rolarExpressao(critico ? arma.danoCritico : arma.dano),
+      { origem: { rotulo: `${critico ? 'Dano crítico' : 'Dano'} · ${armaNome} · ${fichaNome}` }, avisar })
+  }
+
+  // Teste de perícia ou atributo, montado no servidor a partir da ficha — ou uma arma dela.
   socket.on('rolagem:teste', tratar(async (dados) => {
     const salaId = salaAtual()
+    if (dados.tipo === 'ataque' || dados.tipo === 'dano' || dados.tipo === 'critico') return { rolagem: await rolarArma(salaId, dados) }
     const { pedido, fichaNome } = await montarTesteDaFicha(salaId, usuarioId, dados)
     return { rolagem: await publicarRolagem(salaId, () => rolar(pedido), { origem: daFicha(pedido, fichaNome), avisar: dados.avisar === true }) }
   }))

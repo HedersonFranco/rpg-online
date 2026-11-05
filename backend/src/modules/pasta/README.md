@@ -17,6 +17,7 @@ Quem não é mestre recebe `403`; não-membro, `404` (via `garantirMestre`).
 
 ## Regras
 
+- **Limite (05/11/2026):** 100 pastas por mesa (`criarNoLimite`); acima → `400`.
 - Leitura e escrita exigem papel `MESTRE`.
 - `paiId`/pasta de destino precisa existir e ser da mesma sala (`validarPastaDaSala`, `400`).
 - No PATCH, `paiId` `undefined` não mexe, `null` move para a raiz.

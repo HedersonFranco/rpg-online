@@ -48,7 +48,7 @@ Cada mesa escolhe, na criação, entre as duas edições do jogo: **Ordem Parano
 
 ## Status
 
-Desenvolvido em 11 etapas, cada uma com critérios verificáveis (o detalhe fica em [`CLAUDE.md`](CLAUDE.md)).
+Desenvolvido em 11 etapas, cada uma com critérios verificáveis (o detalhe das etapas concluídas fica em [`docs/ETAPAS.md`](docs/ETAPAS.md); o das etapas em andamento, em [`CLAUDE.md`](CLAUDE.md)).
 
 | # | Etapa | Status |
 |---|---|---|
@@ -127,7 +127,9 @@ frontend/src/
 
 - [`PRODUCT.md`](PRODUCT.md) — para quem é, o que resolve e os compromissos de marca.
 - [`DESIGN.md`](DESIGN.md) — o sistema visual: tokens, tipografia, componentes e regras.
-- [`CLAUDE.md`](CLAUDE.md) — regras de negócio, decisões de arquitetura e os critérios de cada etapa.
+- [`CLAUDE.md`](CLAUDE.md) — regras de negócio, decisões do projeto inteiro e as etapas em andamento.
+- [`backend/CLAUDE.md`](backend/CLAUDE.md) e [`frontend/CLAUDE.md`](frontend/CLAUDE.md) — decisões e armadilhas que só valem dentro de cada pasta.
+- [`docs/ETAPAS.md`](docs/ETAPAS.md) — os critérios das etapas concluídas e como cada um foi verificado.
 
 ## Licença
 

@@ -22,14 +22,15 @@ import {
 } from '../npc/npc.controller.js'
 import { listarController as listarMensagensController } from '../mensagem/mensagem.controller.js'
 import {
+  antesDoUploadDeMapa,
   buscarAtivoController,
   criarController as criarMapaController,
   definirAtivoController,
   listarController as listarMapasController,
 } from '../mapa/mapa.controller.js'
 import {
+  antesDoUploadDeMontaria,
   criarController as criarMontariaController,
-  exigirMembro,
   listarController as listarMontariasController,
 } from '../montaria/montaria.controller.js'
 import { uploadImagemMontaria, uploadMapa } from '../../middlewares/upload.js'
@@ -58,12 +59,12 @@ salaRoutes.get('/:id/fichas', listarFichasController)
 salaRoutes.post('/:id/npcs', criarNpcController)
 salaRoutes.get('/:id/npcs', listarNpcsController)
 salaRoutes.get('/:id/mensagens', listarMensagensController)
-salaRoutes.post('/:id/mapas', uploadMapa, criarMapaController)
+// Antes do upload, quem pode e se cabe: quem não pode, ou a mesa cheia, nem chega a mandar o arquivo.
+salaRoutes.post('/:id/mapas', antesDoUploadDeMapa, uploadMapa, criarMapaController)
 salaRoutes.get('/:id/mapas', listarMapasController)
 salaRoutes.get('/:id/mapa-ativo', buscarAtivoController)
 salaRoutes.put('/:id/mapa-ativo', definirAtivoController)
-// exigirMembro antes do upload: quem não é da mesa nem chega a mandar o arquivo.
-salaRoutes.post('/:id/montarias', exigirMembro, uploadImagemMontaria, criarMontariaController)
+salaRoutes.post('/:id/montarias', antesDoUploadDeMontaria, uploadImagemMontaria, criarMontariaController)
 salaRoutes.get('/:id/montarias', listarMontariasController)
 salaRoutes.post('/:id/pastas', criarPastaController)
 salaRoutes.get('/:id/biblioteca', listarBibliotecaController)

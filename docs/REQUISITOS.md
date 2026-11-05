@@ -5,14 +5,15 @@ Versão 1.0 · 29/09/2026 · Autor: Hederson Franco
 Mesa virtual de RPG para **Ordem Paranormal** (edições v1.3 e RPG II playtest): vídeo, mapa com tokens,
 ficha calculada pelo servidor, chat, rolagem e turnos em tempo real, numa aba só. Produto para lançamento;
 código fechado (todos os direitos reservados). Contexto de produto em [`PRODUCT.md`](../PRODUCT.md), sistema
-visual em [`DESIGN.md`](../DESIGN.md), decisões e critérios por etapa em [`CLAUDE.md`](../CLAUDE.md).
+visual em [`DESIGN.md`](../DESIGN.md), decisões em [`CLAUDE.md`](../CLAUDE.md) (e nos de `backend/` e `frontend/`), critérios por etapa em
+[`ETAPAS.md`](ETAPAS.md) (as concluídas) e no `CLAUDE.md` (as em andamento).
 
 ## Como ler este documento
 
 - **ID**: `RF` = requisito funcional, `RNF` = não funcional, `RN` = regra de negócio, `RS` = restrição.
 - **Prioridade**: **E** essencial (sem isso não há lançamento) · **I** importante (lançamento fica pior sem) · **D** desejável.
 - **Status**: ✅ implementado e verificado · 🔄 parcial · ⬜ pendente · — fora do escopo da v1.
-- **Verificação**: onde o critério foi conferido (etapa do pipeline no `CLAUDE.md`, teste automatizado ou medição).
+- **Verificação**: onde o critério foi conferido (etapa do pipeline em `ETAPAS.md` ou no `CLAUDE.md`, teste automatizado ou medição).
 
 ---
 
@@ -55,6 +56,7 @@ visual em [`DESIGN.md`](../DESIGN.md), decisões e critérios por etapa em [`CLA
 | RF27 | Ficha de Ordem Paranormal RPG II | I | ⬜ | Sem CRUD nem tela; o playtest não publicou criação de personagem |
 | RF47 | Aba Favoritos na ficha: estrela em rituais, habilidades, poderes e equipamentos; a aba, no topo das divisórias, lista os marcados por tipo | D | ✅ | 22/10/2026 (API: 400/403; navegador com duas abas, ao vivo) |
 | RF28 | Apagar ficha (agente), pelo dono ou pelo mestre, com confirmação; os tokens dela saem dos mapas | D | ✅ | 21/10/2026 (API: 403/401/204/404; navegador com duas abas, tempo real) |
+| RF49 | Armas na ficha: equipamento com tipo (corpo a corpo, arremesso, disparo, fogo), dano, dano extra, bônus de ataque e crítico (margem/multiplicador, ajustáveis por poderes); três botões calculados no servidor — ATAQUE (Luta ou Pontaria da ficha + bônus, com "Ameaça de crítico"), DANO (Força somada em corpo a corpo e arremesso) e CRÍTICO (só os dados multiplicados) — no cartão e nos Favoritos | I | ✅ | 05/11/2026 (motor: 8 testes; API e socket: 29/29; tela: 12/12 com duas contas no Firefox 159, painel em 320px — inclusive Dano e Crítico livres logo depois do Ataque) |
 
 ### 1.4 Mesa em jogo
 
@@ -98,6 +100,7 @@ visual em [`DESIGN.md`](../DESIGN.md), decisões e critérios por etapa em [`CLA
 | RN12 | A rolagem não é gravada; só a última de cada mesa fica em memória. O chat é gravado (até 1000 caracteres). |
 | RN13 | Toda ação destrutiva pede confirmação. |
 | RN14 | A rolagem do mestre é secreta: só os mestres a recebem (e ela não fica como a última da mesa). Com o aviso ligado, os jogadores veem só uma frase, sem resultado. As rolagens dos jogadores e a Iniciativa que o mestre rola para as fichas deles são abertas para todos. |
+| RN15 | Limites por mesa (05/11/2026, escolhidos medindo): 10 mapas, 100 tokens por mapa, 40 agentes, 100 entradas por ficha, 200 NPCs, 20 montarias, 100 pastas. Acima do limite, o pedido é recusado com mensagem que diz o que apagar; pedidos simultâneos não passam do limite. Números e medições no CLAUDE.md, "Limites por mesa". |
 
 ---
 
@@ -112,7 +115,7 @@ com 6 contas numa mesma mesa (1 mestre + 5 jogadores). Navegador: Microsoft Edge
 | RNF02 | Latência de evento em tempo real | < 150 ms percebida | 6 conexões: chat p95 16 ms, rolagem p95 3 ms, token p95 9 ms | ✅ |
 | RNF03 | Carregamento da tela de mesa | < 3 s em 10 Mbps | 1,47–1,80 s (rede limitada a 10 Mbps, 40 ms, sem cache; mapa de 659 KB) | ✅ |
 | RNF04 | Participantes por mesa | 6 (1 mestre + 5 jogadores) | 6 conexões simultâneas sem perda nem degradação | ✅ |
-| RNF05 | Navegadores | Chrome, Firefox, Edge 120+ e Safari 17+ | Verificado só em Edge/Chromium | 🔄 Firefox e Safari não testados |
+| RNF05 | Navegadores | Chrome, Firefox, Edge 120+ e Safari 17+ | Edge/Chromium completo. Firefox 159 (04/11/2026, build de produção, duas instâncias): fluxo principal sem o vídeo — 15 passos ok, de 375px a 1280px (cadastro, login, convite, mesa, ficha, Vida, mapa, token 30 ms, zoom, combate, chat, rolagem) | 🔄 Vídeo no Firefox não verificado: nesta máquina ele não reúne candidatos ICE nem numa página em branco (o Chromium, na mesma rede, conecta). Teclado no Firefox não verificável por automação (janela sem foco). Safari não testado (só em aparelho Apple) |
 | RNF06 | Tema | Escuro como padrão | Produto inteiro no tema escuro "Dossiê de caso" | ✅ |
 | RNF07 | Validade da sessão | JWT de 24 h, sem refresh token | 24 h (lido do token emitido) | ✅ |
 | RNF08 | Proteção de login | 10 tentativas/min por IP em `/auth`; a 11ª → 429 | 10 × 401 e a 11ª × 429 | ✅ |
@@ -159,7 +162,7 @@ motor de cálculo para NPCs; outros sistemas além de Ordem Paranormal; ferramen
 
 1. **Textos da página de apresentação** reescritos pelo autor (a primeira versão foi escrita com IA — RS03).
 2. **Vídeo entre redes diferentes**: configurar um servidor TURN de produção e testar com dois dispositivos (RF36).
-3. **Firefox e Safari**: testar o fluxo principal nos dois (RNF05).
+3. **Firefox e Safari** (RNF05): no Firefox falta só o vídeo, num computador em que ele reúna candidatos ICE; no Safari, o fluxo principal inteiro, num Mac ou iPhone.
 4. **Conferir uma ficha contra o C.R.I.S.** (Etapa 6), manualmente.
 5. **Ficha de RPG II** (RF27), quando o playtest publicar a criação de personagem.
 6. Decidir sobre **upload de avatar** (RNF10).

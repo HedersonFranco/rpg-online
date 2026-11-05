@@ -8,12 +8,12 @@ export const TAMANHO_MAXIMO_MAPA = 10 * 1024 * 1024
 // Imagem de montaria: o mesmo teto do avatar (RNF10), 2MB.
 export const TAMANHO_MAXIMO_IMAGEM = 2 * 1024 * 1024
 
+// Limita também campos e partes: sem isso, uma requisição com milhares de campos enche a memória.
 export const uploadMapa = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: TAMANHO_MAXIMO_MAPA, files: 1 },
+  limits: { fileSize: TAMANHO_MAXIMO_MAPA, files: 1, fields: 5, fieldSize: 1024, parts: 6 },
 }).single('imagem')
 
-// Limita também campos e partes: sem isso, uma requisição com milhares de campos enche a memória.
 const multerImagem = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: TAMANHO_MAXIMO_IMAGEM, files: 1, fields: 5, fieldSize: 1024, parts: 6 },

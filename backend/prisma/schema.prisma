@@ -68,6 +68,15 @@ enum ElementoRitual {
   VARIA
 }
 
+// Tipo da arma (livro v1.3, p. 54): decide a perícia do ataque (corpo a corpo → Luta; o resto → Pontaria)
+// e se a Força soma no dano (corpo a corpo e arremesso).
+enum TipoArma {
+  CORPO_A_CORPO
+  ARREMESSO
+  DISPARO
+  FOGO
+}
+
 // Ordem Paranormal RPG II (Playtest Alpha) — perfil psicológico do
 // personagem, um dos dois "pilares" da ficha (o outro é a ocupação, que é
 // texto livre no playtest, sem catálogo fechado ainda).
@@ -131,6 +140,8 @@ model Sala {
   mapas      Mapa[]       @relation("MapasDaSala")
   mensagens  Mensagem[]
   montarias  Montaria[]
+
+  @@index([donoId])
 }
 
 model MembroSala {
@@ -205,6 +216,8 @@ model Ficha {
   pericias FichaPericia[]
   entradas FichaEntrada[]
   tokens   Token[]
+
+  @@index([salaId])
 }
 
 // Habilidades desbloqueadas por classe a cada tier de NEX (5%, 10%, ...,
@@ -314,6 +327,8 @@ model Npc {
   sala   Sala    @relation(fields: [salaId], references: [id], onDelete: Cascade)
   pasta  Pasta?  @relation(fields: [pastaId], references: [id], onDelete: SetNull)
   tokens Token[]
+
+  @@index([salaId])
 }
 
 model Pasta {
@@ -329,6 +344,8 @@ model Pasta {
   npcs       Npc[]
   documentos Documento[]
   mapas      Mapa[]
+
+  @@index([salaId])
 }
 
 model Documento {
@@ -357,6 +374,8 @@ model Mapa {
   pasta       Pasta?  @relation(fields: [pastaId], references: [id], onDelete: SetNull)
   tokens      Token[]
   salasAtivas Sala[]  @relation("MapaAtivo")
+
+  @@index([salaId])
 }
 
 // Regra "Token = Ficha, NPC ou objeto genérico (nunca os dois primeiros ao
@@ -381,6 +400,8 @@ model Token {
   npc      Npc?      @relation(fields: [npcId], references: [id], onDelete: SetNull)
   // Montaria apagada da biblioteca leva os tokens dela junto (sem a imagem, não sobra o que mostrar).
   montaria Montaria? @relation(fields: [montariaId], references: [id], onDelete: Cascade)
+
+  @@index([mapaId])
 }
 
 // Montaria (carro, cavalo, skate...): imagem que qualquer membro salva e põe no mapa; o token dela fica
@@ -396,6 +417,8 @@ model Montaria {
   sala    Sala    @relation(fields: [salaId], references: [id], onDelete: Cascade)
   usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   tokens  Token[]
+
+  @@index([salaId])
 }
 
 model Mensagem {
@@ -407,6 +430,9 @@ model Mensagem {
 
   sala    Sala    @relation(fields: [salaId], references: [id], onDelete: Cascade)
   usuario Usuario @relation(fields: [usuarioId], references: [id])
+
+  // Histórico do chat (as últimas da mesa): sem o índice, com 200 mil mensagens no banco, a leitura ia a 386 ms no p90.
+  @@index([salaId, createdAt])
 }
 
 // Ritual/habilidade/poder/equipamento da ficha. Colunas específicas de cada
@@ -423,6 +449,14 @@ model FichaEntrada {
   preRequisito String? // PODER
   categoria    Int? // EQUIPAMENTO: 0 a 4 (0, I, II, III, IV)
   espacos      Int? // EQUIPAMENTO
+
+  // EQUIPAMENTO que é arma (null = não é). Valores efetivos: poder ou modificação, o jogador ajusta aqui.
+  tipoArma             TipoArma?
+  dano                 String? // dados da arma + bônus fixo, sem a Força: "1d8", "1d8+2"
+  danoExtra            String? // dados que não multiplicam no crítico: "1d6"
+  bonusAtaque          Int?
+  margemAmeaca         Int? // 2 a 20
+  multiplicadorCritico Int? // 2 a 10
 
   // Aba Favoritos da ficha: atalho para o que o jogador mais usa (vale para todos os tipos).
   favorito Boolean @default(false)

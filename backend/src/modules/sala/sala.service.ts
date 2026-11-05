@@ -3,6 +3,7 @@ import { AppError } from '../../errors/AppError.js'
 import { gerarConvite, validarConvite } from '../../engine/convite.js'
 import { emitirParaSala, encerrarSala, expulsarDaSala } from '../../sockets/emissor.js'
 import { removerArquivo } from '../../lib/armazenamento.js'
+import { criarNoLimite } from '../../lib/limites.js'
 
 const LIMITE_SALAS_POR_DONO = 3
 const SISTEMAS_VALIDOS = ['ORDEM_PARANORMAL_1', 'ORDEM_PARANORMAL_2'] as const
@@ -24,14 +25,11 @@ export async function criarSala(usuarioId: string, nome: string, sistema: string
     throw new AppError(`Sistema inválido — use um de: ${SISTEMAS_VALIDOS.join(', ')}`, 400)
   }
 
-  const salasComoDono = await prisma.sala.count({ where: { donoId: usuarioId } })
-  if (salasComoDono >= LIMITE_SALAS_POR_DONO) {
-    throw new AppError(`Limite de ${LIMITE_SALAS_POR_DONO} salas por dono atingido`, 400)
-  }
-
   const convite = gerarConvite()
 
-  const sala = await prisma.sala.create({
+  return criarNoLimite(usuarioId, LIMITE_SALAS_POR_DONO, `Limite de ${LIMITE_SALAS_POR_DONO} salas por dono atingido`,
+    (tx) => tx.sala.count({ where: { donoId: usuarioId } }),
+    (tx) => tx.sala.create({
     data: {
       nome: nome.trim(),
       sistema: sistema as (typeof SISTEMAS_VALIDOS)[number],
@@ -42,9 +40,7 @@ export async function criarSala(usuarioId: string, nome: string, sistema: string
         create: { usuarioId, papel: 'MESTRE' },
       },
     },
-  })
-
-  return sala
+  }))
 }
 
 // Cada sala vem com o papel do próprio usuário nela (a lista mostra "mestre"/"jogador").

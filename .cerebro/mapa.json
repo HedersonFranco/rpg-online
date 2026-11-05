@@ -1,0 +1,213 @@
+{
+  "projeto": "RPG Online",
+  "resumo": "Mesa virtual de RPG para Ordem Paranormal: vídeo, mapa com tokens, ficha, chat, dados e turno no mesmo lugar.",
+  "funcionalidades": [
+    {
+      "id": "mesas",
+      "nome": "Mesas e convite",
+      "icone": "🗂️",
+      "resumo": "A lista de mesas: o mestre gera um link de convite e quem recebe entra na mesa como jogador.",
+      "blocos": [
+        {
+          "arquivo": "backend/src/engine/convite.ts",
+          "simbolo": "gerarConvite",
+          "explicacao": "Cria um convite novo: um token aleatório (randomUUID) e a data de expiração, que é agora mais DIAS_VALIDADE_PADRAO dias. Recebe a data atual como parâmetro, o que facilita testar. Devolve { token, expiraEm }; quem grava isso na mesa não aparece neste trecho.",
+          "_hash_codigo": "b44f5b857bd4",
+          "_hash_explicacao": "f280f4dcca27"
+        },
+        {
+          "arquivo": "backend/src/modules/sala/sala.service.ts",
+          "simbolo": "entrarComConvite",
+          "explicacao": "Põe o usuário na mesa a partir do token do link: acha a sala pelo conviteToken e pede a validarConvite que confira o convite. Barra quem foi banido e, se a pessoa ainda não era membro, cria a entrada como JOGADOR e avisa a mesa com o evento 'sala:membros'. Devolve a sala e o membro; convite recusado vira erro 400 com o motivo.",
+          "_hash_codigo": "86b33b18e1a1",
+          "_hash_explicacao": "4da9e256d057"
+        },
+        {
+          "arquivo": "backend/src/engine/convite.ts",
+          "simbolo": "validarConvite",
+          "explicacao": "Confere um convite sem acessar o banco: ele precisa existir, o token precisa bater e a data de expiração não pode ter passado. Devolve { valido: true } ou o motivo da recusa (inexistente, token inválido ou expirado). É chamada por entrarComConvite.",
+          "_hash_codigo": "7830f0b0018b",
+          "_hash_explicacao": "9479397eed7b"
+        }
+      ]
+    },
+    {
+      "id": "ficha",
+      "nome": "Ficha do agente",
+      "icone": "📋",
+      "resumo": "A ficha de Ordem Paranormal: atributos e perícias; PV, PE e Sanidade são calculados no servidor e enviados à mesa.",
+      "blocos": [
+        {
+          "arquivo": "frontend/src/components/FichaOrdemParanormal/AbaPericias.tsx",
+          "simbolo": "treinar",
+          "titulo": "treinar (aba de perícias)",
+          "explicacao": "Na aba de perícias, envia POST /fichas/:id/pericias com o nome da perícia e o nível de treino. A ficha que volta do servidor substitui a da tela (onAtualizada); se der erro, a mensagem aparece na aba. Enquanto espera, marca a perícia como pendente.",
+          "_hash_codigo": "d00ef71fc5f6",
+          "_hash_explicacao": "596c1ea8ec7e"
+        },
+        {
+          "arquivo": "backend/src/modules/ficha/ficha.service.ts",
+          "simbolo": "treinarPericia",
+          "explicacao": "Recebe o treino no servidor: confere se o nível é DESTREINADO, TREINADO, VETERANO ou EXPERT, se a ficha existe e se o usuário pode editá-la. Grava o nível da perícia (upsert em fichaPericia) e recarrega a ficha. No fim chama emitirFicha, que manda a ficha nova para a mesa.",
+          "_hash_codigo": "e4c0fd31f591",
+          "_hash_explicacao": "47db064f8ff0"
+        },
+        {
+          "arquivo": "backend/src/engine/calculoFicha.ts",
+          "simbolo": "calcularFicha",
+          "explicacao": "Calcula a ficha a partir da classe, do NEX e dos atributos: o PV máximo soma VIG, o PE máximo soma PRE, e PV, PE e Sanidade crescem com o tier do NEX conforme a fórmula da classe. Também monta os testes de perícia e as habilidades liberadas. Classe, NEX ou fórmula inválidos viram erro, e a função não acessa o banco.",
+          "_hash_codigo": "4b981c2f2e5f",
+          "_hash_explicacao": "6b62a462ca65"
+        },
+        {
+          "arquivo": "backend/src/modules/ficha/ficha.service.ts",
+          "simbolo": "emitirFicha",
+          "explicacao": "Prepara a ficha para exibição (apresentar, com a tabela de progressão) e envia o evento 'ficha:atualizada' para todos da mesa. Devolve a ficha apresentada, que treinarPericia também usa como resposta da API. É assim que uma mudança aparece na tela de todos ao mesmo tempo.",
+          "_hash_codigo": "d29161f91122",
+          "_hash_explicacao": "8fade5cfb08a"
+        }
+      ]
+    },
+    {
+      "id": "rolagem",
+      "nome": "Rolagem de dados",
+      "icone": "🎲",
+      "resumo": "O jogador pede a rolagem, o servidor sorteia os dados e o resultado aparece para a mesa toda.",
+      "blocos": [
+        {
+          "arquivo": "frontend/src/components/TurnoTracker/PainelRolagem.tsx",
+          "simbolo": "rolar",
+          "titulo": "rolar (painel de rolagem)",
+          "explicacao": "Envia o pedido pelo socket com o evento 'rolagem:rolar': ou uma expressão, ou quantidade, faces, modificador e modo. Aqui não há sorteio; o painel só fecha quando o envio dá certo. Se der erro, mostra a mensagem e libera o botão.",
+          "_hash_codigo": "3bd74fb7a9ff",
+          "_hash_explicacao": "26dcc6a55fa6"
+        },
+        {
+          "arquivo": "backend/src/sockets/salaSocket.ts",
+          "simbolo": "publicarRolagem",
+          "explicacao": "Roda no servidor: executa a rolagem pedida (rolarAgora) e transforma pedido inválido em erro 400. Junta ao resultado um id, o autor e a hora, guarda como a última rolagem da sala e envia 'rolagem:resultado' para a mesa. Como o sorteio acontece aqui, o jogador não escolhe o resultado.",
+          "_hash_codigo": "6af9aa8fbc62",
+          "_hash_explicacao": "6d0fb7608932"
+        },
+        {
+          "arquivo": "backend/src/engine/rolagem.ts",
+          "simbolo": "rolarExpressao",
+          "explicacao": "Lê uma expressão como 2d6-1d4+3, separa os termos e confere cada um: dados permitidos, limite de termos e de dados, modificador entre -100 e 100. Sorteia cada dado com randomInt e soma tudo respeitando os sinais. Devolve o total, os dados sorteados e dois textos: a expressão normalizada e o detalhe de cada dado.",
+          "_hash_codigo": "eee5321bcf70",
+          "_hash_explicacao": "6dc0af0a93c3"
+        }
+      ]
+    },
+    {
+      "id": "combate",
+      "nome": "Combate e turno",
+      "icone": "⚔️",
+      "resumo": "O mestre inicia o combate com a iniciativa; a régua de turno mostra quem age e quem vem depois.",
+      "blocos": [
+        {
+          "arquivo": "backend/src/engine/combate.ts",
+          "simbolo": "criarCombate",
+          "explicacao": "Monta o combate a partir dos participantes e suas iniciativas: dá um id a cada um e ordena da maior iniciativa para a menor. Começa na rodada 1, com o primeiro da fila agindo. Sem participantes, lança erro.",
+          "_hash_codigo": "060b93ac7ec3",
+          "_hash_explicacao": "aff11e692100"
+        },
+        {
+          "arquivo": "backend/src/engine/combate.ts",
+          "simbolo": "avancarTurno",
+          "explicacao": "Passa a vez para o próximo da ordem. Quando o último age, volta ao primeiro e soma uma rodada. Não altera o combate recebido: devolve uma cópia nova.",
+          "_hash_codigo": "dc2e0779895f",
+          "_hash_explicacao": "023b5e134a41"
+        },
+        {
+          "arquivo": "backend/src/engine/combate.ts",
+          "simbolo": "podeEncerrarTurno",
+          "explicacao": "Decide quem pode encerrar o turno: o mestre sempre pode; os outros, só se forem o participante da vez. Recebe o combate, o usuário e se ele é mestre, e devolve true ou false.",
+          "_hash_codigo": "3c0b92df8e23",
+          "_hash_explicacao": "9bf9be3d2a6b"
+        }
+      ]
+    },
+    {
+      "id": "mapa",
+      "nome": "Mapa e tokens",
+      "icone": "🗺️",
+      "resumo": "O mestre envia o mapa e coloca tokens; quem tem permissão arrasta o token e a mesa vê a nova posição.",
+      "blocos": [
+        {
+          "arquivo": "frontend/src/components/MapaToken/AreaMapa.tsx",
+          "simbolo": "aoSoltarToken",
+          "explicacao": "Quando o jogador solta o token arrastado, termina o arraste e, se a posição mudou, envia 'token:mover' pelo socket com a nova posição (final: true). Se o envio falhar, mostra o erro e devolve o token à posição de origem. Soltar no mesmo lugar não envia nada.",
+          "_hash_codigo": "fd3afc0e3bd2",
+          "_hash_explicacao": "7b4aa051f601"
+        },
+        {
+          "arquivo": "backend/src/modules/mapa/mapa.service.ts",
+          "simbolo": "podeMoverToken",
+          "explicacao": "Confere se o usuário pode mover um token: o token precisa estar num mapa desta sala e o usuário precisa ser membro dela. O mestre move qualquer token; o jogador, só o token ligado à própria ficha. Quem saiu ou foi removido da mesa não move nada.",
+          "_hash_codigo": "d4dc13a2858a",
+          "_hash_explicacao": "73f685ce396a"
+        },
+        {
+          "arquivo": "backend/src/modules/mapa/mapa.service.ts",
+          "simbolo": "salvarPosicaoToken",
+          "explicacao": "Grava a nova posição (x, y) do token no banco, depois de conferir com coordenadaValida que as duas coordenadas são números válidos. Coordenada inválida vira erro 400. Esta função não confere permissão.",
+          "_hash_codigo": "7145fa02702e",
+          "_hash_explicacao": "18115319a1c4"
+        }
+      ]
+    },
+    {
+      "id": "video",
+      "nome": "Vídeo da mesa",
+      "icone": "🎥",
+      "resumo": "Câmera e microfone direto entre os navegadores (WebRTC/PeerJS), com reconexão automática.",
+      "blocos": [
+        {
+          "arquivo": "frontend/src/hooks/useVideoChamada.ts",
+          "simbolo": "ligarCamera",
+          "explicacao": "Pede câmera (320×240) e microfone ao navegador com getUserMedia. Se der certo, guarda o vídeo local, entrega à malha de vídeo (usarCamera) e avisa os outros (anunciar). Se o usuário negar, o modo vira 'negada'; sem suporte ou com outro erro, 'indisponivel'.",
+          "_hash_codigo": "47628656b52f",
+          "_hash_explicacao": "dd7e4e337826"
+        },
+        {
+          "arquivo": "frontend/src/services/malhaVideo.ts",
+          "simbolo": "reconciliar",
+          "explicacao": "Acerta as conexões com a lista de participantes: esquece quem saiu e, para cada pessoa nova, liga ou fica esperando a ligação. Quem liga é decidido por souQuemLiga, para os dois lados não ligarem ao mesmo tempo. No fim, avisa a interface (notificar).",
+          "_hash_codigo": "7793ebf0ce47",
+          "_hash_explicacao": "d5323fd6d6b4"
+        },
+        {
+          "arquivo": "frontend/src/services/malhaVideo.ts",
+          "simbolo": "souQuemLiga",
+          "explicacao": "Regra de desempate entre duas pessoas: liga quem tem o peerId menor na comparação de texto. Como os dois lados fazem a mesma conta, só um deles inicia a chamada.",
+          "_hash_codigo": "cbbf5d1496c2",
+          "_hash_explicacao": "590d4fbd987f"
+        },
+        {
+          "arquivo": "frontend/src/services/malhaVideo.ts",
+          "simbolo": "falhou",
+          "explicacao": "Trata uma conexão que caiu: encerra a chamada e, se a pessoa ainda está na sala, tenta de novo. Quem liga repete com espera crescente (1 s, 2 s, 4 s…) até MAX_FALHAS e então marca 'falhou'. Quem atende espera o outro lado (20 s, segundo o comentário) e, sem sinal, também marca 'falhou' e oferece o botão.",
+          "_hash_codigo": "ed72418f2b1d",
+          "_hash_explicacao": "25702fa16917"
+        }
+      ]
+    }
+  ],
+  "conexoes": [
+    {
+      "de": "mapa",
+      "para": "ficha",
+      "rotulo": "token ligado a uma ficha"
+    },
+    {
+      "de": "ficha",
+      "para": "rolagem",
+      "rotulo": "rola perícias e atributos"
+    },
+    {
+      "de": "combate",
+      "para": "rolagem",
+      "rotulo": "rola a iniciativa"
+    }
+  ]
+}

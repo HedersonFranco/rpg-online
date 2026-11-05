@@ -1,5 +1,10 @@
-import type { Request, Response } from 'express'
+import type { NextFunction, Request, Response } from 'express'
 import * as mapaService from './mapa.service.js'
+
+export async function antesDoUploadDeMapa(req: Request<{ id: string }>, _res: Response, next: NextFunction) {
+  await mapaService.garantirPodeEnviarMapa(req.usuarioId!, req.params.id)
+  next()
+}
 
 export async function criarController(req: Request<{ id: string }>, res: Response) {
   const mapa = await mapaService.criarMapa(req.usuarioId!, req.params.id, req.body?.nome, req.file)

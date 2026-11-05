@@ -31,6 +31,13 @@ export function BilheteRolagem({ rolagem, onFechar }: { rolagem: Rolagem; onFech
       Segredo
     </span>
   )
+  // Também estado: o d20 do ataque atingiu a margem da arma — se acertar, é crítico (a mesa compara com a Defesa).
+  const ameaca = rolagem.ameacaCritico && (
+    <span title="O d20 atingiu a margem de ameaça da arma: se o ataque acertar, é crítico"
+      className={`shrink-0 rounded-[2px] border border-carimbo-800 px-1 text-xs leading-tight font-bold tracking-[0.12em] text-carimbo-800 uppercase ${condensado}`}>
+      Ameaça de crítico
+    </span>
+  )
   return (
     <div className="textura-fibra rounded-[2px] bg-papel-100 px-3 py-2 text-tinta-900 shadow-[0_6px_14px_-8px_rgb(0_0_0/0.9)]">
       {teste ? (
@@ -60,6 +67,7 @@ export function BilheteRolagem({ rolagem, onFechar }: { rolagem: Rolagem; onFech
       <p className="mt-1 flex items-baseline justify-between gap-3">
         <span className="min-w-0 font-datilo text-sm break-words text-tinta-700">{rolagem.detalhe}</span>
         <span className="flex shrink-0 items-baseline gap-2">
+          {ameaca}
           {segredo}
           <strong className={`text-3xl leading-none font-extrabold ${condensado}`}>{rolagem.total}</strong>
         </span>

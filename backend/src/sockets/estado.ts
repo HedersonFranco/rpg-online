@@ -12,6 +12,8 @@ export type Rolagem = (ResultadoRolagem | ResultadoExpressao) & {
   teste?: { sigla: string; atributo: string | null; ficha: string; d20: number; bonus: number }
   // Rolagem do mestre: só os mestres a recebem (e ela não fica como "última rolagem" da sala).
   secreta?: true
+  // Ataque com arma: o d20 que valeu atingiu a margem (se acertar, é crítico — quem compara é a mesa).
+  ameacaCritico?: true
   id: string
   autor: { id: string; nome: string }
   criadoEm: string

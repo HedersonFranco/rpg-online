@@ -20,6 +20,7 @@ Quem não é mestre recebe `403`; não-membro, `404` (via `garantirMestre`/`busc
 
 ## Regras
 
+- **Limites (05/11/2026, `lib/limites.ts`):** 10 mapas por mesa e 100 tokens por mapa (montarias contam junto). Mestre e vaga são conferidos **antes** do upload (`antesDoUploadDeMapa`): quem não pode, ou a mesa cheia, nem chega a mandar o arquivo. Contar e criar vão numa transação com trava por mesa/mapa (`criarNoLimite`) — pedidos simultâneos não passam do limite. Acima do limite → `400` com a mensagem.
 - Tipo da imagem detectado pelos bytes (`detectarTipoImagem`): só PNG, JPEG ou WebP. O limite de 10MB é do `multer` (`middlewares/upload.ts`); o `errorHandler` converte em `413`.
 - A lista completa de mapas é só do mestre; o jogador só vê o ativo.
 - `mapaId` do mapa ativo deve ser string de um mapa da mesma sala, ou `null`.

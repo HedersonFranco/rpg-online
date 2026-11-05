@@ -16,6 +16,8 @@ do projeto: continua sendo produto para lançamento. Nunca adicionar licença op
 Referências de qualidade: **Owlbear Rodeo** (mapa/tokens/biblioteca) e **C.R.I.S.** (ficha de Ordem Paranormal).
 Isso significa: estados de erro, estados de carregamento e confirmação em ações destrutivas são **requisito**, não polimento opcional.
 
+**Onde está cada coisa (04/11/2026):** este arquivo vale para o projeto inteiro. O que só vale dentro de uma pasta está em `backend/CLAUDE.md` e `frontend/CLAUDE.md` (o Claude Code lê cada um quando trabalha naquela pasta); os critérios das etapas já fechadas estão em `docs/ETAPAS.md`.
+
 ---
 
 ## Stack (não mudar sem discussão explícita)
@@ -30,17 +32,7 @@ Isso significa: estados de erro, estados de carregamento e confirmação em aç�
 | Auth | JWT |
 | Ambiente dev | Windows + WSL2 + Docker Desktop |
 
-**Frontend é mobile-first** nas telas de login/cadastro/lista de salas.
-**A tela de mesa é desktop-first** (mínimo 1280px) — mapa + vídeo + ficha não cabem bem em 375px.
-**`ts-node-dev` é incompatível com TS 7** — usar sempre `tsx`.
-**Tailwind v4** usa `@tailwindcss/vite` e `@import "tailwindcss"` no CSS, não PostCSS legado.
-**Roteamento do frontend: `react-router`** (adicionado na Etapa 8 — o stack não definia router; URLs reais tipo `/salas/:id` e `/convite/:token` precisam de um). Sem outras libs de UI/estado/requisição: `fetch` num wrapper próprio (`services/api.ts`).
-**Frontend usa TypeScript 6** (não 7 como o backend) — é o que o template trouxe e o que o `typescript-eslint` do front suporta. `tsconfig` tem `verbatimModuleSyntax` (tipos só via `import type`) e `erasableSyntaxOnly` (sem enum, sem parameter properties).
-**Prisma 7** usa `prisma7.config.ts` para `datasource.url` — o `schema.prisma` não declara `url` diretamente.
-**Express 5 tipa `req.params` como `string | string[]`** (`@types/express-serve-static-core` 5.1: parâmetro curinga vira lista). Controller declara os parâmetros da rota — `req: Request<{ id: string }>` — e o compilador ainda confere que batem com o caminho da rota. Nada de `req.params.id!` (era a origem de 33 dos 36 erros que faziam o `npm run build` do backend falhar até 22/10/2026).
-**Prisma 7 exige driver adapter** — `PrismaClient` não conecta sem um adapter. Usar `@prisma/adapter-pg` + `pg`: `new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) })`. Todo service que instanciar o client precisa disso (idealmente um client singleton compartilhado quando os módulos forem escritos).
-**`prisma migrate dev` recusa rodar neste ambiente** (detecta shell não-interativo e recusa, mesmo com `--create-only`). Workaround: `prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --script` gera o SQL, salva manualmente em `prisma/migrations/<timestamp>_<nome>/migration.sql`, aplica com `prisma migrate deploy` (não-interativo).
-**`typescript-eslint` não suporta TS 7** (bloqueio confirmado, não só peer warning — [issue #10940](https://github.com/typescript-eslint/typescript-eslint/issues/10940)). ESLint do backend usa `@babel/eslint-parser` + `@babel/preset-typescript` só para sintaxe — **sem regras tipadas**. Por isso `no-unused-vars` está desligado: Babel não enxerga `import type { X }` usado só em anotação de tipo como uso, e todo handler Express tipado (`Request`/`Response`/`NextFunction`) cairia nesse falso positivo. Revisar tudo isso quando a issue fechar.
+Notas de cada lado (TS 7 × TS 6, Prisma 7, Express 5, ESLint, Tailwind v4, roteamento): `backend/CLAUDE.md` e `frontend/CLAUDE.md`.
 
 ---
 
@@ -55,6 +47,25 @@ Isso significa: estados de erro, estados de carregamento e confirmação em aç�
 - Convite via link com expiração de 7 dias, nunca permanente.
 - **Só o dono vê o convite (decisão de 29/09/2026):** `conviteToken`/`conviteExpiraEm` só saem na API para o dono (`ocultarConvite()` em `engine/convite.ts`, aplicado em `GET /salas`, `GET /salas/:id` e `POST /salas/entrar`); para os demais membros vêm `null`. Antes, qualquer jogador lia o link na aba Rede e convidava sem o dono saber.
 
+### Limites por mesa (decisão de 05/11/2026)
+Escolhidos medindo: mesa de teste com N itens, API local e build de produção no navegador, num Ryzen 5 5500U (notebook mediano). Constantes em `backend/src/lib/limites.ts`; acima do limite → `400` com mensagem que diz o que apagar (a tela já mostra, ex.: formulário de Mapas).
+
+| Item | Limite | O que pesou na escolha |
+|---|---|---|
+| Mapas | 10 por mesa | Disco: até 10MB cada (100MB por mesa, 300MB por dono). A lista de Mapas baixa cada imagem inteira. |
+| Tokens | 100 por mapa (montaria conta) | Arrastar refaz o mapa a cada movimento: 80 tokens = 4,5 ms (p90), 160 = 4,9 ms, 320 = 9,8 ms com picos de 20 ms (passa do quadro de 16,7 ms). 100 deixa folga para máquina 2–3× mais lenta. |
+| Agentes | 40 por mesa | A mesa baixa todas as fichas ao abrir: 40 com 15 entradas = 774 KB (0,6 s a 10 Mbps); 80 = 1,5 MB. |
+| Entradas | 100 por ficha (os 4 tipos somados) | A ficha inteira vai para a mesa a cada clique: 100 entradas no tamanho máximo = 438 KB (+1 Vida em 102 ms local); 400 = 1,7 MB (208 ms local, +1,4 s a 10 Mbps). |
+| NPCs | 200 por mesa | Só o mestre lista: 200 com bloco de 800 caracteres = 209 KB, 23 ms. |
+| Montarias | 20 por mesa | Imagens de até 2MB que todos baixam na aba. |
+| Pastas | 100 por mesa | Sem tela; só contra abuso. |
+
+- **Sem furo por pedidos simultâneos:** contar e criar ficam numa transação com trava do Postgres por mesa/mapa/ficha (`criarNoLimite`) — 16 envios de mapa ao mesmo tempo → exatamente 10. O "3 mesas por dono" também furava assim; passou a usar a mesma trava.
+- **Mapa e montaria conferem permissão e vaga antes do upload:** quem não pode, ou a mesa cheia, não chega a mandar o arquivo à memória do servidor. O upload de mapa também limita campos e partes, como o de montaria.
+- Mesa que já passou de um limite (criada antes dele) fica como está; só não cria mais.
+- **Índices por mesa** (migration `indices_por_mesa`): a contagem do limite não varre a tabela, e o histórico do chat com 200 mil mensagens no banco caiu de 386 ms para 20 ms (p90).
+- Sem limite: mensagens do chat (só as 50 últimas aparecem) e participantes (os 6 dos requisitos são meta de carga, não trava). `Documento` não tem tela.
+
 ### Fichas
 - Um usuário pode ter mais de uma ficha, inclusive na mesma sala.
 - Criação livre — jogador escolhe tudo sem aprovação prévia do mestre.
@@ -64,6 +75,7 @@ Isso significa: estados de erro, estados de carregamento e confirmação em aç�
 - **Apagar agente (decisão de 21/10/2026):** quem pode editar pode apagar — o dono da ficha ou o mestre —, sempre com confirmação. Perícias e entradas vão em cascata e os tokens do agente saem dos mapas (o `onDelete: SetNull` do schema deixaria um token sem nome). `DELETE /fichas/:id` → `204`, emite `token:removido` (um por token) e `ficha:removida`. Botão "Apagar agente" no topo da ficha aberta, ao lado de "Agentes da mesa". Agente num combate em andamento segue na fila até o mestre encerrar.
 - **Rituais, habilidades, poderes e equipamentos (decisão de 23/09/2026):** cada ficha cadastra os seus em `FichaEntrada` (não há catálogo). Campos: todos têm nome + descrição; **ritual** + círculo (1–4) + elemento (Sangue/Morte/Conhecimento/Energia/Medo/Varia) — as condições (execução, alcance, duração, resistência) vão na descrição; **poder** + pré-requisito (opcional); **equipamento** + categoria (0–IV) + espaços. Habilidade é só nome + descrição. O service rejeita campo de outro tipo (`400`) e o tipo não muda depois de criado. Apagar pede confirmação. Rotas: `POST /fichas/:id/entradas`, `PATCH`/`DELETE /fichas/:id/entradas/:entradaId` — todas devolvem `{ ficha }` e emitem `ficha:atualizada`.
 - **Favoritos (decisão de 22/10/2026):** a estrela de cada entrada (`FichaEntrada.favorito`, qualquer tipo; `PATCH .../entradas/:entradaId { favorito }`) põe a entrada na aba **Favoritos**, a primeira das divisórias e na linha inteira, agrupada por tipo. Só entradas (rituais, habilidades, poderes, equipamentos) — perícias e habilidades da classe não, por escolha do Hederson. Marca quem pode editar a ficha; editar e apagar continuam na aba do tipo.
+- **Armas na ficha (decisão de 05/11/2026, reabre "dano e crítico como campos" — munição continua fora):** equipamento pode ser arma (`FichaEntrada.tipoArma`: corpo a corpo, arremesso, disparo, fogo), com `dano` (dados da arma + bônus fixo, sem a Força), `danoExtra` (dados que não multiplicam no crítico), `bonusAtaque`, `margemAmeaca` (2–20, padrão 20) e `multiplicadorCritico` (2–10, padrão 2). São os valores **efetivos**: poderes e modificações que mudam margem, multiplicador ou bônus, o jogador ajusta na arma — o sistema não aplica poder sozinho. O tipo decide a perícia do ataque (corpo a corpo → Luta; arremesso, disparo e fogo → Pontaria) e se a Força soma no dano (corpo a corpo e arremesso — livro p. 54–55). O servidor calcula e manda `arma` em cada entrada (teste de ataque, dano, dano crítico, "19/x3"); o crítico multiplica só os dados do `dano` (1d8+3 ×2 = 2d8+3). Cartão da arma e aba Favoritos: três botões, ATAQUE / DANO / CRÍTICO; o bilhete da rolagem de arma aparece **embaixo dos três botões**, não no pé da ficha (lá ele cobria o Dano logo depois do Ataque), e rola só o painel o necessário para ficar inteiro à vista — perícia e atributo continuam com o bilhete no pé; o bilhete do ataque leva o carimbo "Ameaça de crítico" quando o d20 que valeu fica ≥ margem (o sistema não sabe se acertou — a mesa compara com a Defesa). Alcance e tipo de dano ficam na descrição. Rolagem de ritual, poder e habilidade não entrou.
 - **O backend é o único que calcula valores derivados** (PV/PE/San máximos, bônus de perícias). O frontend nunca calcula — sempre confia no backend.
 
 ### NPCs / Tokens
@@ -71,6 +83,7 @@ Isso significa: estados de erro, estados de carregamento e confirmação em aç�
 - NPCs são reutilizáveis (um registro → múltiplos tokens em mapas diferentes).
 - Token = Ficha, NPC, Montaria ou objeto genérico — no máximo um vínculo (CHECK `token_um_vinculo`, que em 22/10/2026 substituiu `token_ficha_xor_npc`).
 - **Montarias (decisão de 22/10/2026):** biblioteca da mesa (aba **Montarias** do painel, para todos): carro, cavalo, skate — nome + imagem (PNG/JPEG/WebP pelos bytes, até 2MB). **Qualquer membro** salva, põe no mapa ("Pôr no mapa": ponto livre no centro da vista), move, muda o tamanho e tira do mapa; apagar da biblioteca é de quem salvou ou do mestre (leva os tokens e a imagem). O token de montaria fica **sempre por baixo** dos outros (desenhado antes, z 0) e não tem círculo nem nome no mapa: é a própria imagem, 2× o token comum vezes `Token.escala`. Tamanho como no Owlbear: selecionar mostra a alça no canto (arrastar = `token:escalar`, voláteis no caminho e o final grava, de 0,25 a 10); pelo teclado, −/+ no quadro do token selecionado. Módulo `modules/montaria`.
+- **Deletar pasta nunca apaga conteúdo** — tudo sobe pra pasta-pai (ou raiz), numa transação. Mover pasta pra dentro de um descendente é rejeitado (ciclo).
 
 ### Tempo real
 - Rolagem de dados: evento em tempo real, **não persiste** no banco — apenas o resultado mais recente em memória.
@@ -89,6 +102,7 @@ Isso significa: estados de erro, estados de carregamento e confirmação em aç�
 - Socket autentica com o mesmo JWT (`auth.token` no handshake). Token recusado → cliente faz logout (o socket.io não tenta de novo nesse caso).
 - **Chat persiste** (`Mensagem`, até 1000 caracteres; histórico via `GET /salas/:id/mensagens`, últimas 50). **Rolagem não persiste**: o servidor rola (crypto, ninguém escolhe o resultado) e guarda só a última por sala em memória. Modos: soma, maior (teste de OP1) e menor (OP1 com atributo 0).
 - **Rolagem do mestre em segredo (decisão de 22/10/2026):** o que um mestre rola (painel ou ficha) vai só para os sockets dos mestres da mesa (`publicarRolagem` consulta os mestres a cada rolagem) e chega com `secreta: true` — o bilhete mostra o carimbo "Segredo". Não vira a "última rolagem" da sala (quem entra não a recebe). Com o aviso ligado ("Avisar os jogadores quando eu rolar", no painel Rolagem; preferência deste navegador, guardada no `SalaSocketProvider` para a ficha e o painel lerem o mesmo valor), os jogadores recebem `rolagem:aviso { frase }` — sem resultado. As frases (`FRASES_ROLAGEM_SECRETA` em `salaSocket.ts`) são do Hederson: só ele acrescenta (licença: nada de texto gerado por IA). Rolagens dos jogadores continuam abertas para todos, e a Iniciativa que o mestre rola para as fichas também (`aberta`).
+- **Rolagem de arma (05/11/2026):** `rolagem:teste { fichaId, tipo: 'ataque'|'dano'|'critico', entradaId }` — mesma regra do teste de perícia: o cliente diz só qual arma e qual botão, tudo sai do banco; o ataque traz `ameacaCritico: true` quando o d20 que valeu atinge a margem.
 - **Rolagens a partir da ficha e de dano (01/10/2026):** `rolagem:teste { fichaId, tipo: 'pericia'|'atributo', nome }` — o cliente diz só QUAL teste; dados e bônus saem da ficha no banco (`pedidoDeTeste()` no motor, função pura), ninguém infla o próprio bônus. Rola quem pode editar a ficha (dono ou mestre — `403` pro resto). Atributo puro = (atributo)d20, fica com o melhor, sem bônus (0 → 2d20, pior). `rolagem:rolar { expressao }` aceita dano livre (`rolarExpressao()`: "2d6+1d8+3", até 10 termos/50 dados, mesmas faces). Toda rolagem traz `detalhe` (dados formatados no servidor) e, quando vem da ficha, `rotulo` ("Fortitude · Helena Duarte"). Na ficha, o teste da perícia e os atributos do círculo são os botões de rolar; o bilhete do resultado aparece também no pé da ficha (o chat pode estar escondido atrás dela).
 - **Bilhete compacto (22/10/2026):** a rolagem da ficha traz também `teste` (`sigla`, `atributo`, `ficha`, `d20`, `bonus`) e o bilhete mostra "INV (INT) · Franco" ⬡3 +5 — o ⬡ é o d20 com a quantidade de dados, e atributo 0 vira ⬡-1 (rola dois e fica com o pior). O nome por extenso fica no título e no leitor de tela. Siglas de 3 letras no catálogo (`engine/pericias.ts`), nenhuma igual à de um atributo (Fortitude é FRT, não FOR). Rolagem livre continua com "fulano rolou 2d6+3".
 - `turno:encerrar` manda `indiceAtivo`/`rodada` esperados: clique duplo simultâneo (jogador + mestre) não pula turno — o segundo recebe `409`.
@@ -98,13 +112,8 @@ Isso significa: estados de erro, estados de carregamento e confirmação em aç�
 
 ### Mapa, tokens e vídeo — como está implementado (Etapa 10)
 - **Mapa ativo por sala** (`Sala.mapaAtivoId`, persistido). Lista de mapas é só do mestre (material de preparo, pode ter spoiler); jogador só vê o ativo.
-- **Upload:** `multer` em memória, limite 10MB (`413` acima). Tipo detectado pelos **bytes** (PNG/JPEG/WebP), nunca pela extensão. `salvarArquivo()` em `lib/armazenamento.ts` grava em `backend/uploads/` (fora do Git) — é o único ponto a trocar por S3. Servido com `X-Content-Type-Options: nosniff`.
 - **Tokens:** só o mestre cria/remove; mestre move qualquer um, jogador só o da própria ficha (servidor valida, `403`). Posição em pixels da imagem original (zoom/pan não afetam o que vai pro servidor). Payload do token: da ficha, nome + PV; do NPC, só nome/avatar. Só o círculo é clicável (nome/barra não encolhem com zoom e cobririam vizinhos). Token novo nasce no centro da tela, desviado se já houver outro ali.
-- **Zoom/pan:** Pointer Events (mouse, toque e caneta com o mesmo código): 1 ponteiro arrasta, 2 fazem pinça; roda do mouse com zoom no cursor (listener nativo não-passivo).
-- **Vídeo (PeerJS, malha P2P, até 6 pessoas):** sinalização no **próprio backend** (`/peerjs`, não o servidor público do PeerJS). Cada par tem **uma** chamada, criada uma vez pelo `peerId` menor, com ou sem câmera. Sem câmera = trilhas vazias (vídeo preto 2×2 + áudio mudo); ligar/desligar câmera só troca a trilha (`replaceTrack`) — sem fechar/refazer conexão (o modelo anterior, que refazia a chamada a cada troca de câmera, tinha corridas: 4–8/10 em estresse; o atual, 30/30). Sucesso = ICE conectado (não o evento `stream`, que chega antes). Queda: quem liga tenta 3× com espera crescente, depois botão; quem atende espera 20s e oferece botão (que pede a religação pelo socket). Se a sinalização precisar ser recriada, a aba volta com **id novo** (o servidor PeerJS segura o id antigo por um tempo — "ID is taken") e os outros reconectam sozinhos.
-- **Câmera é opt-in** ("Entrar com câmera"). Recusa/ausência → aviso e modo texto+mapa. Autoplay com som bloqueado → cai pro mudo com botão "Ativar som" (só em `NotAllowedError`).
-- **Gancho de dev:** `window.__rpgVideo` (`derrubar`, `restaurar`, `diagnostico`) existe só em `import.meta.env.DEV` — some do build de produção.
-- **Armadilha resolvida:** o PeerJS usa a lib `ws`, que responde `400` a qualquer upgrade de WebSocket fora do caminho dela — isso derrubava o Socket.IO no mesmo servidor. `server.ts` passa ao PeerJS um emissor intermediário e só repassa os upgrades de `/peerjs`. Outra do PeerJS: ele repassa erros de conexão (ex.: mensagem que não é JSON) como evento `error` do próprio app; sem ouvinte, esse `emit` lança e derruba o processo — `server.ts` registra um ouvinte que só loga.
+- Upload e as armadilhas do PeerJS no servidor: `backend/CLAUDE.md`. Zoom/pan, vídeo e câmera no cliente: `frontend/CLAUDE.md`.
 
 ---
 
@@ -134,29 +143,6 @@ Isso significa: estados de erro, estados de carregamento e confirmação em aç�
 
 ---
 
-## Motor de cálculo (`backend/src/engine/calculoFicha.ts`) — só OP1
-
-Função pura chamada pela API REST e pelo WebSocket:
-1. Recebe: `classe`, `nex`, atributos (`for`, `agi`, `int`, `vig`, `pre`), perícias treinadas.
-2. Consulta `ClasseFormula` (base+incremento por classe) e `ProgressaoClasse` (habilidades por tier) — ambos passados como parâmetro, nunca via banco direto.
-3. Retorna: `pv_maximo`, `pe_maximo`, `san_maximo`, testes de perícia (`testesPericias`), habilidades desbloqueadas (acumuladas de todos os tiers ≤ NEX atual).
-
-**Fórmula confirmada no livro (Ordem Paranormal RPG v1.3):** `pv_maximo = pvBase(classe) + Vigor + pvPorTier(classe) × tier`; mesma lógica pra PE com Presença; Sanidade **não soma atributo**. `tier` = posição de `nex` na sequência fixa de 20 degraus `[5,10,...,95,99]` (99% conta como mais um degrau mesmo sendo só +4%). NEX só pode ser um desses 20 valores — qualquer outro é erro tratado.
-
-**Teste de perícia = (atributo-base)d20, fica com o melhor, + bônus do grau de treino** (`Destreinado` 0 / `Treinado` +5 / `Veterano` +10 / `Expert` +15). O atributo é a **quantidade de dados**, não soma no bônus — ex.: Vigor 3 + Fortitude Treinado = **3d20+5**. Atributo 0 rola 2d20 e fica com o **pior** (`modo: 'menor'`). Confirmado no livro (p. 10, "Modificador" e graus de treino). *(Corrigido em 23/09/2026 — a versão anterior deste arquivo e do motor somava atributo + treino, o que estava errado.)* `montarTestesPericias()` é a função pura; toda ficha que sai da API/socket traz `testesPericias` com as 28 (sem linha em `FichaPericia` = Destreinado).
-
-`pv/pe/san_maximo_cache` na tabela `Ficha` são **cache** — nunca fonte da verdade.
-Botões de combate alteram só o valor **atual**, validado no servidor: **Vida e Sanidade podem passar do máximo** (há habilidades para isso — decisão de 30/09/2026; teto 999 só contra valor absurdo); Esforço fica em 0 ≤ atual ≤ máximo. A ficha tem −1/+1 nos três e −5/+5 em Vida e Esforço.
-
-**Defesa (30/09/2026, livro p. 42 e p. 87):** `calcularDefesa()` no motor — Defesa = 10 + Agilidade + `defesa_bonus` (modificadores de equipamento/habilidades/condições, informados pelo jogador na ficha); **Esquiva** (treinado em Reflexos) = Defesa + bônus de Reflexos; **Bloqueio** (treinado em Fortitude) = RD igual ao bônus de Fortitude, só contra corpo a corpo. Sem treino → reação indisponível (`null`). Uma reação por rodada. Contra-ataque (treinado em Luta) não entrou — não foi pedido.
-NPCs **não** passam por este motor.
-
-A função deve rodar **sem conexão com o banco** nos testes — as tabelas entram como parâmetro ou mock. Se precisar do Prisma para ser testada, não é pura o bastante.
-
-**OP2 não tem motor de cálculo equivalente** — o Playtest Alpha não publica fórmula de PV/PD (fichas são pré-prontas). `FichaOP2.pv_maximo`/`pd_maximo` são valores atribuídos diretamente, não calculados. Revisar quando o playtest completo (com criação de personagem) for lançado.
-
----
-
 ## Autorização
 
 - Jogador: altera apenas própria ficha (`usuario_id == ficha.usuario_id`).
@@ -165,6 +151,7 @@ A função deve rodar **sem conexão com o banco** nos testes — as tabelas ent
 - **Avatar só do próprio sistema (decisão de 10/10/2026):** `avatarUrl` de ficha e NPC aceita apenas `/uploads/<uuid>.png|jpg|webp` (`ehArquivoEnviado()` em `lib/armazenamento.ts`) ou `null` — URL externa → `400`. Antes qualquer jogador podia apontar o avatar para um servidor de terceiros, e o navegador de cada pessoa da mesa entregava o próprio IP a ele. O front sempre monta o avatar com `BASE_URL`.
 - **Senha e JWT (decisão de 10/10/2026):** senha de 8 a 72 bytes no cadastro (o bcrypt ignora o que passa de 72 — antes, "a"×72 + qualquer final entrava na mesma conta); contas antigas seguem entrando. Senha de tipo errado → `400`/`401`, nunca `500`. O JWT só é aceito em HS256, e o servidor **não sobe** com `JWT_SECRET` de menos de 32 caracteres (ver `.env.example`). `X-Powered-By` desligado.
 - **Checklist da senha (decisão de 21/10/2026):** além dos 8 a 72 bytes, uma maiúscula, uma minúscula, um número e um símbolo (`faltasNaSenha()` em `usuario.service.ts`, que é quem barra; o `400` diz o que falta). O cadastro mostra o checklist ao vivo (✓/✗, o que faltar fica em vermelho depois de tentar enviar) e tem "Mostrar". O Hederson escolheu o checklist clássico no lugar da linha NIST/OWASP (só tamanho + bloquear senhas comuns) — não trocar sem pedir. Vale só para senha nova.
+- **NPC e Pasta são ferramentas do mestre**: leitura e escrita exigem papel `MESTRE` (NPC não tem dono, então "propriedade" não se aplica). Jogador → 403. Quando tokens de NPC aparecerem no mapa (Etapa 10), o que o jogador enxerga do NPC é decisão daquela etapa.
 
 ---
 
@@ -172,100 +159,13 @@ A função deve rodar **sem conexão com o banco** nos testes — as tabelas ent
 
 ```
 rpg-online/
-├── backend/
-│   └── src/
-│       ├── modules/
-│       │   ├── usuario/    ← cadastro, login, /auth/me
-│       │   ├── sala/       ← mesas, membros, convite, expulsar/banir; monta as rotas /salas/:id/*
-│       │   ├── ficha/
-│       │   ├── npc/
-│       │   ├── pasta/
-│       │   ├── mapa/       ← mapas e tokens
-│       │   ├── montaria/   ← biblioteca de montarias e o token delas no mapa
-│       │   ├── mensagem/   ← sem routes.ts: histórico via /salas/:id/mensagens, envio pelo socket
-│       │   └── rtc/        ← só rtc.routes.ts: configuração ICE (STUN/TURN) para o vídeo
-│       ├── engine/
-│       │   ├── calculoFicha.ts       ← só OP1
-│       │   ├── progressaoClasse.ts   ← só OP1
-│       │   ├── convite.ts
-│       │   ├── combate.ts            ← ordem de iniciativa, avançar turno, quem pode encerrar
-│       │   ├── rolagem.ts            ← rolagem no servidor (soma/maior/menor)
-│       │   └── op2/
-│       │       ├── escalaDados.ts    ← step d4-d12
-│       │       └── catalogo.ts       ← atributos + perícias de OP2
-│       ├── sockets/
-│       │   ├── io.ts           ← servidor Socket.IO, auth JWT
-│       │   ├── emissor.ts      ← emitirParaSala() (separado pra evitar import circular)
-│       │   ├── salaSocket.ts   ← eventos da sala (chat, rolagem, combate, tokens, vídeo)
-│       │   └── estado.ts       ← combate/última rolagem em memória, INSTANCIA_SERVIDOR
-│       ├── middlewares/
-│       │   ├── auth.ts
-│       │   ├── upload.ts       ← multer, limite de 10MB
-│       │   └── errorHandler.ts
-│       ├── lib/
-│       │   ├── prisma.ts
-│       │   ├── jwt.ts
-│       │   └── armazenamento.ts ← salvarArquivo(), detecção de tipo pelos bytes
-│       └── generated/prisma/   ← gerado pelo Prisma, não editar nem versionar
-├── frontend/
-│   └── src/
-│       ├── pages/
-│       │   ├── Login/          ← + LayoutAuth (compartilhado com Cadastro)
-│       │   ├── Cadastro/
-│       │   ├── ListaSalas/
-│       │   ├── Sala/           ← mesa + BotaoConvite
-│       │   └── Convite/        ← /convite/:token (link de convite)
-│       ├── components/
-│       │   ├── FichaOrdemParanormal/
-│       │   ├── MapaToken/      ← AreaMapa, useViewport (zoom/pan), TokenNoMapa, AdicionarToken, GerenciarMapas
-│       │   ├── Montaria/       ← PainelMontarias (aba Montarias)
-│       │   ├── Video/          ← FaixaVideo
-│       │   ├── Biblioteca/
-│       │   ├── Chat/
-│       │   ├── TurnoTracker/
-│       │   ├── ui/             ← Feedback (Spinner/Carregando/Alerta), Icone, estilos
-│       │   ├── Rotas.tsx       ← RotaProtegida / RotaPublica
-│       │   └── ErrorBoundary.tsx
-│       ├── hooks/
-│       │   ├── SalaSocketProvider.tsx / salaSocketContext.ts ← conexão da mesa, reconexão, aviso de reinício
-│       │   ├── useSocket.ts    ← useSalaSocket, useEventoSocket, useAoResincronizar
-│       │   ├── AuthProvider.tsx / authContext.ts / useAuth.ts
-│       │   ├── useRecurso.ts   ← GET com estados carregando/erro/ok
-│       │   ├── useAtrasado.ts  ← spinner só depois de 300ms
-│       │   └── useVideoChamada.ts ← câmera/microfone + liga a MalhaVideo ao socket
-│       └── services/
-│           ├── api.ts          ← fetch + token + erro de conexão legível (JSON e FormData)
-│           ├── malhaVideo.ts   ← WebRTC/PeerJS em classe pura (fora do React)
-│           └── tipos.ts
+├── backend/     ← API REST, socket, motor de cálculo — árvore em backend/CLAUDE.md
+├── frontend/    ← React — árvore em frontend/CLAUDE.md
+├── docs/        ← REQUISITOS.md, ETAPAS.md
+├── PRODUCT.md   ← contexto do produto e resumo da licença
+├── DESIGN.md    ← sistema visual
 └── CLAUDE.md
 ```
-
-Cada módulo em `modules/` tem `<modulo>.controller.ts`, `<modulo>.service.ts`, `<modulo>.routes.ts` e um `README.md` (rotas, quem pode, regras, dependências, testes) — exceções: `mensagem` (sem routes) e `rtc` (só routes). `Sessao` e `Documento` existem no schema, mas ainda não têm módulo.
-
----
-
-## Banco de dados — decisões de design
-
-- `Ficha` (OP1) usa colunas tipadas (não JSON livre) — permite queries como "fichas com NEX >= 30".
-- **OP2 usa tabela separada (`FichaOP2`)** em vez de esticar `Ficha` com campos nulos — mesmo padrão já previsto aqui pra um eventual D&D no futuro (`FichaDnd` ou campo `extra Json`), só que aplicado agora pro próprio Ordem Paranormal (v1.3 x RPG II).
-- `ProgressaoClasse` guarda só **habilidades por tier de NEX** (uma linha por classe+NEX). PV/PE/San **não** ficam lá — são fórmula em `ClasseFormula` (uma linha fixa por classe: base + incremento por tier) somada ao atributo do personagem no motor de cálculo. Ver seção "Motor de cálculo".
-- `Pericia` (**28** fixas — Tabela 2.1, p. 41 do livro v1.3: Agilidade 7, Força 2, Intelecto 9, **Presença 9**, Vigor 1; a contagem "26" anterior estava errada) é catálogo populado via **seed** a partir de `engine/pericias.ts`, não criado pelo usuário. O seed deve ser **idempotente** (rodar duas vezes não duplica). **`Ritual`/`FichaRitual` foram removidos em 23/09/2026** (estavam vazios) — ritual virou `FichaEntrada` escrita pelo jogador. `Pericia`/`FichaPericia`/`FichaEntrada` são **só de OP1** — OP2 guarda perícias como Json direto em `FichaOP2` (ver "Os dois sistemas").
-- `Npc` é entidade separada de `Ficha` — monstros não têm progressão por NEX. Tem `pv/pe/san` (OP1) e `pd` (OP2), todos opcionais; o service rejeita campo do sistema errado pra sala. `atributos` é texto livre (bloco de estatística fixo).
-- **NPC e Pasta são ferramentas do mestre**: leitura e escrita exigem papel `MESTRE` (NPC não tem dono, então "propriedade" não se aplica). Jogador → 403. Quando tokens de NPC aparecerem no mapa (Etapa 10), o que o jogador enxerga do NPC é decisão daquela etapa.
-- **Deletar pasta nunca apaga conteúdo** — tudo sobe pra pasta-pai (ou raiz), numa transação. Mover pasta pra dentro de um descendente é rejeitado (ciclo).
-- `Pasta` é genérica e autorreferenciada; relação com Npc/Mapa/Documento é opcional.
-- `Sessao` é enxuta — base para histórico futuro sem vínculo obrigatório com mensagens.
-- Rolagem de dados **não tem tabela** — é evento em tempo real.
-- **Estado de combate (turno/iniciativa) não tem tabela** — vive em memória do processo Node.
-- Redis: adiado — estado de sessão ativa em memória do processo Node por ora.
-- Armazenamento de arquivos: abstraído em função `salvarArquivo()` (`lib/armazenamento.ts`) para trocar disco local por S3 no futuro — implementado na Etapa 10.
-- **Convite não é entidade própria** (não está nas 16) — vive como `conviteToken`/`conviteExpiraEm` direto em `Sala` (um convite ativo por vez, sobrescrito ao gerar outro). Se precisar de histórico de convites no futuro, aí sim vira tabela.
-- **Nomenclatura de campos:** `Ficha` usa os nomes citados literalmente neste arquivo (`usuario_id`, `pv_atual`/`pv_maximo_cache`, etc. em snake_case); `Token` usa `fichaId`/`npcId` em camelCase (citado assim no checklist da Etapa 2). Os demais campos seguem camelCase padrão do Prisma.
-
-### Entidades (19)
-`Usuario`, `Sala`, `MembroSala`, `Banimento`, `Sessao`, `Ficha`, `FichaOP2`, `ClasseFormula`, `ProgressaoClasse`, `Pericia`, `FichaPericia`, `FichaEntrada`, `Npc`, `Pasta`, `Documento`, `Mapa`, `Token`, `Mensagem`, `Montaria`
-
-> Eram 16 na Etapa 2 (só OP1). `FichaOP2` e `ClasseFormula` entraram em 22/09/2026 com o suporte a dois sistemas. Em 23/09/2026 `Ritual` + `FichaRitual` (catálogo) saíram e `FichaEntrada` entrou. Em 29/09/2026 entrou `Banimento` (expulsar/banir). Em 22/10/2026 entrou `Montaria` (e `Token` ganhou `montariaId` e `escala`).
 
 ---
 
@@ -277,55 +177,18 @@ Cada módulo em `modules/` tem `<modulo>.controller.ts`, `<modulo>.service.ts`, 
 | Atributos | 5, numéricos 0-5 (For/Agi/Int/Vig/Pre) | 3, em dado de step (Físico/Mente/Emoção, d4-d12) |
 | Teste | Rola N d20 (N = valor do atributo), pega o melhor; 0 rola 2d20 e pega o pior | Rola 1 dado do atributo + 1 da perícia, soma os dois |
 | Perícias | 28 fixas, grau Destreinado/Treinado/Veterano/Expert (bônus 0/+5/+10/+15); teste = (atributo)d20 + bônus | 20 fixas, cada uma no próprio dado de step d4-d12 |
-| PV/PE/San | **Fórmula real, calculada** (`ClasseFormula` + atributo) — ver "Motor de cálculo" | **Sem fórmula publicada** — PV/PD atribuídos direto na ficha (fichas pré-prontas no playtest) |
+| PV/PE/San | **Fórmula real, calculada** (`ClasseFormula` + atributo) — ver "Motor de cálculo" em `backend/CLAUDE.md` | **Sem fórmula publicada** — PV/PD atribuídos direto na ficha (fichas pré-prontas no playtest) |
 | Tabela no schema | `Ficha`, `FichaPericia`, `FichaEntrada`, `ProgressaoClasse`, `ClasseFormula` | `FichaOP2` (perícias em Json, sem join table — catálogo em `engine/op2/catalogo.ts`) |
 
 `Sala.sistema` decide qual conjunto de tabelas vale pra aquela sala. Não existe conversão entre sistemas — trocar o sistema de uma sala em andamento não está no escopo (não foi pedido e não há regra de conversão de ficha entre os dois jogos).
 
 ---
 
-## Identidade visual — "Dossiê de caso" (28/09/2026)
+## Licença da Comunidade e identidade oficial
 
-Escolhida via `/impeccable shape` para tirar o frontend do visual genérico (zinc + violeta). Contexto do produto em `PRODUCT.md`; sistema visual em `DESIGN.md` (fonte da verdade dos tokens, em `@theme` no `index.css`).
-- Cada mesa é um caso num arquivo escuro: pastas kraft com aba (sistema), etiqueta com o nome, data datilografada, **carimbo** com o papel. Folhas de papel para formulários.
-- Vermelho de carimbo **só para estado** (papel, erro, acesso negado) — nunca ação. Courier Prime só para valor digitado e data; Archivo condensado para títulos, rótulos e botões.
-- **Nada da identidade oficial de Ordem Paranormal** (sigilos, símbolos, arte) — é ferramenta de fã.
-- **A landing não cita outros produtos pelo nome** (decisão de 29/09/2026): descrever por função — "chamada de voz", "site de rolar dados", "mapa interativo".
 - **Licença da Comunidade de Ordem Paranormal (v1.0, 28/06/2026)** rege o produto — resumo e exigências em `PRODUCT.md` → Brand Commitments. Em código: nunca usar arte/texto oficial nem nomes próprios do cânone (inclusive em seeds, testes e screenshots); o aviso literal + selo aparecem na landing (selo oficial do kit em `frontend/public/licenca/`, versão branca a 10% da largura da capa e 100% de opacidade; o original de 1942px fica guardado ao lado da cópia de 480px usada no site).
-- **Migração completa (29/09/2026):** o produto inteiro usa o mundo — entrada, apresentação (`/` para visitantes, `/sobre`) e a mesa (moldura, ficha, mapa, chat, NPCs). Peças em `components/ui/arquivo.tsx` + `estilosArquivo.ts`; o legado zinc/violeta (`ui/estilos.ts`) foi apagado.
-- `GET /salas` passou a devolver `papel` (o do próprio usuário em cada sala) para o carimbo.
-
-## Layout da tela de mesa
-
-Referência visual: `preview.webp` (no Project do Claude). Estrutura-alvo:
-
-```
-┌──────────────────────────────────────────────────────────────┐
-│ HEADER: campanha + sessão        [ícones]  [Sair]            │
-├────┬────────────────────────────────────────┬────────────────┤
-│    │  FAIXA DE VÍDEO (webcams horizontais)  │                │
-│ S  ├────────────────────────────────────────┤  PAINEL        │
-│ I  │                                        │  DIREITO       │
-│ D  │          ÁREA DO MAPA                  │                │
-│ E  │      (elemento dominante)              │  Ficha de      │
-│ B  │                                        │  Personagem    │
-│ A  ├────────────────────────────────────────┤                │
-│ R  │  BARRA DE TURNO                        │                │
-└────┴────────────────────────────────────────┴────────────────┘
-```
-
-- **Barras laterais = pasta de folhas (29/09/2026, `ui/PastaDeFolhas.tsx`):** uma pasta vetorial em pé; cada item é uma folha que desliza para fora no hover/foco mostrando nome + ícone. À esquerda, só para o mestre: **Mesa / Mapas**. À direita, com o painel recolhido: **Ficha / Chat / Montarias / NPCs / Membros** (NPCs só para o mestre, Membros só para o dono). Aberto, as abas têm ícone + nome; com 4 ou 5 abas o nome não cabe todo em 380px, então, abaixo do limite de cada quantidade, a ativa fica escrita e as outras só com o ícone (container query; limites medidos, ver `ROTULO_POR_QUANTIDADE` em `Sala.tsx`). Biblioteca e Notas **saíram** até ganharem tela. (Fichas já tinha saído em 23/09/2026.)
-- **Régua inferior (29/09/2026):** vídeo (fotos com borda de papel) e turno numa faixa só embaixo do mapa, liberando o topo para o mapa.
-- **Layout ajustável (30/09/2026):** alça na borda do painel direito (320–560px, padrão 380; limitada para o centro nunca ficar abaixo de 828px — em 1280px, no máximo 380) e no topo da régua (96–300px; fotos crescem em 16:9). A régua recolhe numa faixa que mostra de quem é a vez; recolhida, só sai da vista (desmontar cortaria o áudio). Tamanhos e estados ficam no `localStorage` (`hooks/usePreferencia.ts`). Na régua o turno tem prioridade de largura sobre as fotos. **Câmera/microfone ficam no cabeçalho** — na régua, em 1280px e em combate, não sobrava espaço para uma foto.
-- **Armadilha resolvida (21/10/2026) — a mesa deslizava:** um elemento `absolute` (ex.: rótulo `sr-only`) dentro de uma área rolável que não é `relative` se ancora fora dela, escapa do corte e vira sobra de rolagem na mesa — a rodinha no fim da ficha arrastava a mesa inteira para cima (506px nas Perícias), e com o painel recolhido as folhas da pasta davam 136px de sobra lateral. O bloco da mesa (`Sala.tsx`) é `relative overflow-clip`: nada lá dentro cria rolagem, e `clip` (não `hidden`) nem vira área rolável por foco/`scrollIntoView`.
-- **Faixa de vídeo:** feeds horizontais com nome, indicador de áudio e badge "Mestre". Sem câmera → placeholder com inicial.
-- **Mapa:** toolbar vertical à esquerda (cursor e pan na v1; lápis/linha/texto/régua/grade são v2). Zoom +/− e tela cheia no canto inferior esquerdo. O seletor "Piso 1" **foi removido** (multi-piso é v2; placeholder desabilitado não fica na interface).
-- **NPCs (29/09/2026):** aba/folha do painel direito, só do mestre (`components/Npc/PainelNpcs.tsx`): listar, criar, editar, apagar (com confirmação), campos por sistema (PV/PE/SAN em OP1, PV/PD em OP2) + atributos em texto livre. Usa a API da Etapa 7.
-- **Painel direito é recolhível (decisão de 23/09/2026):** botão `>` recolhe pra uma faixa de 48px com atalhos Ficha/Chat; aberto/recolhido fica no `localStorage` do navegador. A aba Ficha do painel mostra a lista "Agentes da mesa" (cards à la C.R.I.S. `/agentes`: nome, classe·NEX, jogador, data, "Acessar ficha"). A lista é **só da sala** — não existe "meus agentes" global (a ficha continua pertencendo à sala). Ao entrar na mesa, abre direto na ficha do próprio usuário, se houver.
-- **Painel direito (ficha):** a ficha é uma folha de papel: foto colada + nome + origem/classe/trilha, NEX (select datilografado + barra em tinta), **círculo de atributos na disposição da ficha oficial** (`PentagonoAtributos.tsx`: AGI no topo, INT/VIG/PRE/FOR em sentido horário, disco "ATRIBUTOS" no centro — só a disposição; o traço é **desenho próprio em tinta**, nunca a arte da Jambô), linhas de **Vida / Sanidade / Esforço** com tintas próprias (carmim / azul-tinteiro / ocre) e −/+, seções como **divisórias de fichário 3×2** (Perícias / Rituais / Habilidades / Poderes / Equipamentos / Inventário, com setas do teclado), com **Favoritos** em cima, na linha inteira. Perícias: busca + filtro Todas/Treinadas, teste "3d20+5" vindo do backend, destreinadas discretas e treinadas em destaque. Rituais: marca de cor do elemento + nome (a borda lateral colorida saiu — é padrão proibido).
-- **Barra de turno:** jogador ativo + iniciativa à esquerda, fila de próximos no centro, botão primário "Encerrar turno", botão "Rolagem" à direita. Sem combate ativo → barra recolhida.
-
-> O `preview.webp` mostra atributos de D&D (FOR/DES/CON/INT/SAB/CAR, CA, Descanso Curto/Longo). **A estrutura é a referência, o conteúdo não.** Mapear sempre para Ordem Paranormal.
+- **Nada da identidade oficial de Ordem Paranormal** (sigilos, símbolos, arte) — é ferramenta de fã.
+- Sistema visual "Dossiê de caso" (pastas, carimbo, tipografia) e layout da mesa: `frontend/CLAUDE.md`; tokens em `DESIGN.md`.
 
 ---
 
@@ -333,7 +196,7 @@ Referência visual: `preview.webp` (no Project do Claude). Estrutura-alvo:
 
 - Histórico de rolagens persistido
 - Redis / estado distribuído
-- Regras mecânicas de itens (dano/crítico/munição como campos; equipamento tem só categoria e espaços, o resto é descrição)
+- Regras mecânicas de itens além das armas: munição, alcance e tipo de dano como campos (ficam na descrição); aplicar poder sozinho; conferir acerto contra a Defesa; descontar Vida do alvo. *(Dano e crítico de arma entraram em 05/11/2026 — ver "Armas na ficha".)*
 - Motor de cálculo para NPCs
 - D&D ou outros sistemas além de Ordem Paranormal
 - Ferramentas de anotação no mapa (lápis, linha, texto, régua, grade)
@@ -374,59 +237,9 @@ Ao fechar uma etapa: `chore: etapa N concluída — critérios verificados`.
 | 8 | Frontend consumindo REST | ✅ Concluída (UI de ficha só OP1) |
 | 9 | Tempo real (Socket.IO) + turno + reconexão | ✅ Concluída |
 | 10 | Mapa, tokens e webcam | 🔄 6 de 7 — falta vídeo entre redes diferentes (exige TURN em produção + 2 dispositivos) |
-| 11 | Polimento e documentação formal | 🔄 5 de 6 + textos da landing — falta Firefox/Safari, avatar e auditoria de acessibilidade (RNF05/10/17) |
+| 11 | Polimento e documentação formal | 🔄 5 de 6 + textos da landing — falta vídeo no Firefox, Safari, avatar e auditoria de acessibilidade (RNF05/10/17) |
 
-### Etapa 1 — Setup
-- [x] `docker compose up -d` sobe o Postgres; `docker ps` mostra `rpg-postgres` rodando
-- [x] `GET /health` responde `{"status":"ok"}` na porta 3333
-- [x] `vite.config.ts` carrega `@tailwindcss/vite`; `index.css` tem `@import "tailwindcss"`
-- [x] `.env` fora do Git, `.env.example` presente
-- [x] **ESLint configurado no backend** (hoje só existe no frontend) + script `lint`
-- [x] **Runner de teste no backend** — `vitest` instalado e confirmado rodando sob TS 7 + `tsx` (teste sanity temporário passou); `npm test` hoje falha com "no test files" porque a Etapa 5 ainda não escreveu testes
-- [x] Confirmar visualmente que uma classe Tailwind renderiza no navegador — verificado na Etapa 8 (screenshots do navegador real com o tema aplicado)
-
-### Etapa 2 — Modelagem no Prisma
-- [x] `schema.prisma` declara as entidades de OP1 (16 na época; hoje 18 com `FichaOP2`/`ClasseFormula` — ver "Os dois sistemas")
-- [x] `npx prisma migrate dev --name init` cria a migration; `prisma/migrations/` passa a existir
-- [x] `npx prisma migrate status` reporta aplicada e **nenhuma pendente** (reconfirmado após a migration de 22/09/2026)
-- [x] `npx prisma studio` lista as tabelas — verificado via `psql \dt`, não pela GUI
-- [x] Seed configurado (`migrations.seed` em `prisma7.config.ts` — Prisma 7 não lê `package.json`) e `npx prisma db seed` roda sem erro
-- [x] Seed é **idempotente** — rodado duas vezes, contagens iguais (upsert por `classe`/`nome`)
-- [x] `SELECT COUNT(*) FROM "Pericia"` retorna **28** (AGI 7, FOR 2, INT 9, PRE 9, VIG 1 — conferido por `GROUP BY` contra a Tabela 2.1 do livro; o critério antigo dizia 26, contagem errada)
-- [x] `SELECT COUNT(*) FROM "ProgressaoClasse"` retorna ≥ 1 linha por classe × tier de NEX — **60** (20 por classe, NEX 5–99), conferido por `GROUP BY` e rodando o seed duas vezes (idempotente). Dados das Tabelas 1.3/1.4/1.5 do livro em `engine/progressaoOP1.ts` (fonte única do seed), com teste
-- [x] FKs opcionais (`pastaId` em Npc/Mapa/Documento, `fichaId`/`npcId` em `Token`) aceitam NULL — testado com insert real via Prisma Client
-- [x] **Novo:** `Token` tem CHECK constraint (`token_ficha_xor_npc`) impedindo `fichaId` e `npcId` preenchidos ao mesmo tempo — testado, insert violando a regra é rejeitado pelo Postgres. *(Em 22/10/2026 virou `token_um_vinculo`: no máximo um entre ficha, NPC e montaria — testado do mesmo jeito.)*
-
-> **Bloqueio resolvido (29/09/2026):** fórmula de PV/PE/San, os 20 tiers de NEX, as 28 perícias e as habilidades por NEX das três classes (Tabelas 1.3/1.4/1.5) confirmados direto no livro (v1.3) e em seed. Toda ficha que sai da API/socket traz `habilidadesDesbloqueadas` (acumuladas até o NEX atual, calculadas no backend com a tabela do banco); a divisória Habilidades mostra essa lista "da classe", só de leitura, acima das que o jogador cadastra.
-
-### Etapa 3 — Autenticação
-- [x] `POST /auth/cadastro` cria usuário e retorna token válido
-- [x] `POST /auth/login` com senha errada → **401**
-- [x] Rota protegida (`GET /auth/me`) sem header `Authorization` → **401**; token expirado → **401**
-- [x] `senha_hash` no banco não contém a senha em texto plano (bcryptjs, 10 rounds)
-- [x] Convite tem expiração — **só a função pura** (`engine/convite.ts`, testada com vitest); endpoint de consumo (entrar na sala) é Etapa 4, por decisão
-- [x] 11ª tentativa de login no mesmo minuto pelo mesmo IP → **429** (testado com 15 requisições em sequência)
-
-> Rate limit em **cadastro e login** (os dois compartilham o mesmo contador, 10/min por IP); `GET /auth/me` fica sem limite, porque só valida o token da sessão. Reconferido na Etapa 11: 10 × 401 e a 11ª × 429.
-
-### Etapa 4 — Sala e Membros
-- [x] Sala criada aparece em `GET /salas`
-- [x] 4ª sala do mesmo dono → erro claro (limite de 3) — `400 {"error":"Limite de 3 salas por dono atingido"}`
-- [x] Segundo usuário entra pelo link e vira `jogador` em `MembroSala` — via `POST /salas/entrar`, consome `engine/convite.ts`
-- [x] Dono promove jogador a `mestre` e o papel muda no banco — `PATCH /salas/:id/membros/:membroId`
-- [x] Jogador tentando deletar a sala → **403**
-- [x] Não-membro tentando `GET /salas/:id` → **404** (escolhido em vez de 403, pra não confirmar a existência da sala pra quem não é membro)
-
-> Criador da sala vira `MembroSala` com papel `MESTRE` automaticamente (decisão nova: `donoId` e o papel em `MembroSala` são conceitos separados no schema, mas sem isso o dono nunca teria papel de mestre nas checagens de autorização). `Sala.donoId` não tem cascade delete (protege contra apagar usuário que ainda é dono de sala) — só `Sala → MembroSala/Ficha/Npc/...` casca.
-
-### Etapa 5 — Motor de cálculo
-- [x] `npm test` passa cobrindo **cada classe × ≥ 3 tiers de NEX** (COMBATENTE/ESPECIALISTA/OCULTISTA × NEX 5/50/99, com fórmula real)
-- [x] Bordas cobertas: NEX 5% e NEX 99%
-- [x] Roda **sem banco** (fórmula + habilidades injetadas como parâmetro — `calcularFicha(entrada, tabelaHabilidades, formulas)`)
-- [x] ≥ 3 resultados conferidos manualmente contra o livro — **resolvido em 22/09/2026**: PDF oficial (Ordem Paranormal RPG v1.3) fornecido, dados extraídos direto do texto (Cap. 1, p. 24-25/28-29/32-33). `pv_maximo`/`pe_maximo`/`san_maximo` das 3 classes em NEX 50% conferidos contra a fórmula do livro nos testes. Ainda não conferido contra o C.R.I.S. em si (não usado), mas o livro é a fonte primária aceita pelo critério.
-- [x] Entrada inválida (NEX que não é um dos 20 tiers, negativo, > 99, classe inexistente) → erro tratado, não crash
-
-> **OP2 (Ordem Paranormal RPG II — Playtest Alpha, Ago/2026):** o usuário pediu suporte aos dois sistemas. Investiguei o PDF enviado e **não há fórmula de PV/PD publicada nesse playtest** — as fichas são pré-prontas ("sobreviventes") e o texto diz explicitamente que a ficha de criação completa "será apresentada em um playtest futuro". Por isso não existe (ainda) um motor de cálculo de OP2 equivalente ao de OP1 — seria inventar uma regra que o próprio livro não publicou. O que É concreto e foi implementado: `engine/op2/escalaDados.ts` (a escala de step d4↔d12, com d20 como exceção — mecânica real e testada) e `engine/op2/catalogo.ts` (3 atributos — Físico/Mente/Emoção — e as 20 perícias com atributo-base, extraídos literalmente do PDF). Isso é só fundação de dados; schema/seed/ficha de OP2 **não fazem parte do pipeline de 11 etapas** (que é todo OP1) e ficam pra quando isso for decidido explicitamente.
+Critérios das etapas já fechadas (1–5, 7–9): `docs/ETAPAS.md`. Quando uma etapa fechar, a seção dela vai para lá.
 
 ### Etapa 6 — Ficha (só OP1 — ver nota sobre FichaOP2 abaixo)
 - [x] `POST /salas/:id/fichas` retorna PV/PE/San máximos **já calculados**
@@ -437,37 +250,6 @@ Ao fechar uma etapa: `chore: etapa N concluída — critérios verificados`.
 - [ ] Uma ficha completa criada pela API bate com a mesma montada no C.R.I.S. — **não verificado**: não tenho acesso ao C.R.I.S. pra comparar ao vivo. A fórmula em si já foi conferida contra o livro (Etapa 5); esse item é especificamente sobre bater com a ferramenta C.R.I.S., que fica pendente de alguém rodar manualmente.
 
 > **FichaOP2 ainda não tem CRUD** — só o schema existe (Etapa "multissistema"). Como OP2 não tem motor de cálculo (fichas pré-prontas, sem fórmula), o CRUD dela seria mais simples (sem cálculo, só atribuição direta de pv/pd) mas não foi pedido nesta etapa — Etapa 6 como documentada é só OP1.
-
-### Etapa 7 — NPC e Pastas
-- [x] NPC criado retorna valores idênticos aos inseridos (sem passar pelo motor) — no `POST` e no `GET`
-- [x] Criar pasta → subpasta → mover NPC entre pastas funciona (`PATCH /npcs/:id { pastaId }`)
-- [x] NPC sem `pastaId` aparece na raiz (`GET /salas/:id/biblioteca` sem `pastaId`); NPC dentro de pasta **não** aparece na raiz
-- [x] Comportamento de deletar pasta com conteúdo está **definido e testado**: o conteúdo (NPCs, documentos, mapas, subpastas) **sobe pra pasta-pai**, ou pra raiz se a pasta era de raiz — nada é apagado junto. Testado nos dois casos (pasta aninhada e pasta de raiz).
-- [x] O mesmo NPC vira token em dois mapas sem duplicar o registro — verificado **no modelo de dados** (Prisma direto: 2 mapas, 2 tokens, contagem de NPC inalterada), porque Mapa/Token só ganham endpoints na Etapa 10. Também confirmado: deletar o NPC deixa os tokens no mapa com `npcId = null`.
-
-> Extras testados: mover pasta pra dentro da própria filha → 400 (ciclo); jogador criando NPC ou vendo a biblioteca → 403; não-membro → 404; `pv` negativo → 400; campo do sistema errado (`pd` em sala OP1, `san` em sala OP2) → 400.
-
-### Etapa 8 — Frontend REST
-> Verificado em navegador real (Edge headless via `playwright-core`, rodado de um diretório temporário fora do repo — não é dependência do projeto), 25 asserções + screenshots conferidos visualmente.
-- [x] Login persiste: refresh na página mantém logado (token em `localStorage`, revalidado com `GET /auth/me` no carregamento)
-- [x] Lista de salas renderiza dados reais da API (não mock) — contagem e nome conferidos contra `GET /salas`
-- [x] Ficha renderiza valores vindos do backend — o front não recalcula nada. Botões +/− só **pedem** um novo `*_atual`; a tela exibe o que o `PATCH` devolve (conferido no banco: 23 → 22)
-- [x] Layout bate com as zonas da seção "Layout da tela de mesa" — header, sidebar (6 seções na ordem), faixa de vídeo com badge "Mestre", área do mapa (toolbar, zoom, "Piso 1"), barra de turno recolhida, painel da ficha
-- [x] Login/cadastro/lista testados em 375px **sem scroll horizontal** (`scrollWidth <= innerWidth`)
-- [x] Backend desligado → **mensagem de erro clara**, não tela branca — testado com o backend realmente parado (não só simulado), com botão "Tentar novamente"
-- [x] Operação > 300ms mostra spinner ou skeleton — resposta atrasada em 1,2s mostra o spinner; abaixo de 300ms nada pisca (`useAtrasado`)
-
-> Extras: sessão expirada/token inválido volta pro login; rota protegida sem sessão redireciona pra `/login` e retorna ao destino depois; `ErrorBoundary` na raiz pega erro de render; zero erros inesperados no console. Seções da sidebar além de "Mesa", mapa, rolagem e áudio aparecem como "ainda não disponível" (são das Etapas 9/10) — honesto, não quebrado. **Fichas de OP2 não têm UI** (não há CRUD de `FichaOP2`); a mesa OP2 mostra essa explicação no painel.
-
-### Etapa 9 — Tempo real (testar sempre com duas abas)
-> Verificado com duas abas reais (Edge headless, `playwright-core` em diretório temporário fora do repo): aba do mestre + aba do jogador na mesma mesa, com o script subindo e **reiniciando o backend de verdade** no critério 7.
-- [x] Alterar PV numa aba reflete na outra em < 1s — medido: **90ms**
-- [x] Alterar NEX recalcula os máximos e reflete na outra — NEX 5% → 50% na aba do jogador, aba do mestre mostra PV máximo 59 (20 + Vig 3 + 9×4) em ~120ms
-- [x] Chat e rolagem de dados aparecem nas duas abas (mensagem com `<b>` aparece como texto — não é interpretada)
-- [x] Mestre inicia combate → ordem aparece nas duas → "Encerrar turno" avança (Zumbi 18 → Bianca 12 → rodada 2)
-- [x] "Encerrar turno" por quem não é o jogador ativo nem mestre → rejeitado **pelo servidor** (`403`, testado com cliente socket direto, não só o botão desabilitado)
-- [x] DevTools → Offline → religar: socket reconecta sozinho em < 30s e o estado volta — queda percebida em ~14s (heartbeat), reconectou **1,3s** depois de religar, e um PV alterado enquanto a aba estava offline apareceu após a reconexão
-- [x] Reiniciar o servidor durante combate → cliente avisa estado perdido, sem dados fantasma — as duas abas mostram "Sessão reiniciada — reinicie o combate." e a barra volta a "Nenhum combate em andamento", sem fila residual
 
 ### Etapa 10 — Mapa, tokens e webcam
 > Verificado em navegador real (Edge headless via `playwright-core`, diretório temporário fora do repo): 18 asserções de mapa/tokens e 14 de vídeo, com câmera falsa do Chromium. Confiabilidade da conexão inicial de vídeo medida em teste de estresse (as duas abas ligando a câmera ao mesmo tempo): **30/30** rodadas, vídeo em 0,2–1,1s.
@@ -486,7 +268,7 @@ Ao fechar uma etapa: `chore: etapa N concluída — critérios verificados`.
 - [x] **Todas** as ações destrutivas com confirmação — inventário rotas DELETE × telas: apagar entrada da ficha, remover token, remover mapa, apagar NPC, expulsar, banir, encerrar combate e **apagar mesa** (faltava tela; criada na aba Membros, avisa quem está na mesa e apaga as imagens dos mapas do disco). Apagar pasta não tem tela (Biblioteca fora da v1); apagar ficha ganhou rota e tela ("Apagar agente", com confirmação) em 21/10/2026
 - [x] 6 conexões WebSocket simultâneas numa sala sem degradação — 6/6 conectadas; chat p95 16 ms, rolagem p95 3 ms, token p95 9 ms (100 amostras cada)
 - [x] Fluxo principal (login → sala → ficha → combate → mapa) **sem erro no console** — pela interface, no build de produção: login, criar mesa, criar ficha, ajustar Vida, enviar mapa e mostrar, iniciar combate, encerrar turno, chat — zero erros
-- [ ] Tabela de requisitos não funcionais percorrida item a item — percorrida (RNF01–RNF18 em `docs/REQUISITOS.md`); **não fecha** porque RNF05 (Firefox/Safari não testados), RNF10 (não existe upload de avatar) e RNF17 (sem auditoria com leitor de tela) seguem abertos
+- [ ] Tabela de requisitos não funcionais percorrida item a item — percorrida (RNF01–RNF18 em `docs/REQUISITOS.md`); **não fecha** porque RNF05 (Firefox testado em 04/11/2026 sem o vídeo — nesta máquina o Firefox não reúne candidatos ICE nem numa página em branco; Safari não testado), RNF10 (não existe upload de avatar) e RNF17 (sem auditoria com leitor de tela) seguem abertos
 - [ ] **Hederson reescreve os textos da landing** (`frontend/src/pages/Apresentacao/Apresentacao.tsx`: título, etapas, "Por que existe", "Para quem", fechamento) com as próprias palavras — a primeira versão foi escrita por IA e a Licença da Comunidade proíbe material gerado por IA em conteúdo comercial. Adiado a pedido dele em 29/09/2026; **lembrar antes de qualquer lançamento.**
 
 ---
@@ -532,21 +314,9 @@ curl http://localhost:3333/health
 
 ---
 
-## Variáveis de ambiente (`backend/.env`)
-
-```
-DATABASE_URL="postgresql://rpg_user:rpg_pass@localhost:5433/rpg_online?schema=public"
-JWT_SECRET="<valor secreto>"
-PORT=3333
-```
-
-**Porta 5433, não 5432** — há um Postgres nativo do Windows (fora do Docker, de outra origem) ocupando a 5432 nesta máquina, e ele não pode ser encerrado sem privilégio de admin. `docker-compose.yml` mapeia `5433:5432` para não colidir. Se o Postgres nativo for removido/desligado no futuro, dá pra voltar pra 5432 — não é uma decisão de arquitetura, é workaround de ambiente.
-
----
-
 ## Como o Hederson trabalha
 
 - Quer entender o **porquê** antes (ou junto) de executar — explicação precede o comando.
 - Instruções precisas e sem ambiguidade; ele pega ambiguidade antes de agir.
-- Toda decisão nova relevante volta para este arquivo e para o handoff no Project.
+- Toda decisão nova relevante volta para o CLAUDE.md certo (este, se vale para o projeto todo; o de `backend/` ou `frontend/`, se só vale ali) e para o handoff no Project.
 - **Nunca marque uma etapa como concluída sem rodar os critérios.** Ele vai perguntar "como você sabe que terminou?" — tenha a resposta verificável.
