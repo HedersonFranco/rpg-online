@@ -74,14 +74,14 @@ export const LIMITE_TERMOS = 10
 export const LIMITE_DADOS_EXPRESSAO = 50
 const TERMO = /^(\d*)d(\d+)$|^(\d+)$/
 
-export type GrupoRolado = { sinal: 1 | -1; quantidade: number; faces: number; dados: number[] }
+export type GrupoDeDados = { sinal: 1 | -1; quantidade: number; faces: number }
+export type ExpressaoLida = { grupos: GrupoDeDados[]; modificador: number }
+export type GrupoRolado = GrupoDeDados & { dados: number[] }
 
 export type ResultadoExpressao = Omit<ResultadoRolagem, 'quantidade' | 'faces'> & { grupos: GrupoRolado[] }
 
-export function rolarExpressao(
-  texto: unknown,
-  aleatorio: (faces: number) => number = (faces) => randomInt(1, faces + 1),
-): ResultadoExpressao {
+// Lê e valida sem rolar — serve também para conferir o dano de uma arma ao salvar.
+export function lerExpressao(texto: unknown): ExpressaoLida {
   if (typeof texto !== 'string' || !texto.trim()) throw new PedidoRolagemInvalido('Escreva uma expressão, como 2d6+3')
   const limpo = texto.toLowerCase().replace(/\s+/g, '')
   if (limpo.length > 60) throw new PedidoRolagemInvalido('Expressão longa demais')
@@ -90,7 +90,7 @@ export function rolarExpressao(
   if (!pedacos || pedacos.join('') !== limpo) throw new PedidoRolagemInvalido('Expressão inválida — use algo como 2d6+1d8+3')
   if (pedacos.length > LIMITE_TERMOS) throw new PedidoRolagemInvalido(`Use no máximo ${LIMITE_TERMOS} termos`)
 
-  const grupos: GrupoRolado[] = []
+  const grupos: GrupoDeDados[] = []
   let modificador = 0
   let totalDados = 0
   for (const pedaco of pedacos) {
@@ -110,12 +110,27 @@ export function rolarExpressao(
     }
     totalDados += quantidade
     if (totalDados > LIMITE_DADOS_EXPRESSAO) throw new PedidoRolagemInvalido(`Use no máximo ${LIMITE_DADOS_EXPRESSAO} dados`)
-    grupos.push({ sinal, quantidade, faces, dados: [] })
+    grupos.push({ sinal, quantidade, faces })
   }
   if (grupos.length === 0) throw new PedidoRolagemInvalido('A expressão precisa de pelo menos um dado')
   if (Math.abs(modificador) > 100) throw new PedidoRolagemInvalido('Modificador deve ficar entre -100 e 100')
+  return { grupos, modificador }
+}
 
-  for (const g of grupos) g.dados = Array.from({ length: g.quantidade }, () => aleatorio(g.faces))
+// De volta ao texto, do jeito que se digita: "2d8+1d6+2".
+export function escreverExpressao({ grupos, modificador }: ExpressaoLida): string {
+  const partes = grupos.map((g, i) => `${g.sinal < 0 ? '-' : i === 0 ? '' : '+'}${g.quantidade}d${g.faces}`)
+  if (modificador !== 0) partes.push(modificador > 0 ? `+${modificador}` : `${modificador}`)
+  return partes.join('')
+}
+
+export function rolarExpressao(
+  texto: unknown,
+  aleatorio: (faces: number) => number = (faces) => randomInt(1, faces + 1),
+): ResultadoExpressao {
+  const lida = lerExpressao(texto)
+  const modificador = lida.modificador
+  const grupos: GrupoRolado[] = lida.grupos.map((g) => ({ ...g, dados: Array.from({ length: g.quantidade }, () => aleatorio(g.faces)) }))
   const total = grupos.reduce((s, g) => s + g.sinal * g.dados.reduce((a, b) => a + b, 0), 0) + modificador
   const juntar = (partes: string[]) => partes.map((p, i) => (i === 0 ? p.replace(/^\+ /, '') : p)).join(' ')
   const sufixoMod = modificador === 0 ? [] : [modificador > 0 ? `+ ${modificador}` : `- ${-modificador}`]

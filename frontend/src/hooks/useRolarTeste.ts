@@ -3,7 +3,13 @@ import { mensagemDeErro } from '../services/api'
 import type { AtributoOP1, Rolagem } from '../services/tipos'
 import { useSalaSocket } from './useSocket'
 
-export type AlvoTeste = { tipo: 'pericia'; nome: string } | { tipo: 'atributo'; nome: AtributoOP1 }
+export type AlvoTeste =
+  | { tipo: 'pericia'; nome: string }
+  | { tipo: 'atributo'; nome: AtributoOP1 }
+  | { tipo: 'ataque' | 'dano' | 'critico'; entradaId: string }
+
+// Qual botão está rolando: "pericia:Luta", "ataque:<id da arma>".
+export const chaveDoAlvo = (alvo: AlvoTeste) => `${alvo.tipo}:${'nome' in alvo ? alvo.nome : alvo.entradaId}`
 
 // Rolar da ficha: o cliente diz só QUAL teste — o servidor monta os dados e o bônus a partir da
 // ficha no banco e manda o resultado pra mesa inteira (chat). `ultima` é o bilhete que a ficha mostra,
@@ -16,7 +22,7 @@ export function useRolarTeste(fichaId: string) {
 
   async function rolarTeste(alvo: AlvoTeste) {
     setErro(null)
-    setRolando(`${alvo.tipo}:${alvo.nome}`)
+    setRolando(chaveDoAlvo(alvo))
     try {
       const { rolagem } = await emitir<{ rolagem: Rolagem }>('rolagem:teste', { fichaId, ...alvo, avisar: avisarRolagem })
       setUltima(rolagem)

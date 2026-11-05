@@ -199,12 +199,14 @@ export function VisaoFicha({
           classeAba={(ativa, chave) => `${classeAbaFolha(ativa)}${chave === 'favoritos' ? ' col-span-full' : ''}`}
           classeLista="grid grid-cols-2 gap-1.5 @min-[18.5rem]:grid-cols-3" />
         <div role="tabpanel" id={`ficha-${ficha.id}-painel`} aria-labelledby={`ficha-${ficha.id}-aba-${aba}`} className="pt-4 text-sm">
-          {aba === 'favoritos' && <AbaFavoritos ficha={ficha} podeEditar={podeEditar} onAtualizada={onAtualizada} />}
+          {aba === 'favoritos' && <AbaFavoritos ficha={ficha} podeEditar={podeEditar} onAtualizada={onAtualizada}
+            onRolar={rolar} rolando={teste.rolando} />}
           {aba === 'pericias' && <AbaPericias ficha={ficha} podeEditar={podeEditar} onAtualizada={onAtualizada}
             onRolar={rolar && ((nome) => rolar({ tipo: 'pericia', nome }))} rolando={teste.rolando} />}
           {aba === 'HABILIDADE' && <HabilidadesDeClasse ficha={ficha} />}
           {TIPOS_ENTRADA.includes(aba) && (
-            <AbaEntradas key={aba} ficha={ficha} tipo={aba as TipoEntrada} podeEditar={podeEditar} onAtualizada={onAtualizada} />
+            <AbaEntradas key={aba} ficha={ficha} tipo={aba as TipoEntrada} podeEditar={podeEditar} onAtualizada={onAtualizada}
+              onRolar={rolar} rolando={teste.rolando} />
           )}
           {aba === 'inventario' && <AbaInventario ficha={ficha} podeEditar={podeEditar} onAtualizada={onAtualizada} />}
         </div>

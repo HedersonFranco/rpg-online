@@ -68,6 +68,15 @@ enum ElementoRitual {
   VARIA
 }
 
+// Tipo da arma (livro v1.3, p. 54): decide a perícia do ataque (corpo a corpo → Luta; o resto → Pontaria)
+// e se a Força soma no dano (corpo a corpo e arremesso).
+enum TipoArma {
+  CORPO_A_CORPO
+  ARREMESSO
+  DISPARO
+  FOGO
+}
+
 // Ordem Paranormal RPG II (Playtest Alpha) — perfil psicológico do
 // personagem, um dos dois "pilares" da ficha (o outro é a ocupação, que é
 // texto livre no playtest, sem catálogo fechado ainda).
@@ -423,6 +432,14 @@ model FichaEntrada {
   preRequisito String? // PODER
   categoria    Int? // EQUIPAMENTO: 0 a 4 (0, I, II, III, IV)
   espacos      Int? // EQUIPAMENTO
+
+  // EQUIPAMENTO que é arma (null = não é). Valores efetivos: poder ou modificação, o jogador ajusta aqui.
+  tipoArma             TipoArma?
+  dano                 String? // dados da arma + bônus fixo, sem a Força: "1d8", "1d8+2"
+  danoExtra            String? // dados que não multiplicam no crítico: "1d6"
+  bonusAtaque          Int?
+  margemAmeaca         Int? // 2 a 20
+  multiplicadorCritico Int? // 2 a 10
 
   // Aba Favoritos da ficha: atalho para o que o jogador mais usa (vale para todos os tipos).
   favorito Boolean @default(false)

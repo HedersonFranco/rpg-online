@@ -99,6 +99,25 @@ export type EntradaFicha = {
   categoria: number | null
   espacos: number | null
   favorito: boolean
+  // Equipamento que é arma (tipoArma null = não é). Valores efetivos, ajustados pelo jogador.
+  tipoArma: TipoArma | null
+  dano: string | null
+  danoExtra: string | null
+  bonusAtaque: number | null
+  margemAmeaca: number | null
+  multiplicadorCritico: number | null
+  // Calculado no servidor: o teste de ataque e os textos de dano e crítico. A tela só exibe.
+  arma: ArmaCalculada | null
+}
+
+export type TipoArma = 'CORPO_A_CORPO' | 'ARREMESSO' | 'DISPARO' | 'FOGO'
+
+export type ArmaCalculada = {
+  pericia: 'Luta' | 'Pontaria'
+  ataque: { quantidade: number; modificador: number; modo: 'maior' | 'menor' }
+  dano: string // "1d8+2"
+  danoCritico: string // "3d8+2"
+  critico: string // "19/x3"
 }
 
 export type Mensagem = {
@@ -117,6 +136,8 @@ export type Rolagem = {
   teste?: { sigla: string; atributo: string | null; ficha: string; d20: number; bonus: number }
   // Rolagem do mestre: só os mestres recebem (o servidor não manda para os jogadores).
   secreta?: true
+  // Ataque com arma: o d20 que valeu atingiu a margem — se acertar, é crítico.
+  ameacaCritico?: true
   expressao: string
   dados: number[]
   // Dados de cada grupo + modificador, formatados no servidor: "[3, 5] + [7] + 3".
@@ -230,3 +251,10 @@ export const BONUS_NIVEL_TREINO: Record<NivelTreino, string> = {
 
 // Categoria de equipamento no livro: 0, I, II, III, IV.
 export const CATEGORIAS_EQUIPAMENTO = ['0', 'I', 'II', 'III', 'IV'] as const
+
+export const NOME_TIPO_ARMA: Record<TipoArma, string> = {
+  CORPO_A_CORPO: 'Corpo a corpo',
+  ARREMESSO: 'Arremesso',
+  DISPARO: 'Disparo',
+  FOGO: 'Fogo',
+}

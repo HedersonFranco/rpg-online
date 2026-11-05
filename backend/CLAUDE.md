@@ -88,7 +88,8 @@ backend/
     │   ├── progressaoClasse.ts   ← só OP1
     │   ├── convite.ts
     │   ├── combate.ts            ← ordem de iniciativa, avançar turno, quem pode encerrar
-    │   ├── rolagem.ts            ← rolagem no servidor (soma/maior/menor)
+    │   ├── rolagem.ts            ← rolagem no servidor (soma/maior/menor); lerExpressao() valida sem rolar
+    │   ├── arma.ts               ← ataque, dano e crítico da arma da ficha (só OP1)
     │   └── op2/
     │       ├── escalaDados.ts    ← step d4-d12
     │       └── catalogo.ts       ← atributos + perícias de OP2
