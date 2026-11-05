@@ -1,6 +1,7 @@
 import { prisma, semIndefinidos } from '../../lib/prisma.js'
 import { AppError } from '../../errors/AppError.js'
 import { garantirMestre } from '../sala/sala.service.js'
+import { criarNoLimite, LIMITES } from '../../lib/limites.js'
 
 async function buscarPastaComoMestre(pastaId: string, usuarioId: string) {
   const pasta = await prisma.pasta.findUnique({ where: { id: pastaId } })
@@ -42,7 +43,9 @@ export async function criarPasta(usuarioId: string, salaId: string, nome: string
     await validarPastaDaSala(paiId, salaId)
   }
 
-  return prisma.pasta.create({ data: { salaId, nome: nome.trim(), paiId: paiId ?? null } })
+  return criarNoLimite(salaId, LIMITES.pastasPorMesa, `Esta mesa já tem ${LIMITES.pastasPorMesa} pastas, o máximo.`,
+    (tx) => tx.pasta.count({ where: { salaId } }),
+    (tx) => tx.pasta.create({ data: { salaId, nome: nome.trim(), paiId: paiId ?? null } }))
 }
 
 // paiId: undefined = não mexe; null = move pra raiz; string = move pra essa pasta.

@@ -1,10 +1,8 @@
 import type { NextFunction, Request, Response } from 'express'
-import { buscarSalaOuFalhar } from '../sala/sala.service.js'
 import * as montariaService from './montaria.service.js'
 
-// Antes do upload: só membro da mesa chega a mandar o arquivo para a memória do servidor.
-export async function exigirMembro(req: Request<{ id: string }>, _res: Response, next: NextFunction) {
-  await buscarSalaOuFalhar(req.params.id, req.usuarioId!)
+export async function antesDoUploadDeMontaria(req: Request<{ id: string }>, _res: Response, next: NextFunction) {
+  await montariaService.garantirPodeEnviarMontaria(req.usuarioId!, req.params.id)
   next()
 }
 

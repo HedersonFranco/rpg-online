@@ -3,6 +3,8 @@ import { AppError } from '../../errors/AppError.js'
 import { detectarTipoImagem, removerArquivo, salvarArquivo } from '../../lib/armazenamento.js'
 import { buscarSalaOuFalhar, garantirMestre } from '../sala/sala.service.js'
 import { emitirParaSala } from '../../sockets/emissor.js'
+import { criarNoLimite, garantirVaga, LIMITES } from '../../lib/limites.js'
+import type { Prisma } from '../../generated/prisma/client.js'
 
 // O que vai pro token é público pra mesa toda: da ficha, nome e PV (fichas já
 // são visíveis a todos os membros); do NPC, só nome e avatar — as estatísticas
@@ -40,6 +42,15 @@ async function estadoDoMapa(mapaId: string | null) {
   return { mapa, tokens }
 }
 
+const LIMITE_MAPAS = `Esta mesa já tem ${LIMITES.mapasPorMesa} mapas, o máximo. Apague um mapa para enviar outro.`
+const LIMITE_TOKENS = `Este mapa já tem ${LIMITES.tokensPorMapa} tokens, o máximo. Tire um do mapa para pôr outro.`
+
+// Antes do upload: quem não é mestre, ou a mesa já no limite, nem chega a mandar os 10MB para a memória.
+export async function garantirPodeEnviarMapa(usuarioId: string, salaId: string) {
+  await garantirMestre(salaId, usuarioId)
+  garantirVaga(await prisma.mapa.count({ where: { salaId } }), LIMITES.mapasPorMesa, LIMITE_MAPAS)
+}
+
 export async function criarMapa(usuarioId: string, salaId: string, nome: unknown, arquivo?: Express.Multer.File) {
   await garantirMestre(salaId, usuarioId)
   if (typeof nome !== 'string' || !nome.trim()) throw new AppError('Nome do mapa é obrigatório', 400)
@@ -48,8 +59,16 @@ export async function criarMapa(usuarioId: string, salaId: string, nome: unknown
   const tipo = detectarTipoImagem(arquivo.buffer)
   if (!tipo) throw new AppError('Formato não suportado — envie PNG, JPG ou WebP', 400)
 
-  const imagemUrl = await salvarArquivo(arquivo.buffer, tipo)
-  return prisma.mapa.create({ data: { salaId, nome: nome.trim(), imagemUrl } })
+  return criarNoLimite(salaId, LIMITES.mapasPorMesa, LIMITE_MAPAS,
+    (tx) => tx.mapa.count({ where: { salaId } }),
+    async (tx) => tx.mapa.create({ data: { salaId, nome: nome.trim(), imagemUrl: await salvarArquivo(arquivo.buffer, tipo) } }))
+}
+
+// Montaria conta junto com os outros tokens: é a quantidade no mapa que pesa ao arrastar.
+export function criarTokenNoMapa(mapaId: string, dados: Omit<Prisma.TokenUncheckedCreateInput, 'mapaId'>) {
+  return criarNoLimite(mapaId, LIMITES.tokensPorMapa, LIMITE_TOKENS,
+    (tx) => tx.token.count({ where: { mapaId } }),
+    (tx) => tx.token.create({ data: { ...dados, mapaId }, include: INCLUIR_DADOS_TOKEN }))
 }
 
 // Lista completa é material de preparo do mestre (pode ter spoiler) — jogador só vê o mapa ativo.
@@ -103,16 +122,12 @@ export async function criarToken(
     throw new AppError('Objeto sem ficha nem NPC precisa de um nome', 400)
   }
 
-  const token = await prisma.token.create({
-    data: {
-      mapaId,
-      fichaId: typeof dados.fichaId === 'string' ? dados.fichaId : null,
-      npcId: typeof dados.npcId === 'string' ? dados.npcId : null,
-      nome: typeof dados.nome === 'string' && dados.nome.trim() ? dados.nome.trim() : null,
-      x: dados.x,
-      y: dados.y,
-    },
-    include: INCLUIR_DADOS_TOKEN,
+  const token = await criarTokenNoMapa(mapaId, {
+    fichaId: typeof dados.fichaId === 'string' ? dados.fichaId : null,
+    npcId: typeof dados.npcId === 'string' ? dados.npcId : null,
+    nome: typeof dados.nome === 'string' && dados.nome.trim() ? dados.nome.trim() : null,
+    x: dados.x,
+    y: dados.y,
   })
   emitirParaSala(mapa.salaId, 'token:criado', { token })
   return token

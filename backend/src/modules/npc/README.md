@@ -18,6 +18,7 @@ Quem não é mestre recebe `403`; não-membro, `404` (via `garantirMestre`).
 
 ## Regras
 
+- **Limite (05/11/2026):** 200 NPCs por mesa (`criarNoLimite`); acima → `400`.
 - Leitura e escrita exigem papel `MESTRE` na sala do NPC.
 - `nome` obrigatório na criação; no PATCH, se enviado, não pode ser vazio.
 - Estatísticas por sistema da sala:

@@ -8,6 +8,7 @@ import { lerExpressao, PedidoRolagemInvalido } from '../../engine/rolagem.js'
 import { PERICIAS_OP1 } from '../../engine/pericias.js'
 import { habilidadesAcumuladas, motivoClasseNexInvalidos, type ProgressaoClasseEntry } from '../../engine/progressaoClasse.js'
 import { emitirParaSala } from '../../sockets/emissor.js'
+import { criarNoLimite, LIMITES } from '../../lib/limites.js'
 
 type DadosFicha = {
   nome: string
@@ -170,7 +171,10 @@ export async function criarFicha(usuarioId: string, salaId: string, dados: Dados
   const { formulas, habilidades } = await carregarTabelasDeCalculo(dados.classe)
   const resultado = calcularFicha({ classe: dados.classe, nex, atributos }, habilidades, formulas)
 
-  const ficha = await prisma.ficha.create({
+  const ficha = await criarNoLimite(salaId, LIMITES.fichasPorMesa,
+    `Esta mesa já tem ${LIMITES.fichasPorMesa} agentes, o máximo. Apague um agente para criar outro.`,
+    (tx) => tx.ficha.count({ where: { salaId } }),
+    (tx) => tx.ficha.create({
     data: {
       usuario_id: usuarioId,
       salaId,
@@ -194,7 +198,7 @@ export async function criarFicha(usuarioId: string, salaId: string, dados: Dados
       avatarUrl: dados.avatarUrl ?? null,
     },
     include: INCLUIR_PERICIAS,
-  })
+  }))
 
   return { ficha: await emitirFicha(ficha), habilidadesDesbloqueadas: resultado.habilidadesDesbloqueadas }
 }
@@ -596,7 +600,11 @@ export async function criarEntrada(fichaId: string, usuarioId: string, dados: Da
   validarEntrada(tipo, completos)
   const gravaveis = camposGravaveis(tipo, completos)
   validarRolagensDaArma(ficha, gravaveis)
-  await prisma.fichaEntrada.create({ data: { fichaId, tipo: tipo as never, ...gravaveis } })
+  // A ficha inteira vai para a mesa a cada mudança: 100 entradas no tamanho máximo já são ~440 KB por clique.
+  await criarNoLimite(fichaId, LIMITES.entradasPorFicha,
+    `Esta ficha já tem ${LIMITES.entradasPorFicha} rituais, habilidades, poderes e equipamentos somados, o máximo. Apague um para cadastrar outro.`,
+    (tx) => tx.fichaEntrada.count({ where: { fichaId } }),
+    (tx) => tx.fichaEntrada.create({ data: { fichaId, tipo: tipo as never, ...gravaveis } }))
   return { ficha: await emitirFicha((await carregarFicha(fichaId))!) }
 }
 

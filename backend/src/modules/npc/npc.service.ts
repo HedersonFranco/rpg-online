@@ -3,6 +3,7 @@ import { AppError } from '../../errors/AppError.js'
 import { ehArquivoEnviado } from '../../lib/armazenamento.js'
 import { garantirMestre } from '../sala/sala.service.js'
 import { validarPastaDaSala } from '../pasta/pasta.service.js'
+import { criarNoLimite, LIMITES } from '../../lib/limites.js'
 
 type DadosNpc = {
   nome?: string
@@ -56,19 +57,23 @@ export async function criarNpc(usuarioId: string, salaId: string, dados: DadosNp
     await validarPastaDaSala(dados.pastaId, salaId)
   }
 
-  return prisma.npc.create({
-    data: {
-      salaId,
-      nome: dados.nome.trim(),
-      pv: dados.pv ?? null,
-      pe: dados.pe ?? null,
-      san: dados.san ?? null,
-      pd: dados.pd ?? null,
-      atributos: dados.atributos ?? null,
-      avatarUrl: dados.avatarUrl ?? null,
-      pastaId: dados.pastaId ?? null,
-    },
-  })
+  const nome = dados.nome.trim()
+  return criarNoLimite(salaId, LIMITES.npcsPorMesa,
+    `Esta mesa já tem ${LIMITES.npcsPorMesa} NPCs, o máximo. Apague um NPC para criar outro.`,
+    (tx) => tx.npc.count({ where: { salaId } }),
+    (tx) => tx.npc.create({
+      data: {
+        salaId,
+        nome,
+        pv: dados.pv ?? null,
+        pe: dados.pe ?? null,
+        san: dados.san ?? null,
+        pd: dados.pd ?? null,
+        atributos: dados.atributos ?? null,
+        avatarUrl: dados.avatarUrl ?? null,
+        pastaId: dados.pastaId ?? null,
+      },
+    }))
 }
 
 // Todos os NPCs da sala, sem olhar pasta — pra montar o combate.
