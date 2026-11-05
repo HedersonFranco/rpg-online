@@ -47,6 +47,25 @@ Notas de cada lado (TS 7 × TS 6, Prisma 7, Express 5, ESLint, Tailwind v4, rote
 - Convite via link com expiração de 7 dias, nunca permanente.
 - **Só o dono vê o convite (decisão de 29/09/2026):** `conviteToken`/`conviteExpiraEm` só saem na API para o dono (`ocultarConvite()` em `engine/convite.ts`, aplicado em `GET /salas`, `GET /salas/:id` e `POST /salas/entrar`); para os demais membros vêm `null`. Antes, qualquer jogador lia o link na aba Rede e convidava sem o dono saber.
 
+### Limites por mesa (decisão de 05/11/2026)
+Escolhidos medindo: mesa de teste com N itens, API local e build de produção no navegador, num Ryzen 5 5500U (notebook mediano). Constantes em `backend/src/lib/limites.ts`; acima do limite → `400` com mensagem que diz o que apagar (a tela já mostra, ex.: formulário de Mapas).
+
+| Item | Limite | O que pesou na escolha |
+|---|---|---|
+| Mapas | 10 por mesa | Disco: até 10MB cada (100MB por mesa, 300MB por dono). A lista de Mapas baixa cada imagem inteira. |
+| Tokens | 100 por mapa (montaria conta) | Arrastar refaz o mapa a cada movimento: 80 tokens = 4,5 ms (p90), 160 = 4,9 ms, 320 = 9,8 ms com picos de 20 ms (passa do quadro de 16,7 ms). 100 deixa folga para máquina 2–3× mais lenta. |
+| Agentes | 40 por mesa | A mesa baixa todas as fichas ao abrir: 40 com 15 entradas = 774 KB (0,6 s a 10 Mbps); 80 = 1,5 MB. |
+| Entradas | 100 por ficha (os 4 tipos somados) | A ficha inteira vai para a mesa a cada clique: 100 entradas no tamanho máximo = 438 KB (+1 Vida em 102 ms local); 400 = 1,7 MB (208 ms local, +1,4 s a 10 Mbps). |
+| NPCs | 200 por mesa | Só o mestre lista: 200 com bloco de 800 caracteres = 209 KB, 23 ms. |
+| Montarias | 20 por mesa | Imagens de até 2MB que todos baixam na aba. |
+| Pastas | 100 por mesa | Sem tela; só contra abuso. |
+
+- **Sem furo por pedidos simultâneos:** contar e criar ficam numa transação com trava do Postgres por mesa/mapa/ficha (`criarNoLimite`) — 16 envios de mapa ao mesmo tempo → exatamente 10. O "3 mesas por dono" também furava assim; passou a usar a mesma trava.
+- **Mapa e montaria conferem permissão e vaga antes do upload:** quem não pode, ou a mesa cheia, não chega a mandar o arquivo à memória do servidor. O upload de mapa também limita campos e partes, como o de montaria.
+- Mesa que já passou de um limite (criada antes dele) fica como está; só não cria mais.
+- **Índices por mesa** (migration `indices_por_mesa`): a contagem do limite não varre a tabela, e o histórico do chat com 200 mil mensagens no banco caiu de 386 ms para 20 ms (p90).
+- Sem limite: mensagens do chat (só as 50 últimas aparecem) e participantes (os 6 dos requisitos são meta de carga, não trava). `Documento` não tem tela.
+
 ### Fichas
 - Um usuário pode ter mais de uma ficha, inclusive na mesma sala.
 - Criação livre — jogador escolhe tudo sem aprovação prévia do mestre.

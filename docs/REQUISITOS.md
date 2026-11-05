@@ -100,6 +100,7 @@ visual em [`DESIGN.md`](../DESIGN.md), decisões em [`CLAUDE.md`](../CLAUDE.md) 
 | RN12 | A rolagem não é gravada; só a última de cada mesa fica em memória. O chat é gravado (até 1000 caracteres). |
 | RN13 | Toda ação destrutiva pede confirmação. |
 | RN14 | A rolagem do mestre é secreta: só os mestres a recebem (e ela não fica como a última da mesa). Com o aviso ligado, os jogadores veem só uma frase, sem resultado. As rolagens dos jogadores e a Iniciativa que o mestre rola para as fichas deles são abertas para todos. |
+| RN15 | Limites por mesa (05/11/2026, escolhidos medindo): 10 mapas, 100 tokens por mapa, 40 agentes, 100 entradas por ficha, 200 NPCs, 20 montarias, 100 pastas. Acima do limite, o pedido é recusado com mensagem que diz o que apagar; pedidos simultâneos não passam do limite. Números e medições no CLAUDE.md, "Limites por mesa". |
 
 ---
 
