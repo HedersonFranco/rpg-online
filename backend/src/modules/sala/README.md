@@ -22,7 +22,7 @@ Montado em `/salas` (`server.ts`); todas exigem autenticação. `sala.routes.ts`
 ## Regras
 
 - `sistema` obrigatório: `ORDEM_PARANORMAL_1` ou `ORDEM_PARANORMAL_2`.
-- Limite de 3 salas por dono (`LIMITE_SALAS_POR_DONO`); não há limite como participante.
+- Limite de 3 salas por dono (`LIMITE_SALAS_POR_DONO`), contado e criado numa transação com trava por dono (`criarNoLimite`, desde 05/11/2026 — antes, pedidos simultâneos passavam do limite); não há limite como participante.
 - Não-membro recebe `404`, não `403`, para não confirmar que a sala existe. O dono conta como membro mesmo sem linha em `MembroSala`.
 - `garantirMestre()`: membro sem papel `MESTRE` recebe `403`.
 - Convite gerado por `engine/convite.ts` com validade de 7 dias; um convite ativo por vez (`conviteToken`/`conviteExpiraEm` em `Sala`).
