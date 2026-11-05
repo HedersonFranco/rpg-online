@@ -70,6 +70,10 @@ export function VisaoFicha({
   // Rolar perícia/atributo: só quem pode editar a ficha (o servidor confere a mesma regra).
   const teste = useRolarTeste(ficha.id)
   const rolar = podeEditar ? teste.rolarTeste : undefined
+  // Rolagem de arma: o bilhete fica embaixo dos botões da arma; o resto continua no pé da ficha.
+  const naArma = teste.entradaDaUltima
+    ? { entradaId: teste.entradaDaUltima, rolagem: teste.ultima, erro: teste.erro, dispensar: teste.dispensar }
+    : null
 
   async function enviar(campo: Recurso | 'nex' | 'defesa', corpo: Record<string, number>) {
     setErro(null)
@@ -200,18 +204,18 @@ export function VisaoFicha({
           classeLista="grid grid-cols-2 gap-1.5 @min-[18.5rem]:grid-cols-3" />
         <div role="tabpanel" id={`ficha-${ficha.id}-painel`} aria-labelledby={`ficha-${ficha.id}-aba-${aba}`} className="pt-4 text-sm">
           {aba === 'favoritos' && <AbaFavoritos ficha={ficha} podeEditar={podeEditar} onAtualizada={onAtualizada}
-            onRolar={rolar} rolando={teste.rolando} />}
+            onRolar={rolar} rolando={teste.rolando} naArma={naArma} />}
           {aba === 'pericias' && <AbaPericias ficha={ficha} podeEditar={podeEditar} onAtualizada={onAtualizada}
             onRolar={rolar && ((nome) => rolar({ tipo: 'pericia', nome }))} rolando={teste.rolando} />}
           {aba === 'HABILIDADE' && <HabilidadesDeClasse ficha={ficha} />}
           {TIPOS_ENTRADA.includes(aba) && (
             <AbaEntradas key={aba} ficha={ficha} tipo={aba as TipoEntrada} podeEditar={podeEditar} onAtualizada={onAtualizada}
-              onRolar={rolar} rolando={teste.rolando} />
+              onRolar={rolar} rolando={teste.rolando} naArma={naArma} />
           )}
           {aba === 'inventario' && <AbaInventario ficha={ficha} podeEditar={podeEditar} onAtualizada={onAtualizada} />}
         </div>
       </div>
-      {(teste.ultima || teste.erro) && (
+      {(teste.ultima || teste.erro) && !naArma && (
         // Fica grudado no pé do painel enquanto se rola a lista: o resultado aparece onde a pessoa está.
         <div className="sticky bottom-2 z-10" aria-live="polite">
           {teste.erro ? <Alerta tom="papel" mensagem={teste.erro} /> : teste.ultima && <BilheteRolagem rolagem={teste.ultima} onFechar={teste.dispensar} />}

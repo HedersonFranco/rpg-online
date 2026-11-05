@@ -1,6 +1,7 @@
-import { useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { useAtrasado } from '../../hooks/useAtrasado'
-import { chaveDoAlvo, type AlvoTeste } from '../../hooks/useRolarTeste'
+import { chaveDoAlvo, type AlvoTeste, type ResultadoNaArma } from '../../hooks/useRolarTeste'
+import { BilheteRolagem } from '../Chat/BilheteRolagem'
 import { api, mensagemDeErro } from '../../services/api'
 import {
   CATEGORIAS_EQUIPAMENTO,
@@ -273,6 +274,7 @@ export function AbaEntradas({
   onAtualizada,
   onRolar,
   rolando = null,
+  naArma = null,
 }: {
   ficha: Ficha
   tipo: TipoEntrada
@@ -281,6 +283,7 @@ export function AbaEntradas({
   // Sem onRolar (quem não pode editar a ficha), os valores da arma aparecem só como texto.
   onRolar?: (alvo: AlvoTeste) => void
   rolando?: string | null
+  naArma?: ResultadoNaArma | null
 }) {
   // 'nova' = formulário de criação aberto; id = editando aquela entrada.
   const [editando, setEditando] = useState<string | null>(null)
@@ -338,7 +341,7 @@ export function AbaEntradas({
               </li>
             ) : (
               <li key={entrada.id} className="py-3">
-                <CartaoEntrada entrada={entrada} onRolar={onRolar} rolando={rolando} acoes={podeEditar && (
+                <CartaoEntrada entrada={entrada} onRolar={onRolar} rolando={rolando} naArma={naArma} acoes={podeEditar && (
                   <>
                     <BotaoFavorito fichaId={ficha.id} entrada={entrada} onAtualizada={onAtualizada} onErro={setErro} />
                     <button type="button" onClick={() => setEditando(entrada.id)} disabled={removendo !== null}
@@ -365,11 +368,12 @@ const classeAcaoEntrada =
   'focus-visible:outline-2 focus-visible:outline-tinta-900 disabled:opacity-40'
 
 // Uma entrada da ficha: nome, detalhes do tipo e descrição; `acoes` fica à direita do nome. Arma: os três botões.
-function CartaoEntrada({ entrada, acoes, onRolar, rolando }: {
+function CartaoEntrada({ entrada, acoes, onRolar, rolando, naArma }: {
   entrada: EntradaFicha
   acoes?: ReactNode
   onRolar?: (alvo: AlvoTeste) => void
   rolando: string | null
+  naArma: ResultadoNaArma | null
 }) {
   return (
     <>
@@ -388,8 +392,23 @@ function CartaoEntrada({ entrada, acoes, onRolar, rolando }: {
         {acoes && <div className="flex shrink-0 gap-1">{acoes}</div>}
       </div>
       {entrada.arma && <BotoesArma entrada={entrada} onRolar={onRolar} rolando={rolando} />}
+      {/* Resultado da arma logo embaixo dos botões: no pé da ficha, ele cobria o Dano depois do Ataque. */}
+      {entrada.arma && naArma?.entradaId === entrada.id && (naArma.rolagem || naArma.erro) && <ResultadoDaArma resultado={naArma} />}
       {entrada.descricao && <p className="mt-2 whitespace-pre-wrap break-words text-sm text-tinta-900">{entrada.descricao}</p>}
     </>
+  )
+}
+
+// Cada resultado novo aparece inteiro: rola o painel só o necessário (block: 'nearest'), então os botões, logo
+// acima, continuam à vista. Só o painel rola — o bloco da mesa é overflow-clip (ver "a mesa deslizava").
+function ResultadoDaArma({ resultado }: { resultado: ResultadoNaArma }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const chave = resultado.rolagem?.id ?? resultado.erro
+  useEffect(() => { ref.current?.scrollIntoView({ block: 'nearest' }) }, [chave])
+  return (
+    <div ref={ref} className="mt-2" aria-live="polite">
+      {resultado.erro ? <Alerta tom="papel" mensagem={resultado.erro} /> : resultado.rolagem && <BilheteRolagem rolagem={resultado.rolagem} onFechar={resultado.dispensar} />}
+    </div>
   )
 }
 
@@ -469,12 +488,13 @@ const TITULO_TIPO: Record<TipoEntrada, string> = { RITUAL: 'Rituais', HABILIDADE
 
 // Aba Favoritos: o que o jogador marcou com a estrela, agrupado por tipo, sem precisar procurar nas abas.
 // Editar e apagar continuam na aba do tipo; aqui só se tira dos favoritos.
-export function AbaFavoritos({ ficha, podeEditar, onAtualizada, onRolar, rolando = null }: {
+export function AbaFavoritos({ ficha, podeEditar, onAtualizada, onRolar, rolando = null, naArma = null }: {
   ficha: Ficha
   podeEditar: boolean
   onAtualizada: (ficha: Ficha) => void
   onRolar?: (alvo: AlvoTeste) => void
   rolando?: string | null
+  naArma?: ResultadoNaArma | null
 }) {
   const [erro, setErro] = useState<string | null>(null)
   const favoritas = ficha.entradas.filter((e) => e.favorito)
@@ -498,7 +518,7 @@ export function AbaFavoritos({ ficha, podeEditar, onAtualizada, onRolar, rolando
             <ul className="divide-y divide-papel-300">
               {doTipo.map((entrada) => (
                 <li key={entrada.id} className="py-3">
-                  <CartaoEntrada entrada={entrada} onRolar={onRolar} rolando={rolando} acoes={podeEditar && (
+                  <CartaoEntrada entrada={entrada} onRolar={onRolar} rolando={rolando} naArma={naArma} acoes={podeEditar && (
                     <BotaoFavorito fichaId={ficha.id} entrada={entrada} onAtualizada={onAtualizada} onErro={setErro} />
                   )} />
                 </li>

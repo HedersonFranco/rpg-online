@@ -56,7 +56,7 @@ visual em [`DESIGN.md`](../DESIGN.md), decisões em [`CLAUDE.md`](../CLAUDE.md) 
 | RF27 | Ficha de Ordem Paranormal RPG II | I | ⬜ | Sem CRUD nem tela; o playtest não publicou criação de personagem |
 | RF47 | Aba Favoritos na ficha: estrela em rituais, habilidades, poderes e equipamentos; a aba, no topo das divisórias, lista os marcados por tipo | D | ✅ | 22/10/2026 (API: 400/403; navegador com duas abas, ao vivo) |
 | RF28 | Apagar ficha (agente), pelo dono ou pelo mestre, com confirmação; os tokens dela saem dos mapas | D | ✅ | 21/10/2026 (API: 403/401/204/404; navegador com duas abas, tempo real) |
-| RF49 | Armas na ficha: equipamento com tipo (corpo a corpo, arremesso, disparo, fogo), dano, dano extra, bônus de ataque e crítico (margem/multiplicador, ajustáveis por poderes); três botões calculados no servidor — ATAQUE (Luta ou Pontaria da ficha + bônus, com "Ameaça de crítico"), DANO (Força somada em corpo a corpo e arremesso) e CRÍTICO (só os dados multiplicados) — no cartão e nos Favoritos | I | ✅ | 05/11/2026 (motor: 8 testes; API e socket: 29/29; tela: 8/8 com duas contas no Firefox 159, painel em 320px) |
+| RF49 | Armas na ficha: equipamento com tipo (corpo a corpo, arremesso, disparo, fogo), dano, dano extra, bônus de ataque e crítico (margem/multiplicador, ajustáveis por poderes); três botões calculados no servidor — ATAQUE (Luta ou Pontaria da ficha + bônus, com "Ameaça de crítico"), DANO (Força somada em corpo a corpo e arremesso) e CRÍTICO (só os dados multiplicados) — no cartão e nos Favoritos | I | ✅ | 05/11/2026 (motor: 8 testes; API e socket: 29/29; tela: 12/12 com duas contas no Firefox 159, painel em 320px — inclusive Dano e Crítico livres logo depois do Ataque) |
 
 ### 1.4 Mesa em jogo
 
