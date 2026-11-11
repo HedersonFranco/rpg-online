@@ -5,6 +5,7 @@ import { api, mensagemDeErro } from '../../services/api'
 import type { NpcDetalhe, Sistema } from '../../services/tipos'
 import { Alerta, Carregando, Spinner } from '../ui/Feedback'
 import { Folha, PastaVazia } from '../ui/arquivo'
+import { FotoColada } from '../ui/FotoColada'
 import { useConfirmar } from '../ui/confirmacaoContext'
 import { Icone } from '../ui/Icone'
 import {
@@ -153,7 +154,7 @@ export function PainelNpcs({ salaId, sistema }: { salaId: string; sistema: Siste
             </button>
           )}
         </div>
-        <p className="mt-2 text-sm text-grafite-300">Só você vê esta lista. No mapa, os jogadores veem só o nome do token.</p>
+        <p className="mt-2 text-sm text-grafite-300">Só você vê esta lista. No mapa, os jogadores veem só o nome e a foto do token.</p>
       </div>
 
       {erro && <Alerta tom="arquivo" mensagem={erro} />}
@@ -182,9 +183,13 @@ export function PainelNpcs({ salaId, sistema }: { salaId: string; sistema: Siste
               ) : (
                 <li key={npc.id} className="py-3 first:pt-0 last:pb-0">
                   <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className={`text-lg leading-tight font-extrabold break-words ${condensado}`}>{npc.nome}</p>
-                      {resumo(sistema, npc) && <p className="mt-0.5 font-datilo text-sm text-tinta-900">{resumo(sistema, npc)}</p>}
+                    <div className="flex min-w-0 items-start gap-3">
+                      <FotoColada nome={npc.nome} url={npc.avatarUrl} caminho={`/npcs/${npc.id}/avatar`} podeEditar onErro={setErro}
+                        onSalvo={(salvo: NpcDetalhe) => atualizar((lista) => lista.map((n) => (n.id === salvo.id ? salvo : n)))} className="h-12 w-10 text-lg" />
+                      <div className="min-w-0">
+                        <p className={`text-lg leading-tight font-extrabold break-words ${condensado}`}>{npc.nome}</p>
+                        {resumo(sistema, npc) && <p className="mt-0.5 font-datilo text-sm text-tinta-900">{resumo(sistema, npc)}</p>}
+                      </div>
                     </div>
                     <div className="flex shrink-0 gap-1">
                       <button type="button" onClick={() => setEditando(npc.id)} disabled={removendo !== null}

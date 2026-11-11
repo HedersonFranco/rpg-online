@@ -120,7 +120,7 @@ com 6 contas numa mesma mesa (1 mestre + 5 jogadores). Navegador: Microsoft Edge
 | RNF07 | Validade da sessão | JWT de 24 h, sem refresh token | 24 h (lido do token emitido) | ✅ |
 | RNF08 | Proteção de login | 10 tentativas/min por IP em `/auth`; a 11ª → 429 | 10 × 401 e a 11ª × 429 | ✅ |
 | RNF09 | Upload de mapa | Máx. 10 MB; tipo pelos bytes | 10,5 MB → 413; tipo detectado pelos bytes (Etapa 10) | ✅ |
-| RNF10 | Upload de avatar | Máx. 2 MB | Não existe upload de avatar | ⬜ |
+| RNF10 | Upload de avatar | Máx. 2 MB | Foto de agente e de NPC (10/11/2026, API + build de produção no navegador): 2,5 MB → 413; HTML com nome .png → 400; quem não pode → 403 antes de o arquivo chegar ao servidor; trocar, tirar ou apagar ficha/NPC/mesa apaga o arquivo antigo; token muda ao vivo na outra tela. No navegador, 3 MB é recusado sem enviar | ✅ |
 | RNF11 | Reconexão do socket | Automática em até 30 s | Queda percebida em 15 s; reconectou 1,3 s depois de a rede voltar | ✅ |
 | RNF12 | Reconexão do vídeo | Automática; após 3 falhas, botão "Reconectar" | Verificado na Etapa 10 (queda simulada, os dois papéis) | ✅ |
 | RNF13 | Degradação sem câmera | Mesa funciona em texto + mapa | Verificado na Etapa 10 | ✅ |
@@ -165,5 +165,4 @@ motor de cálculo para NPCs; outros sistemas além de Ordem Paranormal; ferramen
 3. **Firefox e Safari** (RNF05): no Firefox falta só o vídeo, num computador em que ele reúna candidatos ICE; no Safari, o fluxo principal inteiro, num Mac ou iPhone.
 4. **Conferir uma ficha contra o C.R.I.S.** (Etapa 6), manualmente.
 5. **Ficha de RPG II** (RF27), quando o playtest publicar a criação de personagem.
-6. Decidir sobre **upload de avatar** (RNF10).
-7. Produção: restringir o CORS (hoje aceita qualquer origem) e publicar política de privacidade (LGPD).
+6. Produção: restringir o CORS (hoje aceita qualquer origem) e publicar política de privacidade (LGPD).

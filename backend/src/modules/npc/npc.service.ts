@@ -1,9 +1,10 @@
 import { prisma, semIndefinidos } from '../../lib/prisma.js'
 import { AppError } from '../../errors/AppError.js'
-import { ehArquivoEnviado } from '../../lib/armazenamento.js'
+import { removerArquivo, salvarImagemEnviada } from '../../lib/armazenamento.js'
 import { garantirMestre } from '../sala/sala.service.js'
 import { validarPastaDaSala } from '../pasta/pasta.service.js'
 import { criarNoLimite, LIMITES } from '../../lib/limites.js'
+import { emitirParaSala } from '../../sockets/emissor.js'
 
 type DadosNpc = {
   nome?: string
@@ -12,7 +13,6 @@ type DadosNpc = {
   san?: number | null
   pd?: number | null
   atributos?: string | null
-  avatarUrl?: string | null
   pastaId?: string | null
 }
 
@@ -22,9 +22,6 @@ const CAMPOS_POR_SISTEMA = {
 } as const
 
 function validarEstatisticas(dados: DadosNpc, sistema: keyof typeof CAMPOS_POR_SISTEMA) {
-  if (dados.avatarUrl != null && !ehArquivoEnviado(dados.avatarUrl)) {
-    throw new AppError('Avatar deve ser uma imagem enviada ao sistema', 400)
-  }
   for (const campo of CAMPOS_POR_SISTEMA[sistema].proibidos) {
     if (dados[campo] !== undefined && dados[campo] !== null) {
       throw new AppError(`Campo "${campo}" não existe no sistema desta sala`, 400)
@@ -70,7 +67,6 @@ export async function criarNpc(usuarioId: string, salaId: string, dados: DadosNp
         san: dados.san ?? null,
         pd: dados.pd ?? null,
         atributos: dados.atributos ?? null,
-        avatarUrl: dados.avatarUrl ?? null,
         pastaId: dados.pastaId ?? null,
       },
     }))
@@ -99,7 +95,7 @@ export async function atualizarNpc(usuarioId: string, npcId: string, dados: Dado
     await validarPastaDaSala(dados.pastaId, npc.salaId)
   }
 
-  return prisma.npc.update({
+  const atualizado = await prisma.npc.update({
     where: { id: npcId },
     data: semIndefinidos({
       nome: dados.nome?.trim(),
@@ -108,15 +104,49 @@ export async function atualizarNpc(usuarioId: string, npcId: string, dados: Dado
       san: dados.san,
       pd: dados.pd,
       atributos: dados.atributos,
-      avatarUrl: dados.avatarUrl,
       pastaId: dados.pastaId,
     }),
   })
+  await avisarTokens(atualizado, sala.mapaAtivoId)
+  return atualizado
+}
+
+// O token de NPC mostra nome e foto a todos: se o NPC está no mapa da mesa, a mudança vai para a mesa.
+// Fora dele, ninguém é avisado — a lista de NPCs é material de preparo do mestre (pode ter spoiler).
+async function avisarTokens(npc: { id: string; salaId: string; nome: string; avatarUrl: string | null }, mapaAtivoId: string | null) {
+  if (!mapaAtivoId || !(await prisma.token.count({ where: { npcId: npc.id, mapaId: mapaAtivoId } }))) return
+  emitirParaSala(npc.salaId, 'npc:atualizado', { npc: { id: npc.id, nome: npc.nome, avatarUrl: npc.avatarUrl } })
 }
 
 // Tokens que apontavam pro NPC continuam no mapa como objeto genérico
 // (FK com onDelete: SetNull) — o registro de mapa não quebra.
 export async function deletarNpc(usuarioId: string, npcId: string) {
-  await buscarNpcComoMestre(npcId, usuarioId)
+  const { npc } = await buscarNpcComoMestre(npcId, usuarioId)
   await prisma.npc.delete({ where: { id: npcId } })
+  if (npc.avatarUrl) await removerArquivo(npc.avatarUrl)
+}
+
+// Avatar (RNF10): só pelo envio, nunca pelo PATCH — mesma regra e mesmo motivo da ficha (ficha.service.ts).
+export async function garantirMestreDoNpc(usuarioId: string, npcId: string) {
+  await buscarNpcComoMestre(npcId, usuarioId)
+}
+
+async function gravarAvatar(usuarioId: string, npcId: string, novo: () => Promise<string | null>) {
+  const { npc, sala } = await buscarNpcComoMestre(npcId, usuarioId)
+  const avatarUrl = await novo()
+  const atualizado = await prisma.npc.update({ where: { id: npcId }, data: { avatarUrl } }).catch(async (erro) => {
+    if (avatarUrl) await removerArquivo(avatarUrl)
+    throw erro
+  })
+  if (npc.avatarUrl) await removerArquivo(npc.avatarUrl)
+  await avisarTokens(atualizado, sala.mapaAtivoId)
+  return atualizado
+}
+
+export function trocarAvatarNpc(usuarioId: string, npcId: string, arquivo?: Express.Multer.File) {
+  return gravarAvatar(usuarioId, npcId, () => salvarImagemEnviada(arquivo))
+}
+
+export function removerAvatarNpc(usuarioId: string, npcId: string) {
+  return gravarAvatar(usuarioId, npcId, async () => null)
 }

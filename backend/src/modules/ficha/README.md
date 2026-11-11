@@ -17,6 +17,8 @@ Criação e listagem ficam em `sala.routes.ts`; o resto em `/fichas` (`server.ts
 | POST | `/fichas/:id/entradas` | dono da ficha ou mestre | Cria entrada (201), devolve `{ ficha }`. `400`; `403`. |
 | PATCH | `/fichas/:id/entradas/:entradaId` | dono da ficha ou mestre | Edita entrada, devolve `{ ficha }`. `400`; `403`; `404` entrada não é desta ficha. |
 | DELETE | `/fichas/:id/entradas/:entradaId` | dono da ficha ou mestre | Apaga entrada, devolve `{ ficha }`. `403`; `404`. |
+| PUT | `/fichas/:id/avatar` | dono da ficha ou mestre | Troca a foto (multipart, campo `imagem`, PNG/JPEG/WebP até 2MB), devolve `{ ficha }`. `400` sem arquivo ou tipo errado; `403` antes de receber o arquivo; `413` acima de 2MB. |
+| DELETE | `/fichas/:id/avatar` | dono da ficha ou mestre | Tira a foto, devolve `{ ficha }`. `403`; `404`. |
 
 ## Regras
 
@@ -33,7 +35,7 @@ Criação e listagem ficam em `sala.routes.ts`; o resto em `/fichas` (`server.ts
 - `defesa_bonus`: inteiro de −50 a 50 (modificadores de equipamento/habilidades/condições, informados pelo jogador). Toda ficha devolvida traz `defesa: { defesa, esquiva, bloqueio }` (via `calcularDefesa`): Defesa = 10 + Agi + bônus; Esquiva = Defesa + bônus de Reflexos e Bloqueio = RD igual ao bônus de Fortitude, `null` sem treino (livro p. 42 e p. 87).
 - `pv/pe/san_maximo_cache` são gravados a partir de `calcularFicha()`; nunca vêm do cliente.
 - `inventario`: texto de até 10.000 caracteres.
-- `avatarUrl`: só arquivo enviado ao próprio sistema (`/uploads/<uuid>.png|jpg|webp`, `ehArquivoEnviado()` em `lib/armazenamento.ts`) ou `null`; URL externa → `400` — num `<img>`, ela entregaria o IP de cada pessoa da mesa a um servidor de terceiros.
+- **Avatar (RNF10, 10/11/2026):** só entra pelo `PUT /fichas/:id/avatar` — criação e PATCH ignoram `avatarUrl`. Cada avatar é um arquivo só desta ficha (UUID novo a cada envio), então trocar, tirar ou apagar a ficha apaga o arquivo antigo do disco sem risco de levar a imagem de um mapa ou de outra ficha (se o PATCH aceitasse uma URL de `/uploads`, bastaria apontar para o mapa e depois tirar a foto). Também não há URL externa: num `<img>`, ela entregaria o IP de cada pessoa da mesa a um servidor de terceiros. A permissão é conferida antes do upload (quem não pode não chega a mandar o arquivo para a memória); o tipo é detectado pelos bytes.
 - Graus de perícia: `DESTREINADO`, `TREINADO`, `VETERANO`, `EXPERT`. Perícia sem linha em `FichaPericia` sai como Destreinado.
 - Toda ficha devolvida traz `testesPericias` (as 28 de `PERICIAS_OP1`, via `montarTestesPericias`) e `habilidadesDesbloqueadas` (via `habilidadesAcumuladas` sobre `ProgressaoClasse`).
 - Entradas (`FichaEntrada`):
@@ -45,13 +47,14 @@ Criação e listagem ficam em `sala.routes.ts`; o resto em `/fichas` (`server.ts
   - Arma (equipamento com `tipoArma` em `CORPO_A_CORPO/ARREMESSO/DISPARO/FOGO`; decisão de 05/11/2026): `dano` obrigatório e `danoExtra` opcional, expressões que o painel de rolagem aceitaria (até 60 caracteres); `bonusAtaque` −50 a 50 (padrão 0), `margemAmeaca` 2–20 (padrão 20), `multiplicadorCritico` 2–10 (padrão 2). Campo de arma sem `tipoArma` → `400`; com a Força atual, dano e crítico precisam caber no que se pode rolar (até 50 dados — "20d6 ×3" → `400`). PATCH com `tipoArma: null` deixa de ser arma e limpa o resto (mandar um campo de arma junto → `400`). Toda entrada devolvida traz `arma` (`calcularArma()` em `engine/arma.ts`) ou `null`.
   - O tipo não pode mudar depois de criado (`400`). Na edição, a validação vale para o estado final (gravado + enviado).
   - `favorito` (qualquer tipo): `true`/`false`, senão `400`; ausente no PATCH = mantém. A aba Favoritos da ficha lista as marcadas.
-- Tempo real: criar/editar ficha, treinar perícia e criar/editar/apagar entrada emitem `emitirParaSala(salaId, 'ficha:atualizada', { ficha })` depois de gravar. Apagar a ficha emite `token:removido` (um por token dela) e `ficha:removida` `{ fichaId }`.
+- Tempo real: criar/editar ficha, trocar/tirar a foto, treinar perícia e criar/editar/apagar entrada emitem `emitirParaSala(salaId, 'ficha:atualizada', { ficha })` depois de gravar. Apagar a ficha emite `token:removido` (um por token dela) e `ficha:removida` `{ fichaId }`.
 
 ## Dependências
 
 - `lib/prisma.ts` — `Ficha`, `FichaPericia`, `FichaEntrada`, `Pericia`, `ClasseFormula`, `ProgressaoClasse`, `MembroSala`, `Token` (ao apagar a ficha).
 - `errors/AppError.ts` — erros com status HTTP.
 - `modules/sala/sala.service.ts` — `buscarSalaOuFalhar` (acesso de membro e sistema da sala).
+- `lib/armazenamento.ts` — `salvarImagemEnviada` e `removerArquivo` (avatar); `middlewares/upload.ts` — `uploadAvatar` (2MB).
 - `engine/calculoFicha.ts` — `calcularFicha` (PV/PE/San máximos) e `montarTestesPericias`.
 - `engine/arma.ts` — `calcularArma` (ataque, dano, crítico); `engine/rolagem.ts` — `lerExpressao` para validar o dano.
 - `engine/pericias.ts` — `PERICIAS_OP1`, catálogo das 28 perícias com atributo-base.
@@ -61,4 +64,4 @@ Criação e listagem ficam em `sala.routes.ts`; o resto em `/fichas` (`server.ts
 
 ## Testes
 
-Sem testes automatizados próprios; o motor que ele usa é coberto por `engine/calculoFicha.test.ts` (`calcularFicha`) e `engine/progressaoOP1.test.ts` (`habilidadesAcumuladas` sobre a progressão do seed). O `DELETE` foi conferido em 21/10/2026 pela API (`403` do jogador na ficha do mestre, `401`, `204`, `404` ao repetir, token do agente apagado e o de outro objeto mantido, cascata de perícias/entradas) e no navegador com duas abas (card e token somem da outra aba ao vivo). As armas (05/11/2026): `engine/arma.test.ts` (8 testes, inclusive o exemplo do livro 1d8+3 → 2d8+3); pela API e pelo socket, 29 verificações (cálculo, as recusas `400`, `403`, dados vindos do banco, segredo do mestre, ameaça de crítico em 60 ataques); pela tela, 12 verificações com duas contas no Firefox 159 e o painel em 320px.
+Sem testes automatizados próprios; o motor que ele usa é coberto por `engine/calculoFicha.test.ts` (`calcularFicha`) e `engine/progressaoOP1.test.ts` (`habilidadesAcumuladas` sobre a progressão do seed). O `DELETE` foi conferido em 21/10/2026 pela API (`403` do jogador na ficha do mestre, `401`, `204`, `404` ao repetir, token do agente apagado e o de outro objeto mantido, cascata de perícias/entradas) e no navegador com duas abas (card e token somem da outra aba ao vivo). As armas (05/11/2026): `engine/arma.test.ts` (8 testes, inclusive o exemplo do livro 1d8+3 → 2d8+3); pela API e pelo socket, 29 verificações (cálculo, as recusas `400`, `403`, dados vindos do banco, segredo do mestre, ameaça de crítico em 60 ataques); pela tela, 12 verificações com duas contas no Firefox 159 e o painel em 320px. A foto (10/11/2026): 27 verificações pela API e pelo socket, junto com o NPC (`401`, `403` antes do arquivo, `413`, `400` para HTML e sem arquivo, PATCH com `avatarUrl` ignorado, arquivo antigo apagado ao trocar/tirar/apagar ficha e mesa, mapa intacto); no navegador (build de produção): enviar, token mudando ao vivo, × com confirmação, 3MB recusado sem enviar.

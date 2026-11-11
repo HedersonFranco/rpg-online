@@ -107,6 +107,10 @@ export function AreaMapa({ salaId, usuarioId, souMestre, aoRegistrarCentro }: {
       ),
     })),
   )
+  // Token de NPC: nome e foto mudam no painel do mestre → mudam no mapa (o servidor só avisa se o NPC está no mapa da mesa).
+  useEventoSocket<{ npc: NonNullable<Token['npc']> }>('npc:atualizado', ({ npc }) =>
+    atualizar((e) => ({ ...e, tokens: e.tokens.map((t) => (t.npc?.id === npc.id ? { ...t, npc } : t)) })),
+  )
 
   // Montaria: qualquer membro move, redimensiona e tira do mapa.
   const podeMover = (token: Token) => souMestre || token.ficha?.usuario_id === usuarioId || !!token.montaria

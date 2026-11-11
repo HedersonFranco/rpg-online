@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { mkdir, unlink, writeFile } from 'node:fs/promises'
 import path from 'node:path'
+import { AppError } from '../errors/AppError.js'
 
 // Único lugar que sabe onde os arquivos moram. Trocar disco local por S3 é
 // reescrever este módulo — quem chama só vê uma URL.
@@ -28,11 +29,12 @@ export async function salvarArquivo(conteudo: Buffer, extensao: TipoImagem): Pro
   return PREFIXO_URL + nome
 }
 
-// Só um arquivo que este servidor gravou. Uma URL de terceiros num <img> faria o navegador
-// de cada pessoa da mesa entregar o próprio IP a esse servidor (pixel rastreador).
-const URL_ENVIADA = new RegExp(`^${PREFIXO_URL}[0-9a-f-]{36}\\.(png|jpg|webp)$`)
-export function ehArquivoEnviado(url: unknown): url is string {
-  return typeof url === 'string' && URL_ENVIADA.test(url)
+// Imagem que veio do formulário (multer): confere o tipo pelos bytes, grava e devolve a URL.
+export async function salvarImagemEnviada(arquivo: Express.Multer.File | undefined): Promise<string> {
+  if (!arquivo) throw new AppError('Envie a imagem no campo "imagem"', 400)
+  const tipo = detectarTipoImagem(arquivo.buffer)
+  if (!tipo) throw new AppError('A imagem precisa ser PNG, JPEG ou WebP', 400)
+  return salvarArquivo(arquivo.buffer, tipo)
 }
 
 export async function removerArquivo(url: string) {

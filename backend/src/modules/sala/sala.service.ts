@@ -89,14 +89,18 @@ export async function deletarSala(salaId: string, usuarioId: string) {
     throw new AppError('Apenas o dono pode deletar a sala', 403)
   }
 
-  // As imagens dos mapas e das montarias ficam no disco (ou S3), fora do cascade do banco: guarda antes, remove depois.
-  const [mapas, montarias] = await Promise.all([
+  // Imagens de mapas, montarias e avatares ficam no disco (ou S3), fora do cascade do banco: guarda antes, remove depois.
+  const comAvatar = { where: { salaId, avatarUrl: { not: null } }, select: { avatarUrl: true } } as const
+  const [mapas, montarias, fichas, npcs] = await Promise.all([
     prisma.mapa.findMany({ where: { salaId }, select: { imagemUrl: true } }),
     prisma.montaria.findMany({ where: { salaId }, select: { imagemUrl: true } }),
+    prisma.ficha.findMany(comAvatar),
+    prisma.npc.findMany(comAvatar),
   ])
   await prisma.sala.delete({ where: { id: salaId } })
   await encerrarSala(salaId)
-  await Promise.all([...mapas, ...montarias].map((m) => removerArquivo(m.imagemUrl)))
+  const arquivos = [...mapas.map((m) => m.imagemUrl), ...montarias.map((m) => m.imagemUrl), ...[...fichas, ...npcs].map((a) => a.avatarUrl!)]
+  await Promise.all(arquivos.map(removerArquivo))
 }
 
 export async function regenerarConvite(salaId: string, usuarioId: string) {

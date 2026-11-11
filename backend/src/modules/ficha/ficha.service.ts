@@ -1,6 +1,6 @@
 import { prisma, semIndefinidos } from '../../lib/prisma.js'
 import { AppError } from '../../errors/AppError.js'
-import { ehArquivoEnviado } from '../../lib/armazenamento.js'
+import { removerArquivo, salvarImagemEnviada } from '../../lib/armazenamento.js'
 import { buscarSalaOuFalhar } from '../sala/sala.service.js'
 import { calcularDefesa, calcularFicha, montarTestesPericias, pedidoDeTeste, type AtributosOP1, type NivelTreinoPericia } from '../../engine/calculoFicha.js'
 import { calcularArma, TIPOS_ARMA, type DadosArma } from '../../engine/arma.js'
@@ -22,7 +22,6 @@ type DadosFicha = {
   vig: number
   pre: number
   inventario?: string
-  avatarUrl?: string
 }
 
 const ATRIBUTOS = ['for', 'agi', 'int', 'vig', 'pre'] as const
@@ -118,9 +117,6 @@ function validarCamposBasicos(dados: Partial<DadosFicha>, obrigatorio: boolean) 
     }
   }
   validarAtributos(dados, obrigatorio)
-  if (dados.avatarUrl != null && !ehArquivoEnviado(dados.avatarUrl)) {
-    throw new AppError('Avatar deve ser uma imagem enviada ao sistema', 400)
-  }
 }
 
 async function carregarTabelasDeCalculo(classe: string) {
@@ -195,7 +191,6 @@ export async function criarFicha(usuarioId: string, salaId: string, dados: Dados
       san_atual: resultado.san_maximo,
       san_maximo_cache: resultado.san_maximo,
       inventario: dados.inventario ?? null,
-      avatarUrl: dados.avatarUrl ?? null,
     },
     include: INCLUIR_PERICIAS,
   }))
@@ -369,7 +364,6 @@ export async function atualizarFicha(
       san_maximo_cache,
       defesa_bonus: dados.defesa_bonus,
       inventario: dados.inventario,
-      avatarUrl: dados.avatarUrl,
     }),
     include: INCLUIR_PERICIAS,
   })
@@ -390,6 +384,37 @@ export async function removerFicha(fichaId: string, usuarioId: string) {
   if (apagadas.count === 0) throw new AppError('Ficha não encontrada', 404)
   for (const { id } of tokens) emitirParaSala(ficha.salaId, 'token:removido', { tokenId: id })
   emitirParaSala(ficha.salaId, 'ficha:removida', { fichaId })
+  if (ficha.avatarUrl) await removerArquivo(ficha.avatarUrl)
+}
+
+// ── Avatar (RNF10) ───────────────────────────────────────────────────────────
+// Só entra por aqui, nunca pelo PATCH: cada avatar é um arquivo só desta ficha, então trocar ou
+// tirar apaga o antigo do disco sem risco de levar junto a imagem de um mapa ou de outra ficha.
+
+// Antes do upload: quem não pode editar a ficha nem chega a mandar o arquivo para a memória.
+export async function garantirPodeEditarFicha(fichaId: string, usuarioId: string) {
+  await fichaEditavel(fichaId, usuarioId)
+}
+
+async function gravarAvatar(fichaId: string, usuarioId: string, novo: () => Promise<string | null>) {
+  const ficha = await fichaEditavel(fichaId, usuarioId)
+  const avatarUrl = await novo()
+  const atualizada = await prisma.ficha.update({ where: { id: fichaId }, data: { avatarUrl }, include: INCLUIR_PERICIAS })
+    .catch(async (erro) => {
+      if (avatarUrl) await removerArquivo(avatarUrl)
+      throw erro
+    })
+  // ponytail: dois envios ao mesmo tempo na mesma ficha podem deixar um arquivo órfão no disco (só espaço, não aparece).
+  if (ficha.avatarUrl) await removerArquivo(ficha.avatarUrl)
+  return { ficha: await emitirFicha(atualizada) }
+}
+
+export function trocarAvatar(fichaId: string, usuarioId: string, arquivo?: Express.Multer.File) {
+  return gravarAvatar(fichaId, usuarioId, () => salvarImagemEnviada(arquivo))
+}
+
+export function removerAvatar(fichaId: string, usuarioId: string) {
+  return gravarAvatar(fichaId, usuarioId, async () => null)
 }
 
 export async function treinarPericia(
