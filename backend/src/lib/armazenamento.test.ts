@@ -1,18 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { detectarTipoImagem, ehArquivoEnviado } from './armazenamento.js'
+import { detectarTipoImagem, salvarImagemEnviada } from './armazenamento.js'
 
-describe('ehArquivoEnviado', () => {
-  it('aceita só o que salvarArquivo gera', () => {
-    expect(ehArquivoEnviado('/uploads/0b91cbdf-112c-4abd-a31b-fd64697069ac.webp')).toBe(true)
-  })
-
-  it('recusa URL externa, javascript:, caminho escapando da pasta e não-texto', () => {
-    expect(ehArquivoEnviado('https://rastreador.example/pixel.png')).toBe(false)
-    expect(ehArquivoEnviado('//rastreador.example/0b91cbdf-112c-4abd-a31b-fd64697069ac.png')).toBe(false)
-    expect(ehArquivoEnviado('javascript:alert(1)')).toBe(false)
-    expect(ehArquivoEnviado('/uploads/../../etc/passwd')).toBe(false)
-    expect(ehArquivoEnviado('/uploads/0b91cbdf-112c-4abd-a31b-fd64697069ac.svg')).toBe(false)
-    expect(ehArquivoEnviado({ url: 'x' })).toBe(false)
+describe('salvarImagemEnviada', () => {
+  it('recusa pedido sem arquivo e arquivo que não é PNG/JPEG/WebP, sem gravar nada', async () => {
+    await expect(salvarImagemEnviada(undefined)).rejects.toMatchObject({ statusCode: 400 })
+    const html = { buffer: Buffer.from('<html><script>alert(1)</script>') } as Express.Multer.File
+    await expect(salvarImagemEnviada(html)).rejects.toMatchObject({ statusCode: 400 })
   })
 })
 

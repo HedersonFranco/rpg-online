@@ -1,5 +1,18 @@
-import type { Request, Response } from 'express'
+import type { NextFunction, Request, Response } from 'express'
 import * as fichaService from './ficha.service.js'
+
+export async function antesDoUploadDeAvatar(req: Request<{ id: string }>, _res: Response, next: NextFunction) {
+  await fichaService.garantirPodeEditarFicha(req.params.id, req.usuarioId!)
+  next()
+}
+
+export async function trocarAvatarController(req: Request<{ id: string }>, res: Response) {
+  res.json(await fichaService.trocarAvatar(req.params.id, req.usuarioId!, req.file))
+}
+
+export async function removerAvatarController(req: Request<{ id: string }>, res: Response) {
+  res.json(await fichaService.removerAvatar(req.params.id, req.usuarioId!))
+}
 
 export async function criarController(req: Request<{ id: string }>, res: Response) {
   const resultado = await fichaService.criarFicha(req.usuarioId!, req.params.id, req.body ?? {})

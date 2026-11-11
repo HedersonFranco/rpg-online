@@ -1,5 +1,18 @@
-import type { Request, Response } from 'express'
+import type { NextFunction, Request, Response } from 'express'
 import * as npcService from './npc.service.js'
+
+export async function antesDoUploadDeAvatar(req: Request<{ id: string }>, _res: Response, next: NextFunction) {
+  await npcService.garantirMestreDoNpc(req.usuarioId!, req.params.id)
+  next()
+}
+
+export async function trocarAvatarController(req: Request<{ id: string }>, res: Response) {
+  res.json(await npcService.trocarAvatarNpc(req.usuarioId!, req.params.id, req.file))
+}
+
+export async function removerAvatarController(req: Request<{ id: string }>, res: Response) {
+  res.json(await npcService.removerAvatarNpc(req.usuarioId!, req.params.id))
+}
 
 export async function criarController(req: Request<{ id: string }>, res: Response) {
   const npc = await npcService.criarNpc(req.usuarioId!, req.params.id, req.body ?? {})
