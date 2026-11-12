@@ -25,6 +25,7 @@ Quem não é mestre recebe `403`; não-membro, `404` (via `garantirMestre`/`busc
 - A lista completa de mapas é só do mestre; o jogador só vê o ativo.
 - `mapaId` do mapa ativo deve ser string de um mapa da mesma sala, ou `null`.
 - Apagar mapa remove o arquivo do armazenamento; os tokens caem por cascade (`onDelete: Cascade` em `Token.mapa`) e `Sala.mapaAtivoId` vira `null` (`SetNull`).
+- Nome do mapa e do objeto no mapa: até 100 caracteres (`nomeObrigatorio()`).
 - Token: `x`/`y` números finitos com |valor| ≤ 100.000. No máximo um vínculo — ficha, NPC ou montaria (CHECK `token_um_vinculo` no banco, desde 22/10/2026; antes era `token_ficha_xor_npc`). Ficha/NPC precisam ser da mesma sala do mapa. Sem vínculo, `nome` é obrigatório.
 - Dados expostos no token (`INCLUIR_DADOS_TOKEN`): da ficha, `id`, `nome`, `usuario_id`, `avatarUrl`, `pv_atual`, `pv_maximo_cache`; do NPC, só `id`, `nome`, `avatarUrl`; da montaria, `id`, `nome`, `imagemUrl`. Todo token traz `escala` (tamanho em relação ao padrão).
 - Movimento (usado por `sockets/salaSocket.ts`, evento `token:mover`): `podeMoverToken` permite ao mestre qualquer token, e ao jogador o da própria ficha e qualquer montaria; quem não é mais membro não move nada. `salvarPosicaoToken` usa `updateMany`, então soltar um token já apagado não gera erro.

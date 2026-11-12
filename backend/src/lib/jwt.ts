@@ -25,6 +25,6 @@ export function assinarToken(payload: TokenPayload): string {
 }
 
 // Algoritmo fixo: o servidor nunca aceita um token assinado de outro jeito do que ele mesmo assina.
-export function verificarToken(token: string): TokenPayload {
-  return jwt.verify(token, getSecret(), { algorithms: ['HS256'] }) as TokenPayload
+export function verificarToken(token: string): TokenPayload & { exp: number } {
+  return jwt.verify(token, getSecret(), { algorithms: ['HS256'] }) as TokenPayload & { exp: number }
 }

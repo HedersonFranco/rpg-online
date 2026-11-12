@@ -8,7 +8,8 @@ services:
       POSTGRES_PASSWORD: rpg_pass
       POSTGRES_DB: rpg_online
     ports:
-      - "5433:5432"
+      # Só nesta máquina: a senha acima é pública (está no repositório), então a porta não pode ficar aberta para a rede.
+      - "127.0.0.1:5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
 

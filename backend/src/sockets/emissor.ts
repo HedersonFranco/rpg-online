@@ -36,6 +36,14 @@ export async function expulsarDaSala(salaId: string, usuarioId: string, motivo: 
   servidor.to(sala).emit('video:participantes', { participantes })
 }
 
+// Papel trocado: quem pode mover qual token mudou, e as abas abertas dessa pessoa voltam a consultar.
+export async function esquecerPermissoes(salaId: string, usuarioId: string) {
+  if (!servidor) return
+  for (const s of await servidor.in(nomeSalaSocket(salaId)).fetchSockets()) {
+    if (s.data.usuarioId === usuarioId) s.data.permissaoToken?.clear()
+  }
+}
+
 // Mesa apagada pelo dono: todas as abas abertas nela recebem o aviso e saem da sala de socket,
 // e o estado em memória (combate, última rolagem) é descartado.
 export async function encerrarSala(salaId: string) {

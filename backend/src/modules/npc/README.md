@@ -22,7 +22,7 @@ Quem não é mestre recebe `403`; não-membro, `404` (via `garantirMestre`).
 
 - **Limite (05/11/2026):** 200 NPCs por mesa (`criarNoLimite`); acima → `400`.
 - Leitura e escrita exigem papel `MESTRE` na sala do NPC.
-- `nome` obrigatório na criação; no PATCH, se enviado, não pode ser vazio.
+- `nome` obrigatório na criação (até 100 caracteres, `nomeObrigatorio()` de `lib/limites.ts`); no PATCH, se enviado, mesma regra. `atributos`: texto de até 4000 caracteres ou `null` (12/11/2026 — antes, sem teto, e número dava `500`).
 - Estatísticas por sistema da sala:
   - `ORDEM_PARANORMAL_1`: aceita `pv`, `pe`, `san`; `pd` é rejeitado (`400`).
   - `ORDEM_PARANORMAL_2`: aceita `pv`, `pd`; `pe` e `san` são rejeitados (`400`).

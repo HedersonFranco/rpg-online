@@ -75,7 +75,12 @@ export function SalaSocketProvider({ salaId, children }: { salaId: string; child
       }
     }
 
-    const aoDesconectar = () => setStatus('reconectando')
+    const aoDesconectar = (motivo: string) => {
+      setStatus('reconectando')
+      // O servidor derruba a conexão quando o JWT vence, e aí o socket.io não tenta de novo sozinho.
+      // Reconectar faz o aperto de mão recusar o token (nao_autenticado) e a aba ir para o login.
+      if (motivo === 'io server disconnect') socket.connect()
+    }
     const aoErroConexao = (erro: Error) => {
       // Middleware recusou o token (expirou): o socket.io não tenta de novo sozinho nesse caso.
       if (erro.message === 'nao_autenticado') sair()
