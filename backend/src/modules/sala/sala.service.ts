@@ -1,9 +1,13 @@
 import { prisma } from '../../lib/prisma.js'
 import { AppError } from '../../errors/AppError.js'
 import { gerarConvite, validarConvite } from '../../engine/convite.js'
-import { emitirParaSala, encerrarSala, expulsarDaSala } from '../../sockets/emissor.js'
+import { emitirParaSala, encerrarSala, esquecerPermissoes, expulsarDaSala } from '../../sockets/emissor.js'
 import { removerArquivo } from '../../lib/armazenamento.js'
-import { criarNoLimite } from '../../lib/limites.js'
+import { criarNoLimite, nomeObrigatorio, travar } from '../../lib/limites.js'
+
+// Entrar por convite e remover/banir pegam a mesma trava: sem ela, quem é banido no meio da própria
+// entrada passaria pela conferência do banimento antes de ele existir e voltaria à mesa.
+const travaMembros = (salaId: string) => `membros:${salaId}`
 
 const LIMITE_SALAS_POR_DONO = 3
 const SISTEMAS_VALIDOS = ['ORDEM_PARANORMAL_1', 'ORDEM_PARANORMAL_2'] as const
@@ -17,10 +21,8 @@ function mensagemMotivoConvite(motivo: 'convite_inexistente' | 'token_invalido' 
   }
 }
 
-export async function criarSala(usuarioId: string, nome: string, sistema: string) {
-  if (!nome?.trim()) {
-    throw new AppError('Nome da sala é obrigatório', 400)
-  }
+export async function criarSala(usuarioId: string, nomeEnviado: unknown, sistema: string) {
+  const nome = nomeObrigatorio(nomeEnviado, 'Nome da sala é obrigatório')
   if (!SISTEMAS_VALIDOS.includes(sistema as (typeof SISTEMAS_VALIDOS)[number])) {
     throw new AppError(`Sistema inválido — use um de: ${SISTEMAS_VALIDOS.join(', ')}`, 400)
   }
@@ -31,7 +33,7 @@ export async function criarSala(usuarioId: string, nome: string, sistema: string
     (tx) => tx.sala.count({ where: { donoId: usuarioId } }),
     (tx) => tx.sala.create({
     data: {
-      nome: nome.trim(),
+      nome,
       sistema: sistema as (typeof SISTEMAS_VALIDOS)[number],
       donoId: usuarioId,
       conviteToken: convite.token,
@@ -135,20 +137,19 @@ export async function entrarComConvite(usuarioId: string, token: string) {
     throw new AppError(mensagemMotivoConvite(resultado.motivo), 400)
   }
 
-  const banido = await prisma.banimento.findUnique({ where: { usuarioId_salaId: { usuarioId, salaId: sala!.id } } })
-  if (banido) {
-    throw new AppError('Você foi banido desta mesa pelo dono.', 403)
-  }
+  const { membro, membroExistente } = await prisma.$transaction(async (tx) => {
+    await travar(tx, travaMembros(sala!.id))
+    const banido = await tx.banimento.findUnique({ where: { usuarioId_salaId: { usuarioId, salaId: sala!.id } } })
+    if (banido) {
+      throw new AppError('Você foi banido desta mesa pelo dono.', 403)
+    }
 
-  const membroExistente = await prisma.membroSala.findUnique({
-    where: { usuarioId_salaId: { usuarioId, salaId: sala!.id } },
+    const membroExistente = await tx.membroSala.findUnique({
+      where: { usuarioId_salaId: { usuarioId, salaId: sala!.id } },
+    })
+    const membro = membroExistente ?? (await tx.membroSala.create({ data: { usuarioId, salaId: sala!.id, papel: 'JOGADOR' } }))
+    return { membro, membroExistente }
   })
-
-  const membro =
-    membroExistente ??
-    (await prisma.membroSala.create({
-      data: { usuarioId, salaId: sala!.id, papel: 'JOGADOR' },
-    }))
 
   if (!membroExistente) emitirParaSala(sala!.id, 'sala:membros', { membros: await membrosDaSala(sala!.id) })
   return { sala: sala!, membro }
@@ -180,6 +181,7 @@ export async function promoverMembro(
   }
 
   const atualizado = await prisma.membroSala.update({ where: { id: membro.id }, data: { papel: novoPapel } })
+  await esquecerPermissoes(salaId, membro.usuarioId)
   emitirParaSala(salaId, 'sala:membros', { membros: await membrosDaSala(salaId) })
   return atualizado
 }
@@ -213,16 +215,17 @@ export async function removerMembro(salaId: string, membroId: string, usuarioId:
     throw new AppError('O dono não pode ser removido da própria mesa', 400)
   }
 
-  await prisma.$transaction([
-    prisma.membroSala.delete({ where: { id: membro.id } }),
-    ...(banir
-      ? [prisma.banimento.upsert({
-          where: { usuarioId_salaId: { usuarioId: membro.usuarioId, salaId } },
-          create: { usuarioId: membro.usuarioId, salaId },
-          update: {},
-        })]
-      : []),
-  ])
+  await prisma.$transaction(async (tx) => {
+    await travar(tx, travaMembros(salaId))
+    await tx.membroSala.delete({ where: { id: membro.id } })
+    if (banir) {
+      await tx.banimento.upsert({
+        where: { usuarioId_salaId: { usuarioId: membro.usuarioId, salaId } },
+        create: { usuarioId: membro.usuarioId, salaId },
+        update: {},
+      })
+    }
+  })
 
   await expulsarDaSala(salaId, membro.usuarioId, banir ? 'banido' : 'expulso')
   emitirParaSala(salaId, 'sala:membros', { membros: await membrosDaSala(salaId) })

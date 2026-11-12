@@ -8,7 +8,7 @@ import { lerExpressao, PedidoRolagemInvalido } from '../../engine/rolagem.js'
 import { PERICIAS_OP1 } from '../../engine/pericias.js'
 import { habilidadesAcumuladas, motivoClasseNexInvalidos, type ProgressaoClasseEntry } from '../../engine/progressaoClasse.js'
 import { emitirParaSala } from '../../sockets/emissor.js'
-import { criarNoLimite, LIMITES } from '../../lib/limites.js'
+import { criarNoLimite, LIMITES, nomeObrigatorio } from '../../lib/limites.js'
 
 type DadosFicha = {
   nome: string
@@ -112,9 +112,7 @@ function validarCamposBasicos(dados: Partial<DadosFicha>, obrigatorio: boolean) 
   for (const [campo, mensagem] of textos) {
     const valor = dados[campo]
     if (valor === undefined && !obrigatorio) continue
-    if (typeof valor !== 'string' || !valor.trim()) {
-      throw new AppError(mensagem, 400)
-    }
+    nomeObrigatorio(valor, mensagem)
   }
   validarAtributos(dados, obrigatorio)
 }
