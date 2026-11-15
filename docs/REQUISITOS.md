@@ -100,7 +100,7 @@ visual em [`DESIGN.md`](../DESIGN.md), decisões em [`CLAUDE.md`](../CLAUDE.md) 
 | RN12 | A rolagem não é gravada; só a última de cada mesa fica em memória. O chat é gravado (até 1000 caracteres). |
 | RN13 | Toda ação destrutiva pede confirmação. |
 | RN14 | A rolagem do mestre é secreta: só os mestres a recebem (e ela não fica como a última da mesa). Com o aviso ligado, os jogadores veem só uma frase, sem resultado. As rolagens dos jogadores e a Iniciativa que o mestre rola para as fichas deles são abertas para todos. |
-| RN15 | Limites por mesa (05/11/2026, escolhidos medindo): 10 mapas, 100 tokens por mapa, 40 agentes, 100 entradas por ficha, 200 NPCs, 20 montarias, 100 pastas. Acima do limite, o pedido é recusado com mensagem que diz o que apagar; pedidos simultâneos não passam do limite. Números e medições no CLAUDE.md, "Limites por mesa". |
+| RN15 | Limites por mesa (05/11/2026, escolhidos medindo): 10 mapas, 100 tokens por mapa, 40 agentes, 100 entradas por ficha, 200 NPCs, 20 montarias, 100 pastas. Acima do limite, o pedido é recusado com mensagem que diz o que apagar; pedidos simultâneos não passam do limite. Números e medições no CLAUDE.md, "Limites por mesa". Nomes (mesa, agente, origem, trilha, NPC, pasta, mapa, objeto no mapa) têm até 100 caracteres, e os atributos do NPC até 4000 (12/11/2026). |
 
 ---
 
@@ -117,8 +117,8 @@ com 6 contas numa mesma mesa (1 mestre + 5 jogadores). Navegador: Microsoft Edge
 | RNF04 | Participantes por mesa | 6 (1 mestre + 5 jogadores) | 6 conexões simultâneas sem perda nem degradação | ✅ |
 | RNF05 | Navegadores | Chrome, Firefox, Edge 120+ e Safari 17+ | Edge/Chromium completo. Firefox 159 (04/11/2026, build de produção, duas instâncias): fluxo principal sem o vídeo — 15 passos ok, de 375px a 1280px (cadastro, login, convite, mesa, ficha, Vida, mapa, token 30 ms, zoom, combate, chat, rolagem) | 🔄 Vídeo no Firefox não verificado: nesta máquina ele não reúne candidatos ICE nem numa página em branco (o Chromium, na mesma rede, conecta). Teclado no Firefox não verificável por automação (janela sem foco). Safari não testado (só em aparelho Apple) |
 | RNF06 | Tema | Escuro como padrão | Produto inteiro no tema escuro "Dossiê de caso" | ✅ |
-| RNF07 | Validade da sessão | JWT de 24 h, sem refresh token | 24 h (lido do token emitido) | ✅ |
-| RNF08 | Proteção de login | 10 tentativas/min por IP em `/auth`; a 11ª → 429 | 10 × 401 e a 11ª × 429 | ✅ |
+| RNF07 | Validade da sessão | JWT de 24 h, sem refresh token | 24 h (lido do token emitido). A conexão em tempo real também vence (12/11/2026): o servidor a derruba quando o JWT expira e a aba aberta vai para o login — no Edge, 0,1 s depois de vencer | ✅ |
+| RNF08 | Proteção de login | 10 tentativas/min por IP em `/auth`; a 11ª → 429 | 10 × 401 e a 11ª × 429. Email inexistente leva o mesmo tempo que senha errada (12/11/2026: 96 ms × 93,5 ms; antes respondia sem rodar o bcrypt e o tempo entregava quem tem conta) | ✅ |
 | RNF09 | Upload de mapa | Máx. 10 MB; tipo pelos bytes | 10,5 MB → 413; tipo detectado pelos bytes (Etapa 10) | ✅ |
 | RNF10 | Upload de avatar | Máx. 2 MB | Foto de agente e de NPC (10/11/2026, API + build de produção no navegador): 2,5 MB → 413; HTML com nome .png → 400; quem não pode → 403 antes de o arquivo chegar ao servidor; trocar, tirar ou apagar ficha/NPC/mesa apaga o arquivo antigo; token muda ao vivo na outra tela. No navegador, 3 MB é recusado sem enviar | ✅ |
 | RNF11 | Reconexão do socket | Automática em até 30 s | Queda percebida em 15 s; reconectou 1,3 s depois de a rede voltar | ✅ |
@@ -129,6 +129,7 @@ com 6 contas numa mesma mesa (1 mestre + 5 jogadores). Navegador: Microsoft Edge
 | RNF16 | Texto do usuário seguro (XSS) | Todo texto sanitizado | Nenhum HTML cru no frontend (React escapa); chat com `<b>` aparece como texto | ✅ |
 | RNF17 | Acessibilidade | WCAG AA como régua | Contraste AA, foco visível, abas por teclado, diálogos com foco preso, texto ≥ 12 px | 🔄 Sem auditoria formal com leitor de tela |
 | RNF18 | Fluxo principal sem erro no console | Login → mesa → ficha → combate → mapa | Zero erros no console no build de produção | ✅ |
+| RNF19 | Abuso no tempo real | Teto de eventos por conexão, sem atingir o uso normal | 60 eventos/s por conexão (12/11/2026): 150 mensagens de uma vez → 60 aceitas e 90 × 429; arrastar token no ritmo do cliente (~30/s) nunca bate no teto | ✅ |
 
 ### 3.1 Tempos da API (30 chamadas cada, milissegundos)
 
@@ -165,4 +166,4 @@ motor de cálculo para NPCs; outros sistemas além de Ordem Paranormal; ferramen
 3. **Firefox e Safari** (RNF05): no Firefox falta só o vídeo, num computador em que ele reúna candidatos ICE; no Safari, o fluxo principal inteiro, num Mac ou iPhone.
 4. **Conferir uma ficha contra o C.R.I.S.** (Etapa 6), manualmente.
 5. **Ficha de RPG II** (RF27), quando o playtest publicar a criação de personagem.
-6. Produção: restringir o CORS (hoje aceita qualquer origem) e publicar política de privacidade (LGPD).
+6. Produção: restringir o CORS (hoje aceita qualquer origem), publicar política de privacidade (LGPD), senha própria do Postgres (a do `docker-compose.yml` é pública; em dev a porta só escuta em `127.0.0.1`), credencial TURN própria e `trust proxy` conforme o proxy.

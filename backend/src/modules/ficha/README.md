@@ -24,7 +24,7 @@ Criação e listagem ficam em `sala.routes.ts`; o resto em `/fichas` (`server.ts
 
 - **Limites (05/11/2026):** 40 agentes por mesa e 100 entradas por ficha (rituais, habilidades, poderes e equipamentos somados) — a ficha inteira vai para a mesa a cada mudança, e 100 entradas no tamanho máximo já são ~440 KB por clique. Transação com trava (`criarNoLimite`); acima → `400`.
 - Só salas `ORDEM_PARANORMAL_1` aceitam ficha por aqui; sala OP2 recebe `400`.
-- Criação: `nome`, `origem` e `trilha` obrigatórios (não vazios); `for/agi/int/vig/pre` inteiros ≥ 0; `nex` padrão 5. No PATCH, campo ausente não é alterado.
+- Criação: `nome`, `origem` e `trilha` obrigatórios (não vazios, até 100 caracteres — `nomeObrigatorio()`); `for/agi/int/vig/pre` inteiros ≥ 0; `nex` padrão 5. No PATCH, campo ausente não é alterado.
 - `classe` precisa ser COMBATENTE, ESPECIALISTA ou OCULTISTA e `nex` um dos 20 degraus (5, 10, …, 95, 99) — senão `400` com o motivo (`motivoClasseNexInvalidos()` em `engine/progressaoClasse.ts`), na criação e no PATCH que recalcula.
 - Qualquer membro da sala lê qualquer ficha dela; não-membro recebe `404`.
 - Edição: permitida se `ficha.usuario_id` é o usuário, ou se ele tem papel `MESTRE` na sala; senão `403`.

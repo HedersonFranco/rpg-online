@@ -70,8 +70,9 @@ export function registrarEventosDaSala(socket: Socket) {
   const emitir = (salaId: string, evento: string, dados: unknown) =>
     socket.nsp.to(nomeSalaSocket(salaId)).emit(evento, dados)
 
-  // Arrastar gera ~30 eventos/s: a permissão por token é consultada uma vez e guardada.
-  const permissaoToken = new Map<string, boolean>()
+  // Arrastar gera ~30 eventos/s: a permissão por token é consultada uma vez e guardada. Fica em
+  // socket.data porque depende do papel: trocar o papel esvazia (esquecerPermissoes em emissor.ts).
+  const permissaoToken: Map<string, boolean> = (socket.data.permissaoToken = new Map())
   const permissaoEscala = new Map<string, boolean>()
 
   async function transmitirParticipantesVideo(salaId: string) {

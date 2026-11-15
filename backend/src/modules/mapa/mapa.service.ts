@@ -3,7 +3,7 @@ import { AppError } from '../../errors/AppError.js'
 import { detectarTipoImagem, removerArquivo, salvarArquivo } from '../../lib/armazenamento.js'
 import { buscarSalaOuFalhar, garantirMestre } from '../sala/sala.service.js'
 import { emitirParaSala } from '../../sockets/emissor.js'
-import { criarNoLimite, garantirVaga, LIMITES } from '../../lib/limites.js'
+import { criarNoLimite, garantirVaga, LIMITES, nomeObrigatorio } from '../../lib/limites.js'
 import type { Prisma } from '../../generated/prisma/client.js'
 
 // O que vai pro token é público pra mesa toda: da ficha, nome e PV (fichas já
@@ -51,9 +51,9 @@ export async function garantirPodeEnviarMapa(usuarioId: string, salaId: string) 
   garantirVaga(await prisma.mapa.count({ where: { salaId } }), LIMITES.mapasPorMesa, LIMITE_MAPAS)
 }
 
-export async function criarMapa(usuarioId: string, salaId: string, nome: unknown, arquivo?: Express.Multer.File) {
+export async function criarMapa(usuarioId: string, salaId: string, nomeEnviado: unknown, arquivo?: Express.Multer.File) {
   await garantirMestre(salaId, usuarioId)
-  if (typeof nome !== 'string' || !nome.trim()) throw new AppError('Nome do mapa é obrigatório', 400)
+  const nome = nomeObrigatorio(nomeEnviado, 'Nome do mapa é obrigatório')
   if (!arquivo) throw new AppError('Envie a imagem do mapa', 400)
 
   const tipo = detectarTipoImagem(arquivo.buffer)
@@ -61,7 +61,7 @@ export async function criarMapa(usuarioId: string, salaId: string, nome: unknown
 
   return criarNoLimite(salaId, LIMITES.mapasPorMesa, LIMITE_MAPAS,
     (tx) => tx.mapa.count({ where: { salaId } }),
-    async (tx) => tx.mapa.create({ data: { salaId, nome: nome.trim(), imagemUrl: await salvarArquivo(arquivo.buffer, tipo) } }))
+    async (tx) => tx.mapa.create({ data: { salaId, nome, imagemUrl: await salvarArquivo(arquivo.buffer, tipo) } }))
 }
 
 // Montaria conta junto com os outros tokens: é a quantidade no mapa que pesa ao arrastar.
@@ -111,6 +111,7 @@ export async function criarToken(
   const mapa = await buscarMapaComoMestre(mapaId, usuarioId)
   if (!coordenadaValida(dados.x) || !coordenadaValida(dados.y)) throw new AppError('x e y devem ser números válidos', 400)
   if (dados.fichaId && dados.npcId) throw new AppError('Um token é de uma ficha OU de um NPC, nunca dos dois', 400)
+  const nome = typeof dados.nome === 'string' && dados.nome.trim() ? nomeObrigatorio(dados.nome, 'Nome do objeto') : null
 
   if (typeof dados.fichaId === 'string') {
     const ficha = await prisma.ficha.findUnique({ where: { id: dados.fichaId } })
@@ -118,14 +119,14 @@ export async function criarToken(
   } else if (typeof dados.npcId === 'string') {
     const npc = await prisma.npc.findUnique({ where: { id: dados.npcId } })
     if (!npc || npc.salaId !== mapa.salaId) throw new AppError('NPC não existe nesta sala', 400)
-  } else if (typeof dados.nome !== 'string' || !dados.nome.trim()) {
+  } else if (!nome) {
     throw new AppError('Objeto sem ficha nem NPC precisa de um nome', 400)
   }
 
   const token = await criarTokenNoMapa(mapaId, {
     fichaId: typeof dados.fichaId === 'string' ? dados.fichaId : null,
     npcId: typeof dados.npcId === 'string' ? dados.npcId : null,
-    nome: typeof dados.nome === 'string' && dados.nome.trim() ? dados.nome.trim() : null,
+    nome,
     x: dados.x,
     y: dados.y,
   })

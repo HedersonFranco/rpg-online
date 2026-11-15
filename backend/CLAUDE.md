@@ -41,6 +41,8 @@ A função deve rodar **sem conexão com o banco** nos testes — as tabelas ent
 ## Banco de dados — decisões de design
 
 - **Limite por mesa = `criarNoLimite()` (`lib/limites.ts`, 05/11/2026):** conta e cria na mesma transação, com `pg_advisory_xact_lock(hashtext(chave))`. Contar fora da transação fura com pedidos simultâneos (o "3 mesas por dono" furava). A coluna contada precisa de `@@index` — o Postgres não indexa chave estrangeira sozinho.
+- **`travar(tx, chave)`** (mesmo arquivo, 12/11/2026) é a trava de `criarNoLimite` sozinha, para outras corridas de "confere e depois grava": mover pasta (`pastas:<salaId>`, senão A→B e B→A fecham um ciclo) e entrar por convite × remover/banir (`membros:<salaId>`). Precisa de transação interativa (`prisma.$transaction(async (tx) => …)`), não a de lista.
+- **`nomeObrigatorio(valor, mensagem)`** (mesmo arquivo): todo nome que o usuário digita passa por ela — texto, aparado, de 1 a 100 caracteres, senão `400`.
 - `Ficha` (OP1) usa colunas tipadas (não JSON livre) — permite queries como "fichas com NEX >= 30".
 - **OP2 usa tabela separada (`FichaOP2`)** em vez de esticar `Ficha` com campos nulos — mesmo padrão já previsto aqui pra um eventual D&D no futuro (`FichaDnd` ou campo `extra Json`), só que aplicado agora pro próprio Ordem Paranormal (v1.3 x RPG II).
 - `ProgressaoClasse` guarda só **habilidades por tier de NEX** (uma linha por classe+NEX). PV/PE/San **não** ficam lá — são fórmula em `ClasseFormula` (uma linha fixa por classe: base + incremento por tier) somada ao atributo do personagem no motor de cálculo. Ver seção "Motor de cálculo".

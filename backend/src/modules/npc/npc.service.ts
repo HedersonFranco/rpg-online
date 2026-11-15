@@ -3,7 +3,7 @@ import { AppError } from '../../errors/AppError.js'
 import { removerArquivo, salvarImagemEnviada } from '../../lib/armazenamento.js'
 import { garantirMestre } from '../sala/sala.service.js'
 import { validarPastaDaSala } from '../pasta/pasta.service.js'
-import { criarNoLimite, LIMITES } from '../../lib/limites.js'
+import { criarNoLimite, LIMITES, nomeObrigatorio } from '../../lib/limites.js'
 import { emitirParaSala } from '../../sockets/emissor.js'
 
 type DadosNpc = {
@@ -21,7 +21,12 @@ const CAMPOS_POR_SISTEMA = {
   ORDEM_PARANORMAL_2: { permitidos: ['pv', 'pd'], proibidos: ['pe', 'san'] },
 } as const
 
+const LIMITE_ATRIBUTOS = 4000 // o mesmo da descrição de uma entrada da ficha
+
 function validarEstatisticas(dados: DadosNpc, sistema: keyof typeof CAMPOS_POR_SISTEMA) {
+  if (dados.atributos != null && (typeof dados.atributos !== 'string' || dados.atributos.length > LIMITE_ATRIBUTOS)) {
+    throw new AppError(`Atributos devem ser um texto de até ${LIMITE_ATRIBUTOS} caracteres`, 400)
+  }
   for (const campo of CAMPOS_POR_SISTEMA[sistema].proibidos) {
     if (dados[campo] !== undefined && dados[campo] !== null) {
       throw new AppError(`Campo "${campo}" não existe no sistema desta sala`, 400)
@@ -46,15 +51,12 @@ async function buscarNpcComoMestre(npcId: string, usuarioId: string) {
 
 export async function criarNpc(usuarioId: string, salaId: string, dados: DadosNpc) {
   const sala = await garantirMestre(salaId, usuarioId)
-  if (!dados.nome?.trim()) {
-    throw new AppError('Nome do NPC é obrigatório', 400)
-  }
+  const nome = nomeObrigatorio(dados.nome, 'Nome do NPC é obrigatório')
   validarEstatisticas(dados, sala.sistema)
   if (dados.pastaId) {
     await validarPastaDaSala(dados.pastaId, salaId)
   }
 
-  const nome = dados.nome.trim()
   return criarNoLimite(salaId, LIMITES.npcsPorMesa,
     `Esta mesa já tem ${LIMITES.npcsPorMesa} NPCs, o máximo. Apague um NPC para criar outro.`,
     (tx) => tx.npc.count({ where: { salaId } }),
@@ -87,9 +89,7 @@ export async function buscarNpc(usuarioId: string, npcId: string) {
 export async function atualizarNpc(usuarioId: string, npcId: string, dados: DadosNpc) {
   const { npc, sala } = await buscarNpcComoMestre(npcId, usuarioId)
 
-  if (dados.nome !== undefined && !dados.nome?.trim()) {
-    throw new AppError('Nome do NPC é obrigatório', 400)
-  }
+  const nome = dados.nome === undefined ? undefined : nomeObrigatorio(dados.nome, 'Nome do NPC é obrigatório')
   validarEstatisticas(dados, sala.sistema)
   if (dados.pastaId) {
     await validarPastaDaSala(dados.pastaId, npc.salaId)
@@ -98,7 +98,7 @@ export async function atualizarNpc(usuarioId: string, npcId: string, dados: Dado
   const atualizado = await prisma.npc.update({
     where: { id: npcId },
     data: semIndefinidos({
-      nome: dados.nome?.trim(),
+      nome,
       pv: dados.pv,
       pe: dados.pe,
       san: dados.san,

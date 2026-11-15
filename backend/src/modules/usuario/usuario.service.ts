@@ -78,11 +78,16 @@ export async function cadastrar(nomeBruto: string, emailBruto: string, senha: st
   return { usuario: paraPublico(usuario), token }
 }
 
+// Hash de uma senha qualquer, só para o login de email inexistente gastar o mesmo tempo de bcrypt.
+const HASH_FALSO = bcrypt.hashSync('senha-que-ninguem-tem', SALT_ROUNDS)
+
 export async function login(email: string, senha: string) {
   const usuario = await prisma.usuario.findUnique({ where: { email: normalizarEmail(email) } })
 
-  // Mensagem genérica de propósito — não revela se o email existe.
-  if (!usuario || !(await bcrypt.compare(typeof senha === 'string' ? senha : '', usuario.senha_hash))) {
+  // Mensagem genérica de propósito — não revela se o email existe. E sempre roda o bcrypt: sem ele,
+  // a resposta para email inexistente saía mais rápido, e o tempo entregava quem tem conta.
+  const confere = await bcrypt.compare(typeof senha === 'string' ? senha : '', usuario?.senha_hash ?? HASH_FALSO)
+  if (!usuario || !confere) {
     throw new AppError('Email ou senha inválidos', 401)
   }
 

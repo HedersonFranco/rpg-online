@@ -29,6 +29,9 @@ Montado em `/salas` (`server.ts`); todas exigem autenticação. `sala.routes.ts`
 - `conviteToken`/`conviteExpiraEm` só aparecem para o dono (`ocultarConvite()` no controller, em `GET /salas`, `GET /salas/:id` e `POST /salas/entrar`); os demais recebem `null`.
 - Entrar com convite de quem já é membro não duplica nem altera o papel; só uma entrada nova emite `sala:membros`.
 - O dono não pode ser removido. Remover apaga só o `MembroSala`; as fichas da pessoa ficam na sala. Banir faz upsert em `Banimento` na mesma transação.
+- Entrar por convite e remover/banir correm sob a mesma trava por mesa (`travar()`, 12/11/2026): a conferência do banimento e a criação do membro não deixam o banimento ser gravado no meio — senão quem é banido durante a própria entrada voltaria à mesa. (O furo não se reproduziu em 60 rodadas no código antigo; a trava fecha a janela por construção.)
+- Trocar papel esvazia o cache de permissão de token das abas abertas da pessoa (`esquecerPermissoes()` em `sockets/emissor.ts`): antes, o mestre rebaixado seguia movendo qualquer token até recarregar.
+- Nome da mesa: até 100 caracteres (`nomeObrigatorio()`).
 - Desbanir só apaga o banimento; a pessoa não volta à mesa sozinha.
 - Deletar sala: o banco cascateia as tabelas filhas; as imagens dos mapas e das montarias são removidas do disco depois (`removerArquivo`).
 - Tempo real:
